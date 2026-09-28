@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --background: #09090b;
+    --foreground: #f4f4f5;
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+    overflow-x: hidden;
+  }
+}
+
+/* Global Scrollbar Erasure for Mobile and PC */
+html, body {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;     /* Firefox */
+}
+
+html::-webkit-scrollbar, 
+body::-webkit-scrollbar,
+*::-webkit-scrollbar {
+  display: none;             /* Chrome, Safari, Opera */
+}
+
+* {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Cyber Animations */
+@keyframes cyberGlow {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(6, 182, 212, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(6, 182, 212, 0.3);
+  }
+}
+
+.animate-cyber-glow {
+  animation: cyberGlow 4s ease-in-out infinite;
+}
+
+@keyframes pageFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-page-in {
+  animation: pageFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@supports (-webkit-touch-callout: none) {
+  input[type="text"], textarea, input[type="email"] {
+    font-size: 16px !important;
+  }
+}
