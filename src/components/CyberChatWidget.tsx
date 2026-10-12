@@ -2,168 +2,204 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@/context/ThemeContext';
-
-interface Message {
-  sender: 'user' | 'system';
-  text: string;
-}
+import { processChatQuery } from '@/utils/chatEngine';
+import { PersonaMode, Message, SessionMemory } from '@/utils/chatEngine/types';
 
 export default function CyberChatWidget() {
   const { theme, themeClasses } = useTheme();
   
   const [isOpen, setIsOpen] = useState(false);
+  const [mode, setMode] = useState<PersonaMode>('HUMAN');
   const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [isThinking, setIsThinking] = useState(false);
+  
+  const [memory, setMemory] = useState<SessionMemory>({
+    interactionCount: 0,
+    lastTopic: 'GREETINGS',
+    userContext: {},
+    conversationHistory: []
+  });
+
   const [messages, setMessages] = useState<Message[]>([
-    { sender: 'system', text: 'SYS_ONLINE. Hey there! I am your AI tech & design liaison. Need a quick troubleshooting guide, or looking to commission a project?' }
+    {
+      id: '1',
+      sender: 'bot',
+      text: "Hey there! 👋 I'm your interactive chat assistant. Ask me anything about hardware repairs, brand design, web engineering, or project estimates!",
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    },
   ]);
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (isOpen) scrollToBottom();
-  }, [messages, isOpen]);
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, isOpen, isThinking]);
 
-  const handleSendMessage = async (textToSend?: string) => {
-    const text = textToSend || input;
-    if (!text.trim() || loading) return;
+  const toggleMode = () => {
+    const nextMode: PersonaMode = mode === 'HUMAN' ? 'EXPERT' : 'HUMAN';
+    setMode(nextMode);
 
-    const userMsg = text.trim();
-    if (!textToSend) setInput('');
-    
-    setMessages((prev) => [...prev, { sender: 'user', text: userMsg }]);
-    setLoading(true);
+    const modeMsg: Message = {
+      id: Date.now().toString(),
+      sender: 'bot',
+      text: nextMode === 'EXPERT'
+        ? "SYS_MODE: [EXPERT] // Telemetry, hardware diagnostic scripts, and technical toolchains active."
+        : "Human Mode Active! 😊 Warm, conversational, and simple guidance enabled.",
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+
+    setMessages((prev) => [...prev, modeMsg]);
+  };
+
+  const handleSendMessage = async (textToSend: string) => {
+    if (!textToSend.trim()) return;
+
+    const userMsg: Message = {
+      id: Date.now().toString(),
+      sender: 'user',
+      text: textToSend,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+
+    setMessages((prev) => [...prev, userMsg]);
+    setInput('');
+    setIsThinking(true);
 
     try {
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMsg }),
-      });
-      const data = await res.json();
-      
-      setMessages((prev) => [...prev, { sender: 'system', text: data.reply }]);
-    } catch {
-      setMessages((prev) => [...prev, { sender: 'system', text: 'ERR: Failed to connect to neural backend.' }]);
+      // Process query through our chunked engine with silent self-growing memory and background intel
+      const { reply, updatedMemory, imageUrl } = await processChatQuery(textToSend, mode, memory);
+      setMemory(updatedMemory);
+
+      const botMsg: Message = {
+        id: (Date.now() + 1).toString(),
+        sender: 'bot',
+        text: reply,
+        imageUrl: imageUrl, // Supports dynamic images returned from background intel
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+
+      setMessages((prev) => [...prev, botMsg]);
+    } catch (error) {
+      console.error("Engine execution error:", error);
     } finally {
-      setLoading(false);
+      setIsThinking(false);
     }
   };
 
   return (
     <div className="fixed bottom-5 right-5 z-50 font-mono">
-      {/* Floating Toggle Button */}
-      <AnimatePresence>
-        {!isOpen && (
-          <motion.button
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0, opacity: 0 }}
-            onClick={() => setIsOpen(true)}
-            className={`px-4 py-3 bg-zinc-950 border ${themeClasses.border} ${themeClasses.accent} rounded-full shadow-lg hover:bg-zinc-900 transition-all flex items-center gap-2.5`}
-          >
-            <span className={`w-2.5 h-2.5 rounded-full animate-ping ${theme === 'cyan' ? 'bg-cyan-400' : theme === 'amber' ? 'bg-amber-400' : 'bg-emerald-400'}`}></span>
-            <span className="text-xs font-bold tracking-wider">AI_ASSISTANT // ENGAGE</span>
-          </motion.button>
-        )}
-      </AnimatePresence>
+      {/* Floating Chat Trigger Bubble */}
+      {!isOpen && (
+        <button
+          onClick={() => setIsOpen(true)}
+          className={`flex items-center gap-2.5 px-4 py-3 rounded-full bg-zinc-900 border ${themeClasses.border} text-zinc-100 shadow-2xl hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer group`}
+        >
+          <span className={`w-2.5 h-2.5 rounded-full animate-ping ${theme === 'cyan' ? 'bg-cyan-400' : theme === 'amber' ? 'bg-amber-400' : 'bg-emerald-400'}`}></span>
+          <span className="text-xs font-bold tracking-wide">CHAT_ASSIST</span>
+        </button>
+      )}
 
-      {/* Interactive Chat Window */}
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            transition={{ duration: 0.2 }}
-            className={`bg-zinc-950 border ${themeClasses.border} rounded-xl w-80 sm:w-[400px] shadow-2xl overflow-hidden flex flex-col h-[520px]`}
-          >
-            {/* Header */}
-            <div className="bg-zinc-900/90 border-b border-zinc-800 px-4 py-3 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span className={`text-xs font-bold ${themeClasses.accent}`}>SYS_INTELLIGENCE // ACTIVE</span>
-              </div>
+      {/* Expanded Chat Window */}
+      {isOpen && (
+        <div className={`w-80 sm:w-96 h-[520px] bg-zinc-950 border ${theme === 'cyan' ? 'border-cyan-500/50 shadow-[0_0_30px_rgba(6,182,212,0.2)]' : theme === 'amber' ? 'border-amber-500/50 shadow-[0_0_30px_rgba(245,158,11,0.2)]' : 'border-emerald-500/50 shadow-[0_0_30px_rgba(16,185,129,0.2)]'} rounded-xl flex flex-col overflow-hidden animate-page-in`}>
+          
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 py-3 bg-zinc-900/90 border-b border-zinc-800">
+            <div className="flex items-center gap-2">
+              <span className={`w-2 h-2 rounded-full animate-pulse ${theme === 'cyan' ? 'bg-cyan-400' : theme === 'amber' ? 'bg-amber-400' : 'bg-emerald-400'}`}></span>
+              <span className={`text-xs font-bold ${themeClasses.accent}`}>CHAT_ENGINE</span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={toggleMode}
+                className={`px-2 py-0.5 rounded text-[10px] font-mono border transition-all cursor-pointer ${
+                  mode === 'HUMAN'
+                    ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/20'
+                    : 'bg-cyan-500/10 border-cyan-500/40 text-cyan-400 hover:bg-cyan-500/20'
+                }`}
+              >
+                MODE: [{mode}]
+              </button>
+
               <button
                 onClick={() => setIsOpen(false)}
-                className="text-xs text-zinc-400 hover:text-zinc-100 bg-zinc-800/60 px-2 py-0.5 rounded transition-colors"
+                className="text-xs text-zinc-500 hover:text-zinc-200 px-1.5 py-0.5 rounded bg-zinc-800/50 hover:bg-zinc-800 transition-colors cursor-pointer"
               >
-                [CLOSE ✕]
+                ✕
               </button>
             </div>
+          </div>
 
-            {/* Quick Suggestion Chips */}
-            <div className="px-3 py-2 bg-zinc-900/40 border-b border-zinc-900 flex gap-1.5 overflow-x-auto text-[10px] [&::-webkit-scrollbar]:hidden">
-              <button onClick={() => handleSendMessage("How do I fix a lagging PC?")} className={`px-2 py-1 bg-zinc-900 border border-zinc-800 ${themeClasses.accent} rounded hover:opacity-80 whitespace-nowrap`}>
-                ⚡ Fix Laggy PC
-              </button>
-              <button onClick={() => handleSendMessage("I need a custom UI design")} className={`px-2 py-1 bg-zinc-900 border border-zinc-800 ${themeClasses.accent} rounded hover:opacity-80 whitespace-nowrap`}>
-                🎨 UI/UX Project
-              </button>
-              <button onClick={() => handleSendMessage("Phone repair inquiry")} className={`px-2 py-1 bg-zinc-900 border border-zinc-800 ${themeClasses.accent} rounded hover:opacity-80 whitespace-nowrap`}>
-                📱 Phone Repair
-              </button>
-            </div>
-
-            {/* Messages Body */}
-            <div className="flex-1 p-4 overflow-y-auto space-y-3 text-xs">
-              {messages.map((msg, idx) => (
+          {/* Message Stream */}
+          <div className="flex-1 p-4 overflow-y-auto space-y-3 text-xs font-sans">
+            {messages.map((msg) => (
+              <div
+                key={msg.id}
+                className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}
+              >
                 <div
-                  key={idx}
-                  className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}
+                  className={`max-w-[85%] p-3 rounded-lg leading-relaxed ${
+                    msg.sender === 'user'
+                      ? `${theme === 'cyan' ? 'bg-cyan-500 text-black' : theme === 'amber' ? 'bg-amber-500 text-black' : 'bg-emerald-500 text-black'} font-medium`
+                      : 'bg-zinc-900 border border-zinc-800 text-zinc-200'
+                  }`}
                 >
-                  <span className="text-[9px] text-zinc-500 mb-0.5">
-                    {msg.sender === 'user' ? 'YOU' : 'AI_LIAISON'}
-                  </span>
-                  <div
-                    className={`p-3 rounded-xl max-w-[90%] leading-relaxed whitespace-pre-wrap ${
-                      msg.sender === 'user'
-                        ? `bg-zinc-900 border ${themeClasses.border} text-zinc-100`
-                        : 'bg-zinc-900 border border-zinc-800 text-zinc-300'
-                    }`}
-                  >
-                    {msg.text}
-                  </div>
+                  {/* Dynamic Image Preview */}
+                  {msg.imageUrl && (
+                    <img
+                      src={msg.imageUrl}
+                      alt="Intelligence preview"
+                      className="w-full h-36 object-cover rounded-md mb-2 border border-zinc-700/50"
+                    />
+                  )}
+                  <div className="whitespace-pre-line">{msg.text}</div>
                 </div>
-              ))}
-              {loading && (
-                <div className={`${themeClasses.accent} text-[11px] animate-pulse flex items-center gap-2`}>
-                  <span className={`w-1.5 h-1.5 rounded-full animate-ping ${theme === 'cyan' ? 'bg-cyan-400' : theme === 'amber' ? 'bg-amber-400' : 'bg-emerald-400'}`}></span>
-                  COMPILING INTELLIGENT RESPONSE...
-                </div>
-              )}
-              <div ref={messagesEndRef} />
-            </div>
+                <span className="text-[9px] font-mono text-zinc-600 mt-1 px-1">
+                  {msg.time}
+                </span>
+              </div>
+            ))}
 
-            {/* Input Form */}
-            <form 
-              onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }} 
-              className="p-3 border-t border-zinc-900 bg-zinc-900/60 flex gap-2"
+            {/* Thinking State */}
+            {isThinking && (
+              <div className="flex items-center gap-1.5 text-[10px] font-mono text-zinc-500 bg-zinc-900/60 p-2 rounded max-w-[120px] border border-zinc-800">
+                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce"></span>
+                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce [animation-delay:0.2s]"></span>
+                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce [animation-delay:0.4s]"></span>
+              </div>
+            )}
+
+            <div ref={chatEndRef} />
+          </div>
+
+          {/* Input Form */}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSendMessage(input);
+            }}
+            className="p-3 bg-zinc-900/90 border-t border-zinc-800 flex gap-2"
+          >
+            <input
+              type="text"
+              placeholder={mode === 'HUMAN' ? "Ask anything..." : "ENTER_QUERY..."}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              className="flex-1 bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-xs text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-zinc-700"
+            />
+            <button
+              type="submit"
+              className={`px-3.5 py-2 rounded text-xs font-mono font-bold transition-all cursor-pointer ${
+                theme === 'cyan' ? 'bg-cyan-500 text-black hover:bg-cyan-400' : theme === 'amber' ? 'bg-amber-500 text-black hover:bg-amber-400' : 'bg-emerald-500 text-black hover:bg-emerald-400'
+              }`}
             >
-              <input
-                type="text"
-                placeholder="Ask for a guide or professional service..."
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                className={`w-full bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-xs text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-zinc-500`}
-              />
-              <button
-                type="submit"
-                disabled={loading}
-                className={`px-4 py-2 font-semibold rounded transition-colors disabled:opacity-50 ${theme === 'cyan' ? 'bg-cyan-500 text-black hover:bg-cyan-400' : theme === 'amber' ? 'bg-amber-500 text-black hover:bg-amber-400' : 'bg-emerald-500 text-black hover:bg-emerald-400'}`}
-              >
-                SEND
-              </button>
-            </form>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              SEND
+            </button>
+          </form>
+        </div>
+      )}
     </div>
   );
 }
