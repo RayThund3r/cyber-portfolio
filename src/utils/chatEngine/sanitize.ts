@@ -26,7 +26,7 @@ export function cleanInput(raw: unknown): string {
     .replace(/\r\n?/g, '\n')
     .replace(/[ \t]+/g, ' ')
     .replace(/\n{3,}/g, '\n\n')
-    .replace(/(.)\1{5,}/gsu, '$1$1$1'); // "aaaaaaaaaa" / "!!!!!!!!!" -> three
+    .replace(/([\s\S])\1{5,}/gu, '$1$1$1'); // "aaaaaaaaaa" / "!!!!!!!!!" -> three
   return s.slice(0, MAX_ENGINE_INPUT).trim();
 }
 

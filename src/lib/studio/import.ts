@@ -52,7 +52,7 @@ export function parseEngineSite(html: string): ImportResult {
   const mk = '@media(prefers-reduced-motion:reduce){*{animation:none!important;transition-duration:.01s!important}}';
   const a = html.indexOf(mk), b = html.indexOf('\n.cartb{');
   d.skin = 'clean';
-  d.customCss = a > 0 && b > a ? html.slice(a + mk.length, b).trim().replace(/\/\*.*?\*\//gs, '').trim() : '';
+  d.customCss = a > 0 && b > a ? html.slice(a + mk.length, b).trim().replace(/\/\*[\s\S]*?\*\//g, '').trim() : '';
   if (d.customCss.length > 4000) { warnings.push('The site had a very long custom style layer; it was shortened.'); d.customCss = d.customCss.slice(0, 4000); }
 
   // ── brand + contact

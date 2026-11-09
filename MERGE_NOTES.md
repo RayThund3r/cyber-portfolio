@@ -34,6 +34,7 @@ This project merges three trees into one:
 - Client IP could be spoofed through `X-Forwarded-For`; platform headers are preferred and the proxy hop count is configurable (`TRUSTED_PROXY_HOPS`).
 - Admin: "Clear log" for the sign-in log (leaves one entry saying it was cleared).
 - 15-puzzle: about 1 in 40 hard boards returned an unsolved path when the optimal search timed out; now falls back to a weighted search (0 failures in 150 boards).
+- Two regular expressions used the dotAll `s` flag, which TypeScript rejects when the project targets older than ES2018 (Vercel build error TS1501). Rewritten with `[\s\S]`, same behaviour (`lib/studio/import.ts`, `utils/chatEngine/sanitize.ts`).
 - Analytics null crash on first load; admin overview route restored.
 
 ## Verification (honest)
