@@ -1,18 +1,69 @@
 // src/app/contact/page.tsx
+//
+// Contact / booking form. Combines:
+//   * repair bookings with real appointment slots, tickets you can track, privacy consent and a
+//     bot check (Cloudflare Turnstile, when configured)
+//   * ?type=repair|design pre-selects the form (the chat's "book a repair" lands on the right one)
+//   * the shared SiteNav replaces the page-level nav; errors scroll into view on phones
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useTheme } from '@/context/ThemeContext';
 import { collectSystemTelemetry, SystemTelemetryData } from '@/utils/telemetry';
+import { hasWhatsApp, whatsappLink } from '@/utils/chatEngine/siteConfig';
+import Turnstile, { turnstileEnabled } from '@/components/Turnstile';
+import { trackEvent } from '@/utils/analytics';
+import { parseContactType } from '@/lib/siteUrls';
+import SuccessCheck from '@/components/ui/SuccessCheck';
+import { buildIcs, downloadIcs } from '@/lib/calendar';
+import { SITE } from '@/utils/chatEngine/siteConfig';
 
-export default function ContactPage() {
+function ContactInner() {
   const { theme, themeClasses } = useTheme();
+  const params = useSearchParams();
+  const urlType = parseContactType(params.get('type'));
+  const nonce = params.get('k'); // changes every time the chat re-opens the form
 
-  const [formType, setFormType] = useState<'design' | 'repair'>('design');
+  const [formType, setFormType] = useState<'design' | 'repair'>(urlType ?? 'design');
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [ticket, setTicket] = useState<string | null>(null);
+  const [honeypot, setHoneypot] = useState('');
+  const [chatContext, setChatContext] = useState('');
+  const [consent, setConsent] = useState(false);
+  // Appointment booking (repairs)
+  const [win, setWin] = useState<{ min: string; max: string; openDays: number[] } | null>(null);
+  const [slotDate, setSlotDate] = useState('');
+  const [slotTime, setSlotTime] = useState('');
+  const [slotRefresh, setSlotRefresh] = useState(0);
+  const [slots, setSlots] = useState<{ time: string; available: boolean }[]>([]);
+  const [slotMsg, setSlotMsg] = useState<string | null>(null);
+  const [copiedRef, setCopiedRef] = useState(false);
+  const [bookedSlot, setBookedSlot] = useState<{ date: string; time: string } | null>(null);
+  // Bot check (only when Turnstile keys are configured)
+  const [tsToken, setTsToken] = useState('');
+  const [tsKey, setTsKey] = useState(0);
+  const onTsToken = useCallback((t: string) => setTsToken(t), []);
+  const draftTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // The chat assistant (or a link) can open this page pre-set to repairs/design (?type=repair)
+  useEffect(() => {
+    if (urlType) {
+      setFormType(urlType);
+      setSubmitted(false);
+      setErrorMessage(null);
+    }
+  }, [urlType, nonce]);
+
+  // A validation error can sit above the fold on a phone (the submit button is at the bottom);
+  // bring it into view so a tap on DISPATCH never looks like it did nothing.
+  const errorRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (errorMessage) errorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [errorMessage]);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -28,23 +79,39 @@ export default function ContactPage() {
 
   // 1. LocalStorage Persistence: Load saved draft on initial mount
   useEffect(() => {
-    const savedDraft = localStorage.getItem('sys_contact_draft');
-    if (savedDraft) {
-      try {
+    try {
+      const savedDraft = localStorage.getItem('sys_contact_draft');
+      if (savedDraft) {
         const parsed = JSON.parse(savedDraft);
-        setFormData(parsed);
-      } catch (e) {
-        console.error('Failed to parse draft', e);
+        setFormData({ name: '', email: '', phone: '', details: '', ...parsed });
       }
+    } catch (e) {
+      console.error('Failed to read draft', e);
+    }
+    try {
+      const handoff = sessionStorage.getItem('sys_chat_handoff');
+      if (handoff) setChatContext(handoff);
+    } catch {
+      /* storage blocked */
     }
   }, []);
 
   // 2. Auto-save draft changes to localStorage as user types
-  const handleChange = (field: string, value: string) => {
-    const updated = { ...formData, [field]: value };
-    setFormData(updated);
-    localStorage.setItem('sys_contact_draft', JSON.stringify(updated));
-    if (errorMessage) setErrorMessage(null);
+  const saveDraftSoon = (updated: typeof formData) => {
+    if (draftTimer.current) clearTimeout(draftTimer.current);
+    draftTimer.current = setTimeout(() => {
+      try { localStorage.setItem('sys_contact_draft', JSON.stringify(updated)); } catch { /* storage blocked */ }
+    }, 400);
+  };
+  // Functional update: always builds on the CURRENT text (an async scan could otherwise overwrite typing).
+  const handleChange = (field: string, value: string | ((prev: string) => string)) => {
+    setFormData((prev) => {
+      const next = typeof value === 'function' ? value(prev[field as keyof typeof prev]) : value;
+      const updated = { ...prev, [field]: next };
+      saveDraftSoon(updated);
+      return updated;
+    });
+    setErrorMessage((m) => (m ? null : m));
   };
 
   // 3. Handler to run the diagnostic scan
@@ -63,7 +130,7 @@ export default function ContactPage() {
         `Screen: ${data.screenResolution} | Connection: ${data.connectionType}\n` +
         `---------------------------------------`;
         
-      handleChange('details', formData.details + telemetryString);
+      handleChange('details', (current) => current + telemetryString);
     } catch (err) {
       console.error("Telemetry collection failed", err);
     } finally {
@@ -77,14 +144,24 @@ export default function ContactPage() {
     setErrorMessage(null);
 
     // Strict validation
-    if (!formData.name.trim() || !formData.email.trim() || !formData.details.trim()) {
-      setErrorMessage('ERROR: All mandatory fields must contain valid data (no whitespace-only entries).');
+    if (!formData.name.trim() || !formData.details.trim()) {
+      setErrorMessage('Please fill in your name and the details of your request.');
+      return;
+    }
+
+    if (!formData.email.trim() && !formData.phone.trim()) {
+      setErrorMessage('Please give us an email address OR a phone / WhatsApp number so we can reply.');
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email.trim())) {
-      setErrorMessage('ERROR: Invalid email format detected. Please verify your address.');
+    if (formData.email.trim() && !emailRegex.test(formData.email.trim())) {
+      setErrorMessage('That email address does not look valid. Please check it, or leave it blank and use a phone number.');
+      return;
+    }
+
+    if (!consent) {
+      setErrorMessage('Please tick the box to agree to us using your details to reply (see Privacy).');
       return;
     }
 
@@ -105,7 +182,11 @@ export default function ContactPage() {
           name: formData.name,
           email: formData.email,
           phone: formData.phone,
-          formType: formType.toUpperCase(),
+          formType,
+          website: honeypot,
+          chatContext,
+          turnstile: tsToken,
+          slot: formType === 'repair' && slotDate && slotTime ? { date: slotDate, time: slotTime } : undefined,
           serviceType: formType === 'design' ? 'UI/UX & Design Inquiry' : 'Hardware Repair Booking',
           details: formData.details,
           telemetry: scannedData,
@@ -118,41 +199,55 @@ export default function ContactPage() {
         throw new Error(result.error || 'TRANSMISSION_FAILED: Server rejected the payload.');
       }
 
+      setTicket(result.ticket || null);
+      setBookedSlot(result.slot || null);
+      trackEvent('contact_submit');
+      if (result.slot) trackEvent('booking_created');
       setSubmitted(true);
-      localStorage.removeItem('sys_contact_draft');
+      try { localStorage.removeItem('sys_contact_draft'); sessionStorage.removeItem('sys_chat_handoff'); } catch { /* ignore */ }
     } catch (err: any) {
       setErrorMessage(err.message || 'TRANSMISSION_FAILED: An unexpected error occurred.');
     } finally {
+      setTsToken('');
+      setTsKey((k) => k + 1);
+      if (slotDate) setSlotRefresh((n) => n + 1); // re-fetch availability (a slot may have just been taken)
       setIsSubmitting(false);
     }
   };
+
+  useEffect(() => {
+    if (formType !== 'repair' || win) return;
+    fetch('/api/slots').then((r) => (r.ok ? r.json() : null)).then((w) => w && setWin(w)).catch(() => {});
+  }, [formType, win]);
+
+  useEffect(() => {
+    if (!slotDate) { setSlots([]); setSlotMsg(null); return; }
+    const ac = new AbortController();
+    fetch(`/api/slots?date=${slotDate}`, { signal: ac.signal })
+      .then((r) => r.json())
+      .then((d) => { setSlots(d.slots || []); setSlotMsg(d.closed || null); })
+      .catch(() => {});
+    return () => ac.abort();
+  }, [slotDate, slotRefresh]);
 
   const handleReset = () => {
     setSubmitted(false);
     setFormData({ name: '', email: '', phone: '', details: '' });
     setScannedData(null);
     setTelemetryConsent(false);
-    localStorage.removeItem('sys_contact_draft');
+    setTicket(null);
+    setBookedSlot(null);
+    setSlotDate('');
+    setChatContext('');
+    try { localStorage.removeItem('sys_contact_draft'); } catch { /* ignore */ }
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans selection:bg-cyan-500 selection:text-black">
-      {/* Responsive Top Navigation */}
-      <nav className="sticky top-0 z-50 bg-zinc-950/90 backdrop-blur-md border-b border-zinc-800/80">
-        <div className="flex items-center justify-between px-4 sm:px-6 py-4 max-w-7xl mx-auto">
-          <Link href="/" className={`font-bold tracking-wider text-sm sm:text-lg ${themeClasses.accent} font-mono hover:opacity-80 transition-colors flex items-center gap-1`}>
-            <span>←</span> <span className="hidden xs:inline">BACK_TO_HOME</span><span className="xs:hidden">HOME</span>
-          </Link>
-          <div className="text-[10px] sm:text-xs font-mono text-zinc-400 bg-zinc-900/80 px-2.5 py-1 rounded border border-zinc-800">
-            SEC: SECURE_TRANSMISSION
-          </div>
-        </div>
-      </nav>
-
+    <div className="w-full">
       {/* Main Container with Responsive Padding */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-10 sm:py-16">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-14">
         <div className="mb-8 sm:mb-10 text-center">
-          <span className={`text-[10px] sm:text-xs font-mono ${themeClasses.accent} tracking-wider uppercase`}>
+          <span className={`text-[11px] sm:text-xs font-mono ${themeClasses.accent} tracking-wider uppercase`}>
             INITIATE_CONTACT // DISPATCH INQUIRY
           </span>
           <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight mt-2 text-zinc-100">
@@ -169,7 +264,7 @@ export default function ContactPage() {
             <button
               type="button"
               onClick={() => { setFormType('design'); setSubmitted(false); setErrorMessage(null); }}
-              className={`py-3 sm:py-2.5 px-4 sm:px-6 rounded-md transition-all text-center ${
+              className={`min-h-11 py-3 sm:py-2.5 px-4 sm:px-6 rounded-md transition-all text-center ${
                 formType === 'design'
                   ? `${theme === 'cyan' ? 'bg-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.4)]' : theme === 'amber' ? 'bg-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.4)]' : 'bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.4)]'} text-black font-semibold`
                   : 'text-zinc-400 hover:text-zinc-200'
@@ -180,7 +275,7 @@ export default function ContactPage() {
             <button
               type="button"
               onClick={() => { setFormType('repair'); setSubmitted(false); setErrorMessage(null); }}
-              className={`py-3 sm:py-2.5 px-4 sm:px-6 rounded-md transition-all text-center ${
+              className={`min-h-11 py-3 sm:py-2.5 px-4 sm:px-6 rounded-md transition-all text-center ${
                 formType === 'repair'
                   ? `${theme === 'cyan' ? 'bg-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.4)]' : theme === 'amber' ? 'bg-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.4)]' : 'bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.4)]'} text-black font-semibold`
                   : 'text-zinc-400 hover:text-zinc-200'
@@ -191,27 +286,88 @@ export default function ContactPage() {
           </div>
         </div>
 
+        {hasWhatsApp() && (
+          <div className="mb-6 text-center">
+            <a
+              href={whatsappLink(formType === 'repair' ? 'Hello, I need a device repair. My device/fault: ' : 'Hello, I would like a design / web project. Details: ')}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-5 py-3 rounded bg-emerald-500 hover:bg-emerald-400 text-black font-mono text-xs font-semibold transition-colors"
+            >
+              💬 Prefer WhatsApp? Chat with us directly
+            </a>
+          </div>
+        )}
+
         {/* Form Card */}
         <div className={`bg-zinc-900/40 border border-zinc-800/80 rounded-xl p-5 sm:p-10 relative overflow-hidden shadow-2xl backdrop-blur-sm`}>
           <div className={`absolute top-0 right-0 w-48 sm:w-64 h-48 sm:h-64 ${theme === 'cyan' ? 'bg-cyan-500/5' : theme === 'amber' ? 'bg-amber-500/5' : 'bg-emerald-500/5'} rounded-full blur-3xl pointer-events-none`}></div>
 
           {/* Inline Error Banner */}
           {errorMessage && (
-            <div className="mb-6 p-4 bg-red-950/50 border border-red-800 text-red-300 rounded-lg text-xs font-mono flex items-start sm:items-center justify-between gap-3">
-              <span>{errorMessage}</span>
+            <div ref={errorRef} className="mb-6 p-4 bg-red-950/50 border border-red-800 text-red-300 rounded-lg text-xs font-mono flex items-start sm:items-center justify-between gap-3">
+              <span role="alert">
+                {errorMessage}
+                {hasWhatsApp() && (
+                  <>
+                    {' '}
+                    <a href={whatsappLink(`Hello, I tried the website form. ${formData.details.slice(0, 300)}`)} target="_blank" rel="noopener noreferrer" className="underline">
+                      Message us on WhatsApp instead
+                    </a>
+                  </>
+                )}
+              </span>
               <button onClick={() => setErrorMessage(null)} className="text-red-400 hover:text-red-200 font-bold shrink-0">✕</button>
             </div>
           )}
 
           {submitted ? (
             <div className="py-12 sm:py-16 text-center space-y-4 font-mono">
-              <div className={`w-16 h-16 ${theme === 'cyan' ? 'bg-cyan-500/10 border-cyan-500 text-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.3)]' : theme === 'amber' ? 'bg-amber-500/10 border-amber-500 text-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.3)]' : 'bg-emerald-500/10 border-emerald-500 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.3)]'} border rounded-full flex items-center justify-center mx-auto text-2xl animate-bounce`}>
-                ✓
+              <div className="flex justify-center">
+                <SuccessCheck size={72} className={themeClasses.accent} />
               </div>
               <h3 className="text-lg sm:text-xl font-bold text-zinc-100">TRANSMISSION_SUCCESSFUL</h3>
               <p className="text-xs sm:text-sm text-zinc-400 max-w-md mx-auto">
-                Your operational parameters have been securely logged and dispatched via email relay. Response incoming.
+                Your request was delivered. We'll reply using the email or phone you gave us.
               </p>
+              {ticket && (
+                <p className="text-xs text-zinc-300">
+                  Reference: <span className="font-bold">{ticket}</span> — quote this if you follow up.
+                </p>
+              )}
+              {bookedSlot && (
+                <p className="text-xs text-zinc-300">📅 Visit requested: <span className="font-bold">{bookedSlot.date} at {bookedSlot.time}</span>. We&apos;ll confirm it.</p>
+              )}
+              <div className="flex flex-wrap justify-center gap-2">
+                {bookedSlot && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const ics = buildIcs({ title: 'Repair visit', date: bookedSlot.date, time: bookedSlot.time, description: ticket ? `Reference ${ticket}. We will confirm this visit.` : 'We will confirm this visit.', location: SITE.location, uid: ticket ? `${ticket}@system-portfolio` : undefined });
+                      if (ics) downloadIcs('repair-visit.ics', ics);
+                    }}
+                    className="min-h-11 rounded border border-zinc-700 px-4 text-xs text-zinc-200 transition-colors hover:border-current"
+                  >
+                    📅 Add to calendar
+                  </button>
+                )}
+                {ticket && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try { await navigator.clipboard.writeText(ticket); setCopiedRef(true); setTimeout(() => setCopiedRef(false), 1800); } catch { /* clipboard blocked */ }
+                    }}
+                    className="min-h-11 rounded border border-zinc-700 px-4 text-xs text-zinc-200 transition-colors hover:border-current"
+                  >
+                    {copiedRef ? 'Copied ✓' : '⧉ Copy reference'}
+                  </button>
+                )}
+              </div>
+              {ticket && (
+                <Link href={`/track?id=${encodeURIComponent(ticket)}`} className={`text-xs underline ${themeClasses.accent}`}>
+                  Track this request →
+                </Link>
+              )}
               <button
                 onClick={handleReset}
                 className={`mt-6 px-6 py-3 bg-zinc-800 border border-zinc-700 ${themeClasses.accent} text-xs rounded hover:border-current transition-all font-mono`}
@@ -234,10 +390,10 @@ export default function ContactPage() {
                   />
                 </div>
                 <div>
-                  <label className={`block text-xs font-mono ${themeClasses.accent} mb-2`}>EMAIL_ADDRESS *</label>
+                  <label className={`block text-xs font-mono ${themeClasses.accent} mb-2`}>EMAIL_ADDRESS (or phone below)</label>
                   <input
                     type="email"
-                    required
+                    autoComplete="email"
                     value={formData.email}
                     onChange={(e) => handleChange('email', e.target.value)}
                     placeholder="client@domain.com"
@@ -247,9 +403,11 @@ export default function ContactPage() {
               </div>
 
               <div>
-                <label className={`block text-xs font-mono ${themeClasses.accent} mb-2`}>PHONE_OR_WHATSAPP_CONTACT</label>
+                <label className={`block text-xs font-mono ${themeClasses.accent} mb-2`}>PHONE_OR_WHATSAPP (or email above)</label>
                 <input
-                  type="text"
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
                   value={formData.phone}
                   onChange={(e) => handleChange('phone', e.target.value)}
                   placeholder="+256 ..."
@@ -262,7 +420,7 @@ export default function ContactPage() {
                   <label className={`text-xs font-mono ${themeClasses.accent}`}>
                     {formType === 'design' ? 'PROJECT_SCOPE & REQUIREMENTS *' : 'DEVICE MODEL & FAULT DESCRIPTION *'}
                   </label>
-                  <span className="text-[10px] font-mono text-zinc-500">
+                  <span className="text-[11px] font-mono text-zinc-400">
                     {formData.details.length} chars
                   </span>
                 </div>
@@ -283,11 +441,11 @@ export default function ContactPage() {
               {formType === 'repair' && (
                 <div className="p-4 bg-zinc-950 border border-zinc-800 rounded-lg space-y-3 font-mono">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-zinc-300 font-semibold">// OPTIONAL: SYSTEM DIAGNOSTIC SCANNER</span>
-                    <span className="text-[10px] text-cyan-400">SECURE_CLIENT_SIDE</span>
+                    <span className="text-xs text-zinc-300 font-semibold">// OPTIONAL: DEVICE INFO</span>
+                    <span className="text-[11px] text-cyan-400">BROWSER_ONLY</span>
                   </div>
                   <p className="text-xs text-zinc-400">
-                    Allow our diagnostic tool to automatically append your device specs, GPU, and platform info to your repair request for faster troubleshooting.
+                    Optionally attach basic info about the browser and device you are using right now (platform, screen size, approximate GPU/memory where your browser reports it). If you're filling this form on a different device from the broken one, skip this and just describe the fault.
                   </p>
                   
                   <label className="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer pt-1">
@@ -297,7 +455,7 @@ export default function ContactPage() {
                       onChange={(e) => setTelemetryConsent(e.target.checked)}
                       className="rounded bg-zinc-900 border-zinc-700 text-cyan-500 focus:ring-0"
                     />
-                    I authorize secure, read-only collection of browser environment & hardware metrics.
+                    I agree to attach this browser/device info to my request.
                   </label>
 
                   {telemetryConsent && (
@@ -310,17 +468,77 @@ export default function ContactPage() {
                       {isScanning ? (
                         <>
                           <div className="w-3 h-3 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin"></div>
-                          SCANNING_HARDWARE_PARAMETERS...
+                          COLLECTING...
                         </>
                       ) : scannedData ? (
-                        '✓ DIAGNOSTIC PAYLOAD ATTACHED'
+                        '✓ INFO ATTACHED'
                       ) : (
-                        'RUN_HARDWARE_DIAGNOSTIC_SCAN →'
+                        'ATTACH_BROWSER_&_DEVICE_INFO →'
                       )}
                     </button>
                   )}
                 </div>
               )}
+
+              {formType === 'repair' && (
+                <div className="space-y-3 rounded-lg border border-zinc-800 bg-zinc-900/30 p-4" data-reveal>
+                  <p className="text-xs font-mono text-zinc-300">📅 BOOK_A_VISIT <span className="text-zinc-400">(optional — pick a time to bring your device in)</span></p>
+                  <input
+                    type="date"
+                    aria-label="Preferred visit date"
+                    value={slotDate}
+                    min={win?.min}
+                    max={win?.max}
+                    onChange={(e) => { setSlotDate(e.target.value); setSlotTime(''); }}
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-cyan-500"
+                  />
+                  {slotMsg && <p className="text-xs text-amber-400" role="status">{slotMsg}</p>}
+                  {slots.length > 0 && (
+                    <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Available times">
+                      {slots.map((sl) => (
+                        <button
+                          key={sl.time}
+                          type="button"
+                          role="radio"
+                          aria-checked={slotTime === sl.time}
+                          disabled={!sl.available}
+                          onClick={() => setSlotTime(sl.time)}
+                          className={`px-3 py-1.5 rounded border text-xs font-mono transition-colors ${slotTime === sl.time ? themeClasses.badge : 'border-zinc-700 text-zinc-300 hover:border-zinc-500'} disabled:opacity-30 disabled:line-through disabled:cursor-not-allowed`}
+                        >
+                          {sl.time}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {turnstileEnabled && <Turnstile key={tsKey} onToken={onTsToken} />}
+
+              {/* Honeypot: hidden from people, bots fill it in */}
+              <div aria-hidden="true" style={{ position: 'absolute', left: '-9999px', width: 1, height: 1, overflow: 'hidden' }}>
+                <label>
+                  Website
+                  <input type="text" name="website" tabIndex={-1} autoComplete="off" value={honeypot} onChange={(e) => setHoneypot(e.target.value)} />
+                </label>
+              </div>
+
+              {chatContext && (
+                <p className="text-[11px] font-mono text-zinc-400">✓ Your chat conversation will be attached so you don't have to repeat yourself.</p>
+              )}
+
+              <label className="flex items-start gap-2 text-xs text-zinc-300 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={consent}
+                  onChange={(e) => setConsent(e.target.checked)}
+                  className="mt-0.5 rounded bg-zinc-900 border-zinc-700 text-cyan-500 focus:ring-0"
+                />
+                <span>
+                  I agree to my details being used to reply to this request. See the{' '}
+                  <Link href="/privacy" className={`underline ${themeClasses.accent}`}>Privacy notice</Link>.
+                </span>
+              </label>
 
               <button
                 type="submit"
@@ -339,7 +557,16 @@ export default function ContactPage() {
             </form>
           )}
         </div>
-      </main>
+      </div>
     </div>
+  );
+}
+
+export default function ContactPage() {
+  // useSearchParams needs a Suspense boundary so the rest of the page can be prerendered.
+  return (
+    <Suspense fallback={null}>
+      <ContactInner />
+    </Suspense>
   );
 }

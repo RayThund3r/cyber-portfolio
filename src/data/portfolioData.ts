@@ -1,5 +1,8 @@
 // src/data/portfolioData.ts
 
+// NOTE: every image below is an Unsplash STOCK photo and the old 'metrics' (e.g. "99.8% Success Rate")
+// were placeholders. Replace images with photos of your REAL work (before/after repairs, actual
+// designs) and add a `metrics` only when it is a true, checkable result.
 export interface ProjectItem {
   id: string;
   title: string;
@@ -10,6 +13,9 @@ export interface ProjectItem {
   tools?: string[];
   clientType?: string;
   gallery?: string[];
+  featured?: boolean;
+  /** A working demo or live site: a /path on this site (a Studio demo) or an https:// link. */
+  liveUrl?: string;
 }
 
 export const ALL_PROJECTS: ProjectItem[] = [
@@ -19,7 +25,6 @@ export const ALL_PROJECTS: ProjectItem[] = [
     category: 'BRANDING',
     description: 'High-contrast neon visual identity, custom typography styling, and promotional poster design for high-tech service workflows.',
     image: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop',
-    metrics: '100% Vector Scalability',
     tools: ['Adobe Illustrator', 'Photoshop', 'Typography'],
     clientType: 'Commercial Event',
     gallery: [
@@ -36,7 +41,6 @@ export const ALL_PROJECTS: ProjectItem[] = [
     category: 'WEBAPP',
     description: 'Blazing-fast client-side rendered architecture featuring terminal microcopy, responsive layouts, and optimized component hierarchy.',
     image: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=1000&auto=format&fit=crop',
-    metrics: '0.4s Load Index',
     tools: ['Next.js', 'Tailwind CSS', 'TypeScript'],
     clientType: 'Personal Brand',
     gallery: [
@@ -53,7 +57,6 @@ export const ALL_PROJECTS: ProjectItem[] = [
     category: 'HARDWARE',
     description: 'Advanced firmware flashing, component-level repair protocols, software unbricking, and performance optimization benchmarks.',
     image: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=1000&auto=format&fit=crop',
-    metrics: '99.8% Success Rate',
     tools: ['UnlockTool', 'SamFw', 'ADB Terminal', 'Hardware Diagnostics'],
     clientType: 'Technical Service',
     gallery: [
@@ -70,7 +73,6 @@ export const ALL_PROJECTS: ProjectItem[] = [
     category: 'UI/UX',
     description: 'Comprehensive mobile and web interface layouts built with Auto Layout, interactive states, and pixel-aligned spacing grids.',
     image: 'https://images.unsplash.com/photo-1581291518633-83b4ebd1d83e?q=80&w=1000&auto=format&fit=crop',
-    metrics: 'Fully Responsive UI',
     tools: ['Figma', 'Auto Layout', 'UI Prototyping'],
     clientType: 'Product Design',
     gallery: [
@@ -87,7 +89,6 @@ export const ALL_PROJECTS: ProjectItem[] = [
     category: 'BRANDING',
     description: 'Digitized name lists and custom graphic patterns formatted precisely for Janome industrial embroidery machines using Wilcom ES.',
     image: 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?q=80&w=1000&auto=format&fit=crop',
-    metrics: '72 Files Processed',
     tools: ['Wilcom ES v9', '.jef Formatter', 'Vector Conversion'],
     clientType: 'Textile Customization',
     gallery: [
@@ -104,7 +105,6 @@ export const ALL_PROJECTS: ProjectItem[] = [
     category: 'WEBAPP',
     description: 'Custom Rainmeter Mond skin configurations and Windhawk YAML window mods engineered for optimal developer visual feedback.',
     image: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=1000&auto=format&fit=crop',
-    metrics: '60 FPS UI Rendering',
     tools: ['Rainmeter', 'Windhawk', 'CSS/YAML'],
     clientType: 'Environment Optimization',
     gallery: [

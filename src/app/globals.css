@@ -1,5 +1,94 @@
 @import "tailwindcss";
 
+/* ------------------------------------------------------------------ */
+/* Breakpoints                                                         */
+/* ------------------------------------------------------------------ */
+/* The original pages used `xs:` classes but no `xs` breakpoint existed, so those classes
+   never applied (nav links were permanently hidden on phones). Defining it fixes that. */
+@theme {
+  --breakpoint-xs: 30rem; /* 480px */
+}
+
+/* ------------------------------------------------------------------ */
+/* Theme tokens                                                        */
+/* ------------------------------------------------------------------ */
+/* One set of CSS variables per theme. Components use `text-accent`, `bg-accent-strong`,
+   `border-accent/40`, `glow-accent`... instead of per-theme ternaries, and the runtime-built
+   `hover:${themeClasses.x}` classes (which Tailwind can never generate) are no longer needed. */
+:root,
+:root[data-theme='cyan'] {
+  --accent: #22d3ee;        /* cyan-400  : text, borders, dots */
+  --accent-strong: #06b6d4; /* cyan-500  : solid buttons       */
+  --accent-rgb: 6 182 212;  /* glows                           */
+}
+:root[data-theme='amber'] {
+  --accent: #fbbf24;
+  --accent-strong: #f59e0b;
+  --accent-rgb: 245 158 11;
+}
+:root[data-theme='emerald'] {
+  --accent: #34d399;
+  --accent-strong: #10b981;
+  --accent-rgb: 16 185 129;
+}
+
+/* ------------------------------------------------------------------ */
+/* Light mode                                                          */
+/* ------------------------------------------------------------------ */
+/* Dark is the default and is untouched. Light mode is switched on with <html data-mode='light'>.
+   Every component already styles itself with Tailwind's zinc scale, so instead of adding a `dark:`
+   variant to hundreds of class strings, light mode re-points the zinc scale itself (950 becomes the
+   lightest surface, 100 the darkest text, and so on). Anything written as `bg-zinc-900`,
+   `text-zinc-400`, `border-zinc-800/80`... flips automatically, including opacity variants. */
+:root[data-mode='light'] {
+  --background: #f4f4f5;
+  --foreground: #18181b;
+
+  --color-zinc-50: #09090b;
+  --color-zinc-100: #18181b;
+  --color-zinc-200: #27272a;
+  --color-zinc-300: #3f3f46;
+  --color-zinc-400: #52525b;
+  --color-zinc-500: #63636b;
+  --color-zinc-600: #74747d;
+  --color-zinc-700: #d4d4d8;
+  --color-zinc-800: #e0e0e4;
+  --color-zinc-900: #ffffff;
+  --color-zinc-950: #f4f4f5;
+  --color-white: #09090b; /* only used for one hover colour, which must stay readable */
+
+  /* Status colours written as -400/-300 (made for dark backgrounds) get darker equivalents. */
+  --color-emerald-400: #047857;
+  --color-cyan-300: #0e7490;
+  --color-cyan-400: #0e7490;
+  --color-amber-400: #b45309;
+  --color-red-200: #991b1b;
+  --color-red-300: #b91c1c;
+  --color-red-400: #c81e1e;
+  --color-red-800: #fca5a5;
+  --color-red-950: #fee2e2;
+}
+
+/* Accent text needs a darker shade on a light page (cyan-400 on white is unreadable). The solid
+   button colour (--accent-strong) stays bright because buttons carry black text. */
+:root[data-mode='light'],
+:root[data-mode='light'][data-theme='cyan'] {
+  --accent: #0e7490;
+}
+:root[data-mode='light'][data-theme='amber'] {
+  --accent: #b45309;
+}
+:root[data-mode='light'][data-theme='emerald'] {
+  --accent: #047857;
+}
+
+@theme inline {
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
 @layer base {
   :root {
     --background: #09090b;
@@ -12,18 +101,100 @@
     font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
     overflow-x: hidden;
   }
+
+  ::selection {
+    background-color: var(--accent-strong);
+    color: #000;
+  }
+
+  /* Visible keyboard focus everywhere (the original had none on most controls). */
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  button,
+  a,
+  [role='button'] {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* No double-tap-zoom delay on controls (phones/tablets only; no effect with a mouse). */
+  button,
+  a,
+  [role='button'],
+  input,
+  select,
+  textarea,
+  summary {
+    touch-action: manipulation;
+  }
+
+  /* iOS Safari otherwise inflates text when a phone is rotated to landscape. */
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
 }
 
-/* Global Scrollbar Erasure for Mobile and PC */
-html, body {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;     /* Firefox */
+/* ------------------------------------------------------------------ */
+/* Utilities                                                           */
+/* ------------------------------------------------------------------ */
+@utility glow-accent {
+  box-shadow: 0 0 20px rgb(var(--accent-rgb) / 0.2);
+}
+@utility glow-accent-md {
+  box-shadow: 0 0 25px rgb(var(--accent-rgb) / 0.4);
+}
+@utility glow-accent-lg {
+  box-shadow: 0 0 50px rgb(var(--accent-rgb) / 0.3);
+}
+@utility text-glow {
+  text-shadow: 0 0 18px rgb(var(--accent-rgb) / 0.55);
+}
+@utility bg-grid {
+  background-image:
+    linear-gradient(rgb(var(--accent-rgb) / 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(var(--accent-rgb) / 0.06) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+@utility mask-fade-b {
+  -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent);
+  mask-image: linear-gradient(to bottom, #000 55%, transparent);
+}
+@utility fade-to-top {
+  background-image: linear-gradient(to top, #09090b, transparent 60%);
+}
+@utility text-gradient-zinc {
+  background-image: linear-gradient(to right, #f4f4f5, #e4e4e7, #a1a1aa);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+@utility safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+@utility safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+@utility touch-target {
+  min-height: 44px;
+  min-width: 44px;
 }
 
-html::-webkit-scrollbar, 
+/* ------------------------------------------------------------------ */
+/* Original scrollbar erasure (kept)                                   */
+/* ------------------------------------------------------------------ */
+html,
+body {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+html::-webkit-scrollbar,
 body::-webkit-scrollbar,
 *::-webkit-scrollbar {
-  display: none;             /* Chrome, Safari, Opera */
+  display: none;
 }
 
 * {
@@ -33,15 +204,19 @@ body::-webkit-scrollbar,
 
 html {
   scroll-behavior: smooth;
+  scroll-padding-top: 5rem; /* sticky nav never covers anchored sections */
 }
 
-/* Cyber Animations */
+/* ------------------------------------------------------------------ */
+/* Cyber animations                                                    */
+/* ------------------------------------------------------------------ */
 @keyframes cyberGlow {
-  0%, 100% {
-    box-shadow: 0 0 15px rgba(6, 182, 212, 0.1);
+  0%,
+  100% {
+    box-shadow: 0 0 15px rgb(var(--accent-rgb) / 0.1);
   }
   50% {
-    box-shadow: 0 0 25px rgba(6, 182, 212, 0.3);
+    box-shadow: 0 0 25px rgb(var(--accent-rgb) / 0.3);
   }
 }
 
@@ -61,11 +236,428 @@ html {
 }
 
 .animate-page-in {
-  animation: pageFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: pageFadeIn 0.45s cubic-bezier(0.32, 0.72, 0, 1) forwards;
 }
 
+/* Staggered entrance that needs no JavaScript (so there is never a flash before GSAP loads).
+   Use:  className="rise" style={{ '--d': '120ms' } as React.CSSProperties} */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.rise {
+  animation: rise 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: var(--d, 0ms);
+}
+
+@keyframes sheetIn {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.animate-sheet-in {
+  animation: sheetIn 0.42s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  animation: marquee 32s linear infinite;
+}
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+@keyframes caretBlink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.caret::after {
+  content: '▍';
+  margin-left: 2px;
+  animation: caretBlink 1s steps(1) infinite;
+}
+
+/* Soft scanline sweep used on hero panels / chat header */
+@keyframes scanSweep {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+.scanline::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  height: 40%;
+  pointer-events: none;
+  background: linear-gradient(to bottom, transparent, rgb(var(--accent-rgb) / 0.06), transparent);
+  animation: scanSweep 6s linear infinite;
+}
+
+/* iOS Safari zooms the page when an input is < 16px. */
 @supports (-webkit-touch-callout: none) {
-  input[type="text"], textarea, input[type="email"] {
+  input[type='text'],
+  input[type='email'],
+  input[type='search'],
+  input[type='tel'],
+  input[type='date'],
+  input[type='password'],
+  input[type='number'],
+  input[type='url'],
+  select,
+  textarea {
     font-size: 16px !important;
   }
+}
+
+/* Motion hooks used by components/motion/PageMotion.tsx (hero intro + magnetic buttons). Nothing is
+   hidden up front by CSS: PageMotion only hides below-the-fold items itself, so no-JS and
+   reduced-motion visitors always see everything. */
+.motion-ready [data-hero-item],
+.motion-ready [data-hero-title] {
+  opacity: 0;
+}
+[data-hero-title] {
+  perspective: 600px;
+}
+/* Printing / saving as PDF: nothing may stay hidden by a pending scroll animation */
+@media print {
+  [data-reveal], [data-hero-item], [data-hero-title] {
+    opacity: 1 !important;
+    translate: none !important;
+  }
+}
+[data-magnetic] {
+  will-change: transform;
+}
+
+/* ------------------------------------------------------------------ */
+/* Light-mode fixes for things the colour remap can't reach            */
+/* ------------------------------------------------------------------ */
+/* Solid accent buttons carry black text; on hover they swapped to the (now dark) text accent. */
+@media (hover: hover) {
+  :root[data-mode='light'] .hover\:bg-accent:hover {
+    background-color: var(--accent-strong);
+    filter: brightness(1.1);
+  }
+}
+/* Faint section dividers (zinc-900) would turn white-on-near-white. */
+:root[data-mode='light'] [class*='border-zinc-900'] {
+  border-color: #e4e4e7;
+}
+/* Project photos are dimmed in dark mode; on a light page that just looks washed out. */
+:root[data-mode='light'] img.opacity-75,
+:root[data-mode='light'] img.opacity-80 {
+  opacity: 1;
+}
+:root[data-mode='light'] .text-gradient-zinc {
+  background-image: linear-gradient(to right, #18181b, #27272a, #52525b);
+}
+:root[data-mode='light'] .fade-to-top {
+  background-image: linear-gradient(to top, #f4f4f5, transparent 60%);
+}
+:root[data-mode='light'] .bg-grid {
+  background-image:
+    linear-gradient(rgb(var(--accent-rgb) / 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(var(--accent-rgb) / 0.1) 1px, transparent 1px);
+}
+:root[data-mode='light'] .glow-accent,
+:root[data-mode='light'] .glow-accent-md,
+:root[data-mode='light'] .glow-accent-lg {
+  box-shadow: 0 4px 18px rgb(var(--accent-rgb) / 0.18);
+}
+:root[data-mode='light'] ::selection {
+  color: #000;
+}
+
+/* Smooth colour change while the toggle is used (class is added for ~350ms by ThemeContext). */
+@media (prefers-reduced-motion: no-preference) {
+  html.theme-transition *,
+  html.theme-transition *::before,
+  html.theme-transition *::after {
+    transition:
+      background-color 0.3s ease,
+      color 0.3s ease,
+      border-color 0.3s ease,
+      box-shadow 0.3s ease !important;
+  }
+}
+
+/* Light/dark toggle icon: shows the mode you'd switch TO, driven by CSS so it never flashes. */
+.mode-icon-to-light {
+  display: inline;
+}
+.mode-icon-to-dark {
+  display: none;
+}
+:root[data-mode='light'] .mode-icon-to-light {
+  display: none;
+}
+:root[data-mode='light'] .mode-icon-to-dark {
+  display: inline;
+}
+
+/* ------------------------------------------------------------------ */
+/* iOS-style motion                                                    */
+/* ------------------------------------------------------------------ */
+/* Spring curves shared by the CSS animations below, the press feedback (PressFeedback.tsx) and the
+   bottom-sheet popup. Everything here is wrapped for visitors who have not asked for reduced motion. */
+:root {
+  --ios-spring: cubic-bezier(0.32, 0.72, 0, 1);
+  --ios-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Success checkmark (also shown fully drawn when motion is reduced) */
+.ios-check-circle {
+  stroke-dasharray: 166;
+  stroke-dashoffset: 0;
+}
+.ios-check-tick {
+  stroke-dasharray: 48;
+  stroke-dashoffset: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .ios-check-circle {
+    stroke-dashoffset: 166;
+    animation: ios-draw 0.6s var(--ios-spring) 0.05s forwards;
+  }
+  .ios-check-tick {
+    stroke-dashoffset: 48;
+    animation: ios-draw 0.4s var(--ios-spring) 0.5s forwards;
+  }
+  @keyframes ios-draw {
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  /* Content that settles into place with a soft spring (used on panels and tab changes) */
+  @keyframes ios-fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(14px) scale(0.985);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  .ios-enter {
+    animation: ios-fade-up 0.5s var(--ios-spring) both;
+  }
+  .ios-stagger > * {
+    animation: ios-fade-up 0.5s var(--ios-spring) both;
+    animation-delay: calc(var(--i, 0) * 40ms);
+  }
+
+  /* Light/dark toggle: the icon that appears pops in with a little twist */
+  @keyframes ios-pop {
+    0% {
+      transform: scale(0.4) rotate(-40deg);
+      opacity: 0;
+    }
+    65% {
+      transform: scale(1.18) rotate(8deg);
+      opacity: 1;
+    }
+    100% {
+      transform: none;
+    }
+  }
+  html.theme-transition .mode-icon-to-light,
+  html.theme-transition .mode-icon-to-dark {
+    animation: ios-pop 0.34s var(--ios-bounce) both;
+  }
+
+  /* Toggles/segmented controls ease like a native switch instead of snapping */
+  input[type='checkbox'],
+  input[type='radio'] {
+    transition: transform 0.25s var(--ios-bounce);
+  }
+  input[type='checkbox']:active,
+  input[type='radio']:active {
+    transform: scale(0.88);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Reduced motion: respect the visitor's OS setting                    */
+/* ------------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .animate-marquee {
+    animation: none;
+  }
+}
+
+/* ---- merged in: chat micro-animations and the Games page ---- */
+@keyframes msgIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.animate-msg-in {
+  animation: msgIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes nudgeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.animate-nudge-in {
+  animation: nudgeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes ringPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgb(var(--accent-rgb) / 0.45);
+  }
+  100% {
+    box-shadow: 0 0 0 12px rgb(var(--accent-rgb) / 0);
+  }
+}
+.animate-ring {
+  animation: ringPulse 1.8s ease-out infinite;
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  animation: marquee 32s linear infinite;
+}
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+@keyframes caretBlink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.caret::after {
+  content: '▍';
+  margin-left: 2px;
+  animation: caretBlink 1s steps(1) infinite;
+}
+
+/* Soft scanline sweep used on hero panels / chat header */
+@keyframes scanSweep {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+.scanline::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  height: 40%;
+  pointer-events: none;
+  background: linear-gradient(to bottom, transparent, rgb(var(--accent-rgb) / 0.06), transparent);
+  animation: scanSweep 6s linear infinite;
+}
+
+/* iOS Safari zooms the page when an input is < 16px. */
+@supports (-webkit-touch-callout: none) {
+  input[type='text'],
+  input[type='email'],
+  input[type='search'],
+  input[type='tel'],
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Reduced motion: respect the visitor's OS setting                    */
+/* ------------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .animate-marquee {
+    animation: none;
+  }
+}
+
+
+/* ---- Games page ---- */
+@keyframes gDrop { from { transform: translateY(var(--from, -300%)); } to { transform: translateY(0); } }
+@keyframes gPop { 0% { transform: scale(0.6); opacity: 0; } 60% { transform: scale(1.08); } 100% { transform: scale(1); opacity: 1; } }
+@keyframes gFlash { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.8); } }
+@keyframes gShake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+.g-drop { animation: gDrop 0.42s cubic-bezier(0.34, 0.9, 0.5, 1) both; }
+.g-pop { animation: gPop 0.28s ease-out both; }
+.g-flash { animation: gFlash 0.9s ease-in-out infinite; }
+.g-shake { animation: gShake 0.25s linear 2; }
+@media (prefers-reduced-motion: reduce) {
+  .g-drop, .g-pop, .g-flash, .g-shake { animation: none !important; }
 }
