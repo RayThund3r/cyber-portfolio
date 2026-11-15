@@ -2,13 +2,13 @@
 // rendered from the same schema (PRO_GROUPS) that drives validation, the generator and the AI.
 'use client';
 
-import { useState } from 'react';
+import { useState, type ReactElement } from 'react';
 import { PRO_GROUPS } from '@/lib/builder/pro';
 import { FieldForm } from './FieldForm';
 import type { EditorApi } from './editorApi';
 import { IconBulb, IconCaretDown, IconCaretRight, IconCart, IconClock, IconHome, IconImage, IconLayers, IconLock, IconMessage, IconPalette, IconPencil, IconPhoneCall, IconSearch, IconSettings, IconSparkle, IconTag } from './icons';
 
-const GROUP_ICON: Record<string, (p: { size?: number }) => JSX.Element> = {
+const GROUP_ICON: Record<string, (p: { size?: number }) => ReactElement> = {
   setup: IconLayers, business: IconHome, look: IconPalette, hero: IconImage, about: IconPencil, services: IconTag, catalog: IconCart, booking: IconClock,
   gallery: IconImage, reviews: IconMessage, faq: IconBulb, contact: IconPhoneCall, features: IconSettings, owner: IconLock, seo: IconSearch,
 };

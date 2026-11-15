@@ -190,7 +190,7 @@ export function detectSiteCommand(input: string, ctx: DetectContext = {}): Detec
   // ---- 2c. template builder / privacy notice ---------------------------------------------------
   if (
     /^(template builder|website builder|site builder|website templates?|web templates?|templates?|diy website)$/.test(q) ||
-    (hasNav && /\b(template builder|website builder|site builder|website templates?|web templates?|templates?|diy website)\b/.test(q))
+    (hasNav && /\b(template builder|website builder|site builder|builder|website templates?|web templates?|templates?|diy website)\b/.test(q))
   ) {
     return done({ type: 'navigate', path: '/builder', label: 'TEMPLATE BUILDER' }, {
       human: 'Opening the template builder. 🎨 Pick a template, customise it with no code, then download your site.',
@@ -275,7 +275,7 @@ export function detectSiteCommand(input: string, ctx: DetectContext = {}): Detec
         expert: `NAV // Opening games (${GAMES.length}).`,
       }, ['Play chess', 'Play Sudoku', 'Which game should I play?']);
     }
-    if (/^(?:which|what) game (?:should|do) (?:i|you)(?: play| recommend| suggest)?(?: please)?$|^(?:recommend|suggest) (?:me )?a game$|^which game should i play$/.test(q)) {
+    if (/^(?:what(?:'s| is)|whats|which is|which one is) (?:the )?(?:best|most fun|coolest|favou?rite) (?:game|one)(?: here| on (?:the )?site| to play)?$|^(?:which|what) (?:one )?(?:should i|do you) (?:try|play) first$|^(?:which|what) game (?:should|do) (?:i|you)(?: play| recommend| suggest)?(?: please)?$|^(?:recommend|suggest) (?:me )?a game$|^which game should i play$/.test(q)) {
       const pick = GAMES[Math.floor(((input.length * 7 + 3) % GAMES.length))];
       return done({ type: 'navigate', path: `/games?g=${pick.id}`, label: `GAMES · ${pick.title.toUpperCase()}` }, {
         human: `Try **${pick.title}**: ${pick.tagline} It trains ${pick.skills.toLowerCase()}. Opening it now. 🎮`,
@@ -481,7 +481,8 @@ export function detectMultiCommand(
   let here = pathname;
   const found: Detected[] = [];
   for (const part of parts) {
-    const d = detectSiteCommand(part, { pathname: here, projects });
+    // A bare second half ("...and then the contact page") borrows its verb.
+    const d = detectSiteCommand(part, { pathname: here, projects }) || (/^(?:the |my |your )?\w+(?: \w+){0,3}$/.test(part) ? detectSiteCommand(`open ${part}`, { pathname: here, projects }) : null);
     if (!d || !d.command || d.command.type === 'close-chat') return null;
     found.push(d);
     if (d.command.type === 'navigate') here = d.command.path;

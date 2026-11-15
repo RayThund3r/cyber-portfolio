@@ -294,7 +294,7 @@ export default function ChatWidget() {
         </div>
       )}
 
-      <AiPanel llm={ai.llm} modelId={ai.modelId} setModelId={ai.setModelId} remote={ai.remote} compact />
+      <AiPanel llm={ai.llm} modelId={ai.modelId} setModelId={ai.setModelId} remote={ai.remote} cloud={ai.cloud} compact />
 
       {/* Hand the conversation to the owner on WhatsApp (shown once it has some substance) */}
       {hasWhatsApp() && ctl.messages.length >= 3 && (

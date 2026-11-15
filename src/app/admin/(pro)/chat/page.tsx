@@ -7,6 +7,7 @@ import type { Stats } from '@/lib/admin/stats';
 import { processChatQuery } from '@/utils/chatEngine';
 import type { PersonaMode, SessionMemory } from '@/utils/chatEngine/types';
 import TrainPanel from '@/components/admin/TrainPanel';
+import CloudAiCard from '@/components/admin/CloudAiCard';
 import { AButton, Badge, Bars, Card, CopyBtn, Donut, Empty, ErrorBox, inputCls, Notice, PageHead, Skel, Tabs, useToast } from '@/components/admin/ui';
 
 type Q = { t: number; q: string; src: string; gap: boolean };
@@ -82,6 +83,7 @@ export default function ChatLab() {
           <Card title="Latest conversation log" icon="clock" className="md:col-span-2" pad={false}>
             <ul className="max-h-96 divide-y divide-zinc-800/70 overflow-y-auto">{qs.slice(0, 60).map((x, i) => <li key={x.t + ':' + i} className="flex items-baseline gap-3 px-4 py-2 text-sm"><span className="w-20 shrink-0 font-mono text-[10px] text-zinc-600">{relTime(x.t)}</span><span className="min-w-0 flex-1 truncate text-zinc-300">{x.q}</span><Badge tone={x.gap ? 'warn' : 'default'}>{x.gap ? 'unanswered' : x.src}</Badge></li>)}{qs.length === 0 && <li className="px-4 py-8 text-center text-xs text-zinc-600">Nothing logged yet.</li>}</ul>
           </Card>
+          <CloudAiCard />
         </div>))}
 
       {tab === 'gaps' && (!qs ? <Skel h="h-56" /> : (

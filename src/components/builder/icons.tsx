@@ -1,6 +1,6 @@
 // src/components/builder/icons.tsx — small inline stroke icons (1.75 stroke, currentColor) for the builder UI.
 // Decorative by default (aria-hidden); put the meaning in the button's aria-label / visible text.
-import type { ReactNode } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 
 type P = { className?: string; size?: number };
 
@@ -55,7 +55,7 @@ export const IconFolder = (p: P) => <Svg {...p}><path d="M3 7a2 2 0 0 1 2-2h4l2 
 export const IconPhoneCall = (p: P) => <Svg {...p}><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2Z" /></Svg>;
 
 /** Category illustrations (the schema keeps emoji for text uses; the UI uses these). */
-const CAT: Record<string, (p: P) => JSX.Element> = {
+const CAT: Record<string, (p: P) => ReactElement> = {
   shop: IconCart,
   booking: (p) => <Svg {...p}><rect x="3.5" y="5" width="17" height="15" rx="2" /><path d="M8 3v4M16 3v4M3.5 10h17" /></Svg>,
   business: (p) => <Svg {...p}><rect x="3" y="7" width="18" height="13" rx="2" /><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M3 13h18" /></Svg>,
@@ -93,7 +93,7 @@ export const IconMoney = (p: P) => <Svg {...p}><rect x="2.5" y="6" width="19" he
 export const IconStep = (p: P & { n: number }) => <span className={`inline-flex items-center justify-center rounded-full font-mono text-[11px] font-bold ${p.className ?? ''}`} style={{ width: p.size ?? 22, height: p.size ?? 22 }}>{p.n}</span>;
 
 /** One neutral stroke icon per block type (the schema's emoji stay for generated site content). */
-const SEC: Record<string, (p: P) => JSX.Element> = {
+const SEC: Record<string, (p: P) => ReactElement> = {
   navbar: (p) => <Svg {...p}><rect x="3" y="5" width="18" height="5" rx="1.5" /><path d="M6 7.500h3M14 7.500h4M3 15h18M3 19h12" /></Svg>,
   hero: (p) => <Svg {...p}><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M7 10h7M7 14h4" /><rect x="7" y="16" width="0.1" height="0.1" /></Svg>,
   about: (p) => <Svg {...p}><circle cx="12" cy="8" r="3.5" /><path d="M5 20c0-4 3-6 7-6s7 2 7 6" /></Svg>,

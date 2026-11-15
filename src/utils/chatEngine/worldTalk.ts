@@ -62,6 +62,17 @@ const EGGS: Array<{ test: RegExp; human: string; expert?: string; fx?: FxName; s
   { test: /^marco$/, human: 'Polo!' },
   { test: /^(?:knock knock)$/, human: "Who's there? ...Actually, it's your turn to say it. 😄" },
   { test: /^(?:i love you|love you|i like you)$/, human: "That's very kind. 💜 I'm a very enthusiastic piece of code, and I'm happy you're here.", fx: 'hearts' },
+  { test: /^(?:tell me a joke about (?:computers?|programming|code))$|^(?:programming|computer|tech|nerd) joke$/, human: 'There are 10 kinds of people: those who understand binary and those who don\'t. 😄' },
+  { test: /^(?:is the cake a lie|the cake is a lie)$/, human: 'The cake is a lie. The warranty, however, is real. 🎂' },
+  { test: /^(?:what(?:\'?s| is) your (?:favou?rite|fav) (?:colou?r|game|food))\??$/, human: 'Cyan, snake, and a freshly flashed firmware, in that order. 😌' },
+  { test: /^(?:do you dream|do you sleep|are you alive|are you sentient|are you self[- ]aware)\??$/, human: 'I run on rules, search and sometimes a small model. No dreams, but I do wake up very fast. ⚡' },
+  { test: /^(?:beam me up(?:,? scotty)?|make it so|engage|live long and prosper)$/, human: 'Engaged. 🖖 Warp factor... whatever this site can handle on mobile data.', fx: 'stars' },
+  { test: /^(?:it'?s over 9000|over 9000|what does the scouter say)\??$/, human: 'It\'s over 9000! 🔥 (The scouter says: this portfolio is well-optimised.)', fx: 'confetti' },
+  { test: /^(?:use the force|may the force be with you|i find your lack of faith disturbing)$/, human: 'The force is strong with this visitor. ✨', fx: 'stars' },
+  { test: /^(?:xyzzy|plugh|iddqd|idkfa|up up down down left right left right b a)$/, human: 'Nothing happens. ...Or does it? 🎮 (Try the arrow keys, then B and A, on any page.)' },
+  { test: /^(?:ctrl ?\+? ?z|undo|undo that)$/, human: 'If only life had an undo. 😅 This site does, in the template builder: Ctrl+Z works there.' },
+  { test: /^(?:coffee|make me (?:a )?coffee|i need coffee)$/, human: 'Error 418: I am a teapot. ☕ (Coffee is on you, though I can offer a repair quote.)' },
+  { test: /^(?:are you (?:chatgpt|gpt|claude|gemini|siri|alexa))\??$/, human: 'Nope. I\'m this site\'s own assistant: rules, a knowledge base, search, and optionally a small model. 🙂' },
   { test: /^(?:tell me a secret|any (?:easter )?eggs?|easter eggs?|secrets?|cheat codes?|konami(?: code)?|hidden (?:stuff|things|features?))\??$/, human: "Secrets exist, but I'll only give hints. 🤫\n- A famous gamer's cheat code works on a keyboard (and as swipes on a phone).\n- Some words do things when typed anywhere on the page.\n- I respond to a certain aerial manoeuvre.\nHappy hunting!", expert: 'EGGS // hint: classic cheat code · typed words · aerial manoeuvre.' },
 ];
 

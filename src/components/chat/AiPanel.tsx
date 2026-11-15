@@ -4,6 +4,7 @@
 // conversation keeps the room.
 'use client';
 
+import { setCloudUserOff } from '@/utils/chatEngine/remoteLLM';
 import {
   LLMState,
   MODEL_OPTIONS,
@@ -17,10 +18,11 @@ interface Props {
   modelId: string;
   setModelId: (id: string) => void;
   remote: boolean;
+  cloud?: { ready: boolean; off: boolean; label: string };
   compact: boolean;
 }
 
-export default function AiPanel({ llm, modelId, setModelId, remote, compact }: Props) {
+export default function AiPanel({ llm, modelId, setModelId, remote, cloud, compact }: Props) {
   const base = 'border-b border-zinc-800 bg-zinc-900/60 px-4 py-2 font-mono text-[10px]';
   const selected = MODEL_OPTIONS.find((m) => m.id === modelId) || MODEL_OPTIONS[1];
 
@@ -51,7 +53,25 @@ export default function AiPanel({ llm, modelId, setModelId, remote, compact }: P
     );
   }
 
+  // Server-hosted model: nothing to download, works on any browser.
+  if (cloud?.ready) {
+    return (
+      <div className={`${base} flex items-center justify-between gap-3`}>
+        <span className="truncate text-emerald-400">● AI ON · {cloud.label} · runs on our server, nothing to download</span>
+        <button type="button" onClick={() => setCloudUserOff(true)} className="hit shrink-0 cursor-pointer py-1 text-zinc-500 hover:text-zinc-200">
+          TURN OFF
+        </button>
+      </div>
+    );
+  }
+  const cloudOffRow = cloud?.off ? (
+    <button type="button" onClick={() => setCloudUserOff(false)} className="hit mb-1 block cursor-pointer text-left text-accent">
+      Cloud AI is off · TURN ON (no download)
+    </button>
+  ) : null;
+
   if (llm.status === 'unsupported') {
+    if (cloudOffRow) return <div className={base}>{cloudOffRow}<span className="text-zinc-500">Or use smart rules + search.</span></div>;
     return (
       <div className={`${base} text-zinc-500`}>
         {remote ? '● Using server AI' : 'AI needs a WebGPU browser (Chrome / Edge). Using smart rules + search for now.'}
@@ -97,7 +117,7 @@ export default function AiPanel({ llm, modelId, setModelId, remote, compact }: P
           <span>AI: OFF · smart rules + search</span>
           <span className="text-accent">ENABLE ▾</span>
         </summary>
-        <div className="mt-2">{controls}</div>
+        <div className="mt-2">{cloudOffRow}{controls}</div>
         <div className="mt-1 text-zinc-600">{note}</div>
       </details>
     );
@@ -105,6 +125,7 @@ export default function AiPanel({ llm, modelId, setModelId, remote, compact }: P
 
   return (
     <div className={base}>
+      {cloudOffRow}
       {controls}
       <div className="mt-1 text-zinc-600">{note}</div>
     </div>

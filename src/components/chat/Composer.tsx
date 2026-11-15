@@ -8,6 +8,7 @@ import { KeyboardEvent, RefObject, useEffect, useMemo, useRef, useState } from '
 import { ACCEPT } from '@/lib/attachmentRules';
 import { SLASH_COMMANDS, SlashCommand } from './chatContent';
 import { useVoiceInput } from './useVoiceInput';
+import { voiceMeta } from '@/utils/chatEngine/voiceText';
 
 interface Props {
   value: string;
@@ -32,15 +33,38 @@ export default function Composer(p: Props) {
   const [sel, setSel] = useState(0);
   const [paletteOff, setPaletteOff] = useState(false);
   const baseText = useRef('');
+  const stopRef = useRef<() => void>(() => {});
 
   const voice = useVoiceInput(
     (text, final) => {
+      // Spoken controls for the box itself: "send it" sends, "cancel" / "start over" clears, "stop listening" stops.
+      if (final) {
+        const vm = voiceMeta(text);
+        if (vm.meta === 'clear') {
+          baseText.current = '';
+          p.onChange('');
+          return;
+        }
+        if (vm.meta === 'stop') {
+          stopRef.current();
+          return;
+        }
+        if (vm.meta === 'send') {
+          const full = ((baseText.current ? baseText.current.trimEnd() + ' ' : '') + vm.text).slice(0, p.max);
+          baseText.current = '';
+          stopRef.current();
+          p.onSend(full);
+          return;
+        }
+      }
       const joined = (baseText.current ? baseText.current.trimEnd() + ' ' : '') + text;
       p.onChange(joined.slice(0, p.max));
       if (final) baseText.current = joined;
     },
     p.onToast
   );
+
+  stopRef.current = voice.stop;
 
   // Grow with the content (up to ~5 lines), shrink back when cleared.
   useEffect(() => {

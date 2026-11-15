@@ -100,3 +100,15 @@ Only v8-only files: `.gitignore.additions` (already in .gitignore) and the old t
 - Fixed: 57px sideways overflow at tablet width (768px) caused by the top nav (links tighter, ASK_AI and long contact label shown from 1024px, short CONTACT label at tablet).
 - Fixed: small touch targets now have an invisible larger hit area (`.hit`): footer links, theme dots, GPS button, DETAILS/PLAY_NOW/back links, logo.
 - Scroll areas: inner panes (chat, terminal, modals, lists, code) now get a slim themed scrollbar (appears on hover on desktop, hairline on phones). The page itself keeps its hidden bar + nav progress line.
+
+## Round 7 — cloud model tier + voice/text reasoning
+- **Cloud AI (no download):** `src/server/llm.ts`, `src/app/api/llm/route.ts` (GET status, POST stream; per-IP rate limit, message validation, same-origin). Client in `remoteLLM.ts` (`checkCloud`, `generateCloud`, 14 s first-token timeout → rules fallback, 60 s cool-down). `AiPanel` shows "AI ON · CLOUD", visitors can TURN OFF. Order: on-device model > cloud > browser-direct `NEXT_PUBLIC_LLM_*` > rules. Env: `LLM_ENDPOINT`, `LLM_MODEL`, `LLM_API_KEY`, `LLM_LABEL`, `LLM_MAX_TOKENS`, `LLM_RATE_PER_MIN` (see `.env.example`).
+- **Hosting kit:** `inference/Dockerfile` + `README.md` (llama.cpp + Qwen2.5 1.5B/0.5B GGUF; HF Space free CPU / Oracle free VM / Ollama). NOT tested here (no network); privacy page should mention chat text goes to the owner's inference server when cloud AI is on.
+- **Voice/text:** `voiceText.ts` (fillers, "port folio" style mishears, spoken numbers, "no I meant…" corrections, negated commands "don't open…" now run nothing, mic commands "send it" / "cancel" / "stop listening" in Composer); `followUp.ts` ("and for a laptop?" swaps device/service in the previous question, "tell me more about X"); "open the builder", "best game", multi-command bare second half, new `mobile-apps` knowledge entry (honest: web/PWA, native apps owner-confirmed).
+- Evaluation corpus of 98 typed/voice-style utterances: 85 → 93 pass (rest are expectation mismatches or intentionally unanswerable).
+- **Build fix (Vercel, @types/react 19):** the global `JSX` namespace no longer exists; `JSX.Element` in `builder/{Editor,ProContent,icons}.tsx` replaced with an imported `ReactElement`. (Local typecheck had a React shim that hid it.)
+
+## Round 8 — admin Cloud AI card + eggs
+- Admin → Chat Lab → Insights: **Cloud AI** card (`components/admin/CloudAiCard.tsx`, `/api/admin/llm`): configured/online badge, host, model, ping, limits, and a test prompt that reports first-word time, total time and words/s. The key is never sent to the browser.
+- **Admin easter eggs** (`components/admin/AdminEggs.tsx`, cosmetic only): type coffee / matrix / party / uptime / root / hello / 42 anywhere outside a text box; the cheat code (↑↑↓↓←→←→ B A) = "root mode" glow; `gg` scrolls to the top.
+- **Assistant eggs** (11 more in `worldTalk.ts`): programmer joke, the cake is a lie, favourite colour, are-you-ChatGPT, error 418 coffee, Star Trek/DBZ/Star Wars lines, xyzzy/iddqd, undo. Whole-message matches only; normal questions are never hijacked.

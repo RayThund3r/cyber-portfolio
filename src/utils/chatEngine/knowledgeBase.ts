@@ -167,6 +167,17 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
     suggestions: ['Business website', 'Portfolio website', 'Web app', 'Get a quote'],
   },
   {
+    id: 'mobile-apps',
+    domain: 'WEB_DEV',
+    title: 'Mobile apps',
+    keywords: ['mobile app', 'mobile apps', 'android app', 'ios app', 'iphone app', 'app development', 'native app', 'flutter', 'react native', 'play store', 'app store', 'pwa', 'build an app', 'make an app'],
+    content: 'The listed work is web: responsive web apps and installable web apps (PWAs). Native iOS/Android store apps are not listed; the owner confirms what is possible.',
+    reply:
+      "The work I can point to is **web**: responsive web apps that work great on phones, and installable web apps (PWAs) that sit on the home screen. 📱 Native Play Store / App Store apps aren't something I can promise from here, so I'd rather pass that to the owner to confirm.\n\nTell me what the app should do and I'll put a short brief together.",
+    expert: 'WEB_ENGINEERING // Listed: responsive web apps, PWA. Native store apps: not listed, owner to confirm.',
+    suggestions: ['Web app', 'Get a quote', 'Send this to the owner'],
+  },
+  {
     id: 'computer-types',
     domain: 'GENERAL_QA',
     title: 'Types of computers',

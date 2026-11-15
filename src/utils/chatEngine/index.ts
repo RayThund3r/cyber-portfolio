@@ -44,12 +44,14 @@ import { tryMathPlus } from './mathPlus';
 import { tryUtilities } from './utilities';
 import { cleanInput, sanitizeMemory } from './sanitize';
 import { normalizeSlang } from './slang';
+import { isNegatedCommand, normalizeSpoken } from './voiceText';
+import { resolveFollowUp } from './followUp';
 import { tryDates } from './dates';
 import { tryCompare } from './compare';
 import { termReply, tryGlossary } from './glossary';
 import { buildMessages } from './promptBuilder';
 import { generateLocal, isLocalLLMReady, labelForModel, getLLMState } from './localLLM';
-import { generateRemote, isRemoteLLMConfigured } from './remoteLLM';
+import { cloudLabel, generateCloud, generateRemote, isCloudReady, isRemoteLLMConfigured, markCloudDown } from './remoteLLM';
 import { FALLBACK_SUGGESTIONS } from './siteConfig';
 import { normalize, tokens, truncate } from './text';
 import { buildFileReply, fileQuestion, handoffIntent, handoffReply } from './fileInsights';
@@ -69,11 +71,12 @@ import { personaReply, tryPersona } from './persona';
 import { reasonReply, rewriteNegation, stripLead, tryReason } from './reasoner';
 
 export function isAIAvailable(): boolean {
-  return isLocalLLMReady() || isRemoteLLMConfigured();
+  return isLocalLLMReady() || isCloudReady() || isRemoteLLMConfigured();
 }
 
 function aiLabel(): string {
   if (isLocalLLMReady()) return `ON-DEVICE (${labelForModel(getLLMState().modelId)})`;
+  if (isCloudReady()) return `CLOUD (${cloudLabel()})`;
   if (isRemoteLLMConfigured()) return 'SELF-HOSTED';
   return 'OFF (rules + search)';
 }
@@ -178,7 +181,10 @@ async function route(
   // step below, including the safety check, sees plain language.
   // Filler in front of a question ("ok and how long?") is dropped, and "I don't want a website, just a logo" becomes
   // the request it really is, so nothing below mistakes the opposite for what was asked.
-  const raw = rewriteNegation(stripLead(normalizeSlang(input.trim()).text)).text;
+  const spoken = normalizeSpoken(input);
+  const negated = isNegatedCommand(spoken.text);
+  const plain = rewriteNegation(stripLead(normalizeSlang(spoken.text).text)).text;
+  const raw = resolveFollowUp(plain, memory).text;
   const q = normalize(raw);
   const wordCount = q ? q.split(' ').length : 0;
   const name = memory.userContext?.name as string | undefined;
@@ -205,6 +211,14 @@ async function route(
   const safety = evaluateInputSafety(raw, mode);
   if (!safety.isSafe) {
     return finish(memory, raw, safety.safeReply || 'Request blocked by policy.', 'safety');
+  }
+
+  // 1a. "Don't take me to the portfolio": the opposite of a command. Nothing is run.
+  if (negated) {
+    return finish(memory, raw, mode === 'EXPERT' ? 'NAV // Cancelled. No action taken.' : 'No problem, I\'ll stay right here. 👍 Tell me where you\'d like to go whenever you\'re ready.', 'system', {
+      topic: 'SYSTEM',
+      suggestions: ['Show me your projects', 'Open services', 'Book a repair'],
+    });
   }
 
   // 1b. "Send this to the owner": opens the hand-off card in the widget. Nothing is sent from here;
@@ -491,6 +505,15 @@ async function route(
       let source: ResponseSource = 'local-ai';
       if (isLocalLLMReady()) {
         text = await generateLocal(messages, onToken, options.signal);
+      } else if (isCloudReady()) {
+        source = 'remote-ai';
+        try {
+          text = await generateCloud(messages, onToken, options.signal);
+        } catch (e) {
+          if (options.signal?.aborted) throw e;
+          markCloudDown(); // wake-up too slow or server down: skip it for a while, answer from rules now
+          throw e;
+        }
       } else {
         source = 'remote-ai';
         text = await generateRemote(messages, onToken, options.signal);

@@ -6,7 +6,7 @@
 // Desktop: tool rail + panel + canvas + inspector.  Mobile: canvas + bottom navigation + bottom sheets.
 'use client';
 
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { type ReactElement, useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import Link from 'next/link';
 import { SECTION_DEFS, newSection, type SectionType, type SiteConfig } from '@/lib/builder/schema';
 import { readinessWarnings } from '@/lib/builder/readiness';
@@ -25,11 +25,11 @@ import type { TemplateDef } from '@/lib/builder/templates';
 
 import { IconCart, IconCheck, IconCheckCircle, IconClose, IconCode, IconCopy, IconDesktop, IconEye, IconEyeOff, IconImage, IconLayers, IconLock, IconPalette, IconPaperclip, IconPencil, IconPhone, IconPlus, IconSettings, IconSparkle, IconTablet, IconTrash, IconWarn, IconBulb, IconFolder } from './icons';
 type Tool = 'layers' | 'add' | 'media' | 'design' | 'ai' | 'code' | 'settings' | 'content';
-const TOOLS: { k: Tool; icon: (p: { size?: number }) => JSX.Element; label: string }[] = [
+const TOOLS: { k: Tool; icon: (p: { size?: number }) => ReactElement; label: string }[] = [
   { k: 'layers', icon: IconLayers, label: 'Layers' }, { k: 'add', icon: IconPlus, label: 'Add' }, { k: 'media', icon: IconImage, label: 'Media' },
   { k: 'design', icon: IconPalette, label: 'Design' }, { k: 'ai', icon: IconSparkle, label: 'AI' }, { k: 'code', icon: IconCode, label: 'Code' }, { k: 'settings', icon: IconSettings, label: 'Project' },
 ];
-const TOOLS_PRO: { k: Tool; icon: (p: { size?: number }) => JSX.Element; label: string }[] = [
+const TOOLS_PRO: { k: Tool; icon: (p: { size?: number }) => ReactElement; label: string }[] = [
   { k: 'content', icon: IconLayers, label: 'Content' }, { k: 'media', icon: IconImage, label: 'Media' }, { k: 'ai', icon: IconSparkle, label: 'AI' }, { k: 'code', icon: IconCode, label: 'Code' }, { k: 'settings', icon: IconSettings, label: 'Project' },
 ];
 const ZOOMS = [0.25, 0.5, 0.67, 0.75, 0.9, 1, 1.25, 1.5, 2];
