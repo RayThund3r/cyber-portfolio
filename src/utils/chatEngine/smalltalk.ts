@@ -5,6 +5,7 @@
 
 import { PersonaMode, TopicDomain } from './types';
 import { normalize, pick } from './text';
+import { SITE } from './siteConfig';
 
 export interface SmallTalkResult {
   reply: string;
@@ -108,6 +109,58 @@ const RULES: Rule[] = [
     test: /\b(bye|goodbye|see you|see ya|cya|good night|goodnight|ttyl|later|gotta go|have to go)\b/,
     human: (n) => [`Take care${hello(n)}! 👋 Come back anytime.`, 'Bye for now! 👋 I\'m here whenever you need me.'],
     expert: ['SYS_DISCONNECT // Session idle. Link remains available.'],
+    keepTopic: true,
+  },
+  {
+    id: 'about-you',
+    test: /\b(tell me (?:something |a bit |a little |a few things |more |anything )?about (yourself|yourselves|urself|you|u)|about (yourself|yourselves|urself)|what do you know about yourself|introduce (yourself|urself)|describe (yourself|urself)|what'?s your story|how (do|were) you (work|made|built)|what are you made (of|from)|how (do|does) this (chat|bot|assistant) work)\b/,
+    human: () => [
+      `Happy to! 🤖 I'm **${SITE.assistantName}**, the assistant that lives on this site (${SITE.location}). I'm not a person and I'm not a giant cloud AI: I run in **your browser** using rules, a knowledge base about the work here, exact maths and dates, and a Wikipedia lookup for general questions. I learn your preferences during the chat, remember what we've said, and can take you anywhere on the site.\n\n**What the studio does:**\n${SITE.services.map((x) => '- ' + x.split(' (')[0]).join('\n')}\n\nWant a tour, a quote, or to see the projects?`,
+    ],
+    expert: ['SYS_IDENT // Hybrid in-browser assistant: BM25 retrieval + rule engine + exact calc/date modules + Wikipedia lookup + optional on-device model. History local only. Say "tour" for a walkthrough.'],
+    suggestions: ['Give me a tour', 'What can you do?', 'Show me your projects', 'Get a quote'],
+    keepTopic: true,
+  },
+  {
+    id: 'about-owner',
+    test: /\b(name of the (?:owner|developer|designer|creator|founder|person behind)|(?:owner|developer|designer|creator|founder)'?s name|(?:what(?:'s| is)|who(?:'s| is)) the (?:owner|developer|designer|creator)'?s? ?(?:name)?|tell me (more )?about (the )?(owner|creator|developer|designer|founder|builder|person behind)|who (is|runs|owns) (the owner|this (site|studio|shop|business|portfolio))|who (made|built|designed|owns) (this|the) (site|website|portfolio)|who'?s behind (this|the) (site|studio|portfolio))\b/,
+    human: () => [
+      `This is a one-person studio based in **${SITE.location}**: hardware repair (phones and PCs), graphic and brand design, embroidery/print file prep, and web development. I don't have a personal biography to share here, and I won't make one up. 🙂 The best way to get to know the work is the **projects** section, and for anything personal you can message the owner directly through me.`,
+    ],
+    expert: [`OWNER // Solo studio, ${SITE.location}. Bio not published in-chat. Use "show projects" or "send a message to the owner".`],
+    suggestions: ['Show me your projects', 'Send a message to the owner', 'Give me a tour'],
+    keepTopic: true,
+  },
+  {
+    id: 'about-site',
+    test: /\b(tell me (?:something |a bit |a little |more )?about (?:this|the|your) (?:site|website|web site|portfolio|page|place|studio|shop|business|company)|what is this (?:site|website|place|portfolio)|what(?:'s| is) this (?:site|website|place) (?:about|for)|what do you (?:guys |people )?(?:do|offer|sell)|what(?:'s| is) (?:this|your) (?:business|studio|shop) about)\b/,
+    human: () => [
+      `This is the portfolio and work shop of a one-person studio in **${SITE.location}**. 🛠️ It does:\n${SITE.services.map((x) => '- ' + x.split(' (')[0]).join('\n')}\n\nYou can browse past projects, try the **games** page, build a website from a template, book a repair or track an order. Want me to take you somewhere?`,
+    ],
+    expert: [`SITE // Solo studio, ${SITE.location}. Repair · design · web. Routes: /portfolio /services /contact /games /builder /track.`],
+    suggestions: ['Show me your projects', 'Open services', 'Give me a tour', 'Play a game'],
+    keepTopic: true,
+  },
+  {
+    id: 'about-work',
+    test: /\b(tell me (?:a bit |a little |something |more )?about (?:your|the owner'?s|his|her) (?:work|experience|skills|background|projects|services|expertise)|what(?:'s| is| are) your (?:work|skills|experience|background|expertise|specialt(?:y|ies))|how (?:long|experienced) (?:have you|are you)|what are you good at)\b/,
+    human: () => [
+      `The studio covers three areas:\n${SITE.services.map((x) => '- ' + x).join('\n')}\n\nThe quickest way to judge the work is to look at it. Want me to open the projects, or tell you what a job would cost?`,
+    ],
+    expert: ['WORK // Hardware repair · graphic/brand design · embroidery & print prep · web development. Say "show projects" or "get a quote".'],
+    suggestions: ['Show me your projects', 'Get a quote', 'Open services'],
+    keepTopic: true,
+  },
+  {
+    id: 'about-visitor',
+    test: /^(?:please )?(?:tell me (?:something |a bit |anything |what you know )?about me|what do you know about me|do you know me|who am i|what do you remember about me|do you remember me)\??$/,
+    human: (n) => [
+      n
+        ? `You're **${n}**, as far as I know. 🙂 I only remember what you tell me in this chat (and only in this browser): your name, your device, what you're after. Nothing is sent anywhere. Want to tell me what you need?`
+        : "I don't know much about you yet, and that's on purpose: I only remember what you tell me, only in this browser, and nothing is sent anywhere. Tell me your **name**, your **device** or what you're **after**, and I'll use it to help better.",
+    ],
+    expert: ['MEM // Session memory is local to this browser. Provide: name, device, goal.'],
+    suggestions: ['My name is…', 'I need a repair', 'I need a website'],
     keepTopic: true,
   },
   {

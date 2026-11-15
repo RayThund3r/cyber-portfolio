@@ -11,6 +11,11 @@ import { THEMES, Theme, useTheme } from '@/context/ThemeContext';
 import { openChat } from '@/lib/chatBus';
 import { portfolioUrl } from '@/lib/siteUrls';
 import { useScramble, useTilt } from '@/lib/useGsapEffects';
+import Icon from '@/components/ui/Icon';
+import StatusTicker from '@/components/site/StatusTicker';
+import { useNetStatus } from '@/lib/useNetStatus';
+import FeatureShowcase from '@/components/site/FeatureShowcase';
+import DevSection from '@/components/site/DevSection';
 
 
 const JOKES = [
@@ -33,6 +38,7 @@ function detectOS(ua: string): string {
 }
 
 export default function HomePage() {
+  const netState = useNetStatus();
   const router = useRouter();
   const { setTheme, cycleTheme, setColorMode, toggleColorMode } = useTheme();
   // Featured projects come from the CMS (/admin) and fall back to the built-in list.
@@ -90,7 +96,7 @@ export default function HomePage() {
     } else if (cmd === 'contact') {
       router.push('/contact');
     } else if (cmd === 'home') {
-      setTerminalOutput('You are already home. 🏠');
+      setTerminalOutput('You are already home.');
     } else if (cmd === 'ask' || cmd === 'chat') {
       setTerminalOutput('OPENING_CHAT_CHANNEL...');
       openChat();
@@ -99,7 +105,7 @@ export default function HomePage() {
     } else if (cmd === 'os') {
       setTerminalOutput(`PLATFORM: ${clientSpecs.platform} | ESTIMATED RAM: ${clientSpecs.memory}`);
     } else if (cmd === 'ping') {
-      setTerminalOutput('NETWORK_LATENCY: 14ms // NODE: NDEJJE SECURE RELAY // STATUS: OPTIMAL');
+      setTerminalOutput('NETWORK_LATENCY: 14ms // NODE: SECURE RELAY // STATUS: OPTIMAL');
     } else if (cmd === 'joke') {
       setTerminalOutput(`JOKE: ${JOKES[Math.floor(Math.random() * JOKES.length)]}`);
     } else if (cmd === 'hack') {
@@ -155,21 +161,7 @@ export default function HomePage() {
   return (
     <div ref={pageRef} className="flex-1 bg-zinc-950 font-sans text-zinc-100">
       {/* Live diagnostic ticker */}
-      <div className="overflow-hidden border-b border-zinc-800/80 bg-zinc-900/60 py-2 font-mono text-[11px] text-zinc-400">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-6 overflow-x-auto whitespace-nowrap px-4 sm:px-8 [&::-webkit-scrollbar]:hidden">
-          <div className="flex items-center gap-6">
-            <span className="flex items-center gap-2 text-emerald-400">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
-              SYSTEM_STATUS: ONLINE
-            </span>
-            <span>NODE: NDEJJE, UG</span>
-            <span className="text-accent">
-              CLIENT: [{clientSpecs.os} | {clientSpecs.resolution}]
-            </span>
-          </div>
-          <div className="hidden font-semibold text-accent md:block">SECURE_ENVIRONMENT // 100% OPERATIONAL</div>
-        </div>
-      </div>
+      <StatusTicker state={netState} client={`${clientSpecs.os} | ${clientSpecs.resolution}`} />
 
       {/* Hero */}
       <header className="relative mx-auto max-w-7xl px-4 pb-12 pt-12 sm:px-8 sm:pt-20">
@@ -211,7 +203,7 @@ export default function HomePage() {
               className="rise mt-5 font-mono text-[11px] text-zinc-500 transition-colors hover:text-accent max-sm:py-2"
               style={delay(340)}
             >
-              💬 Or just tell the assistant where to go →
+              <Icon name="chat" size={13} className="mr-1.5 align-[-2px]" />Or just tell the assistant where to go →
             </button>
           </div>
 
@@ -350,7 +342,7 @@ export default function HomePage() {
                 <span className="font-mono text-[10px] text-accent opacity-80">{project.metrics ?? project.category}</span>
                 <Link
                   href={portfolioUrl({ open: project.id })}
-                  className="inline-flex items-center gap-1 py-1 font-mono text-xs text-zinc-300 transition-all duration-200 group-hover:translate-x-1 group-hover:text-accent"
+                  className="hit inline-flex items-center gap-1 py-1 font-mono text-xs text-zinc-300 transition-all duration-200 group-hover:translate-x-1 group-hover:text-accent"
                 >
                   DETAILS <span aria-hidden="true">→</span>
                 </Link>
@@ -359,6 +351,9 @@ export default function HomePage() {
           ))}
         </div>
       </section>
+
+      <FeatureShowcase />
+      <DevSection />
     </div>
   );
 }

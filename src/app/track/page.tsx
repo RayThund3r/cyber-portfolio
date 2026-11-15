@@ -11,6 +11,7 @@ import { hasWhatsApp, whatsappLink } from '@/utils/chatEngine/siteConfig';
 import { trackEvent } from '@/utils/analytics';
 import { buildIcs, downloadIcs } from '@/lib/calendar';
 
+import Icon from '@/components/ui/Icon';
 const fmtDate = (iso: string) =>
   new Date(iso).toLocaleString('en-UG', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Africa/Kampala' });
 
@@ -116,7 +117,7 @@ function TrackInner() {
   return (
     <div className="flex-1 bg-zinc-950 text-zinc-100 font-sans">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-10 space-y-6">
-        <Link href="/" className={`font-mono text-xs ${themeClasses.accent} hover:opacity-80`}>← Home</Link>
+        <Link href="/" className={`hit font-mono text-xs ${themeClasses.accent} hover:opacity-80`}>← Home</Link>
         <header data-reveal>
           <h1 className="text-3xl font-extrabold">Track your request</h1>
           <p className="text-sm text-zinc-400 mt-2">Enter the reference we gave you and the phone number or email you used.</p>
@@ -156,7 +157,7 @@ function TrackInner() {
 
               {ticket.slot && (
                 <p className="text-sm text-zinc-300 mb-2">
-                  📅 Visit: <strong>{ticket.slot.date} at {ticket.slot.time}</strong>
+                  <Icon name="calendar" size={13} className="mr-1 align-[-2px]" />Visit: <strong>{ticket.slot.date} at {ticket.slot.time}</strong>
                   <button
                     type="button"
                     className="ml-3 min-h-9 rounded border border-zinc-700 px-2.5 text-xs text-zinc-300 hover:border-zinc-500"
@@ -226,7 +227,7 @@ function TrackInner() {
 
             <div className="flex flex-wrap gap-3 font-mono text-xs">
               <button onClick={() => lookup()} className="px-4 py-2 rounded border border-zinc-700 hover:border-zinc-500 cursor-pointer">↻ Refresh</button>
-              {hasWhatsApp() && <a href={whatsappLink(`Hello, about my request ${ticket.id}: `)} target="_blank" rel="noopener noreferrer" className="px-4 py-2 rounded border border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/10">💬 Ask on WhatsApp</a>}
+              {hasWhatsApp() && <a href={whatsappLink(`Hello, about my request ${ticket.id}: `)} target="_blank" rel="noopener noreferrer" className="px-4 py-2 rounded border border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/10"><Icon name="chat" size={13} className="mr-1 align-[-2px]" />Ask on WhatsApp</a>}
             </div>
           </section>
         )}

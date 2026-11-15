@@ -508,5 +508,11 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
  * (typo-tolerant, ranked) instead of this list being scanned with `includes()`.
  */
 export function getActiveKnowledgeBase(): KnowledgeEntry[] {
-  return KNOWLEDGE;
+  return TAUGHT.length ? [...KNOWLEDGE, ...TAUGHT] : KNOWLEDGE;
+}
+
+/** Answers the owner taught from the admin panel (see brain.ts). Empty until the site fetches them. */
+let TAUGHT: KnowledgeEntry[] = [];
+export function setTaughtKnowledge(entries: KnowledgeEntry[]): void {
+  TAUGHT = entries;
 }

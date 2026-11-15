@@ -11,6 +11,20 @@
 'use client';
 
 import { tap } from '@/lib/haptics';
+import { CHAT_SAY_EVENT, getGameContext } from '@/lib/chatBus';
+import { cachedEventsCfg, loadEventsCfg } from '@/lib/events/useWorldEvents';
+
+// Owner-added games (Admin → Games), fetched once so the assistant can mention them. Best effort.
+let extGamesCache: Array<{ title: string; description?: string }> = [];
+let extGamesAsked = false;
+function loadExtGames() {
+  if (extGamesAsked || typeof window === 'undefined') return;
+  extGamesAsked = true;
+  void loadEventsCfg();
+  fetch('/api/games').then((r) => (r.ok ? r.json() : null)).then((d) => {
+    if (d && Array.isArray(d.games)) extGamesCache = d.games.map((g: { title?: string; desc?: string }) => ({ title: String(g.title || ''), description: g.desc })).filter((g: { title: string }) => g.title);
+  }).catch(() => undefined);
+}
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { processChatQuery } from '@/utils/chatEngine';
 import { trackChat } from '@/utils/analytics';
@@ -154,6 +168,16 @@ export function useChatController({ pathname, isOpen, isMobile, runCommand, requ
     return msg.id;
   }, []);
 
+  // Game banter (GameBuddy): shown in the conversation only while the chat is open, so it never piles up unseen.
+  useEffect(() => {
+    const onSay = (e: Event) => {
+      const text = (e as CustomEvent<{ text?: string }>).detail?.text;
+      if (text && live.current.isOpen && hydrated.current) pushBot(text, 'system');
+    };
+    window.addEventListener(CHAT_SAY_EVENT, onSay);
+    return () => window.removeEventListener(CHAT_SAY_EVENT, onSay);
+  }, [pushBot]);
+
   const markRevealed = useCallback((id: string) => {
     setMessages((prev) => prev.map((m) => (m.id === id && m.reveal ? { ...m, reveal: false } : m)));
     setRevealingId((cur) => (cur === id ? null : cur));
@@ -245,6 +269,7 @@ export function useChatController({ pathname, isOpen, isMobile, runCommand, requ
       setSuggestions([]);
       setIsThinking(true);
 
+      loadExtGames();
       const ctrl = new AbortController();
       abortRef.current = ctrl;
       let stall = window.setTimeout(() => ctrl.abort(), STALL_MS);
@@ -259,6 +284,9 @@ export function useChatController({ pathname, isOpen, isMobile, runCommand, requ
         const result = await processChatQuery(text, curMode, live.current.memory, {
           signal: ctrl.signal,
           pathname: live.current.pathname || undefined,
+          game: getGameContext(),
+          extGames: extGamesCache,
+          eventsCfg: cachedEventsCfg(),
           projects: live.current.projects.map((p) => ({ id: p.id, title: p.title, category: p.category })),
           files: allFiles.map((f) => f.insight),
           filesAreNew: moved.length > 0,

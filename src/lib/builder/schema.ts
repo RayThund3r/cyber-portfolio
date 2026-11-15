@@ -12,6 +12,8 @@ export interface Field {
   help?: string; placeholder?: string; def?: any;
   group?: 'content' | 'style';
   min?: number;              // number fields (max = numeric maximum)
+  hidden?: boolean;          // never shown in the form (stored derived values)
+  companion?: string;        // passcode: key of a second field that is set together with this one
   itemLabel?: string;        // list: name of one item ("Service")
   titleKey?: string;         // list: which item field names the row
 }

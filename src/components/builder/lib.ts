@@ -2,7 +2,12 @@
 'use client';
 
 export async function post(url: string, body: unknown, signal?: AbortSignal) {
-  const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal });
+  let r: Response;
+  try { r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal }); }
+  catch (e: any) {
+    if (e?.name === 'AbortError') throw e;
+    throw Object.assign(new Error(typeof navigator !== 'undefined' && navigator.onLine === false ? 'You are offline. Reconnect and try again.' : 'Could not reach the server. Check your connection and try again.'), { status: 0, offline: true });
+  }
   const d = await r.json().catch(() => ({}));
   if (!r.ok) throw Object.assign(new Error(d.error || 'Request failed'), { status: r.status, data: d });
   return d;
@@ -54,3 +59,27 @@ export const newId = () => Math.random().toString(36).slice(2, 8);
 export const lsGet = (k: string) => { try { return localStorage.getItem(k); } catch { return null; } };
 export const lsSet = (k: string, v: string) => { try { localStorage.setItem(k, v); } catch { /* ignore */ } };
 export const lsDel = (k: string) => { try { localStorage.removeItem(k); } catch { /* ignore */ } };
+
+/* ───────── purchase helpers (shared by the preview modal, gallery cards, viewer and editor) ───────── */
+export interface OrderStatus {
+  id: string; name: string; templateId: string; templateName: string; priceUGX: number | null;
+  order: { ticket: string; paid: boolean; price: number } | null; contact: string;
+}
+/** Server-side truth about a project's order (paid or not). Never trust local state for downloads. */
+export const fetchStatus = (id: string, key: string): Promise<OrderStatus> => post('/api/builder', { action: 'status', id, key });
+
+/** Downloads the .zip. The server refuses (402) until the payment is confirmed, so this is safe to call from any button. */
+export async function downloadProject(project: string, key: string): Promise<void> {
+  let r: Response;
+  try { r = await fetch('/api/builder/download', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ project, key }) }); }
+  catch { throw new Error('Could not reach the server. Check your connection and try again.'); }
+  if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || 'Download failed');
+  const a = document.createElement('a');
+  const url = URL.createObjectURL(await r.blob());
+  a.href = url;
+  a.download = /filename="([^"]+)"/.exec(r.headers.get('Content-Disposition') || '')?.[1] || 'website.zip';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 30000);
+}
+
+export const reducedMotion = () => typeof window !== 'undefined' && !!window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;

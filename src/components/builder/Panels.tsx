@@ -6,6 +6,7 @@ import { PALETTES, SECTION_DEFS, SECTION_ORDER, SITE_FIELDS, type SectionInstanc
 import { FieldForm } from './FieldForm';
 import type { EditorApi } from './editorApi';
 
+import { SectionIcon, IconCart, IconCheck, IconCheckCircle, IconClose, IconCode, IconCopy, IconDesktop, IconEye, IconEyeOff, IconImage, IconLayers, IconLock, IconPalette, IconPaperclip, IconPencil, IconPhone, IconPlus, IconSettings, IconSparkle, IconTablet, IconTrash, IconWarn, IconBulb, IconFolder } from './icons';
 const ib = 'w-8 h-8 rounded flex items-center justify-center text-sm text-zinc-300 hover:bg-zinc-700/70 disabled:opacity-30 cursor-pointer shrink-0';
 const secTitle = (s: SectionInstance) => (s.data.title ? String(s.data.title).slice(0, 30) : s.data.navLabel || '');
 
@@ -44,13 +45,13 @@ export function LayersPanel({ api, goAdd }: { api: EditorApi; goAdd: () => void 
                   <span draggable={!api.locked} onDragStart={(e) => { e.dataTransfer.setData('text/x-move', s.id); e.dataTransfer.effectAllowed = 'move'; }} className="w-5 text-center text-zinc-500 cursor-grab active:cursor-grabbing select-none" title="Drag to reorder" aria-hidden="true">⠿</span>
                 ) : <span className="w-5 text-center text-zinc-700" aria-hidden="true">·</span>}
                 <button onClick={() => api.select(s.id, true)} className="flex-1 min-w-0 flex items-center gap-2 text-left py-1 cursor-pointer" aria-pressed={selected}>
-                  <span className="text-base">{def.icon}</span>
+                  <SectionIcon type={s.type} size={16} />
                   <span className="min-w-0"><span className="block text-[13px] truncate">{def.label}</span>{secTitle(s) && <span className="block text-[10px] text-zinc-500 truncate">{secTitle(s)}</span>}</span>
                 </button>
                 {!def.fixed && <>
                   <button className={ib} aria-label="Move up" disabled={api.locked || i <= 1} onClick={() => api.ops.move(s.id, -1)}>↑</button>
                   <button className={ib} aria-label="Move down" disabled={api.locked || i >= n - 2} onClick={() => api.ops.move(s.id, 1)}>↓</button>
-                  <button className={ib} aria-label={s.visible ? 'Hide' : 'Show'} disabled={api.locked} onClick={() => api.ops.toggle(s.id)}>{s.visible ? '👁' : '🚫'}</button>
+                  <button className={ib} aria-label={s.visible ? 'Hide' : 'Show'} disabled={api.locked} onClick={() => api.ops.toggle(s.id)}>{s.visible ? <IconEye size={15} /> : <IconEyeOff size={15} />}</button>
                 </>}
               </div>
             </li>
@@ -81,7 +82,7 @@ export function AddPanel({ api }: { api: EditorApi }) {
             onDragStart={(e) => { e.dataTransfer.setData('text/x-add', t); e.dataTransfer.effectAllowed = 'copy'; }}
             onClick={() => api.ops.add(t, afterSel)}
             className="text-left rounded-lg border border-zinc-800 bg-zinc-900/50 hover:border-cyan-500 hover:bg-cyan-500/5 p-3 cursor-pointer disabled:opacity-40 transition-colors">
-            <div className="text-2xl mb-1">{SECTION_DEFS[t].icon}</div>
+            <SectionIcon type={t} size={24} className="mx-auto mb-1" />
             <div className="text-[13px] font-semibold">{SECTION_DEFS[t].label}</div>
             <div className="text-[10px] text-zinc-400 mt-0.5 leading-snug">{DESC[t]}</div>
           </button>
@@ -113,7 +114,7 @@ export function MediaPanel({ api }: { api: EditorApi }) {
     <div className="space-y-3" onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); if (e.dataTransfer.files.length && api.isProject && !api.locked) upload(e.dataTransfer.files); }}>
       {api.isProject ? (
         <label className={`block rounded-xl border-2 border-dashed border-zinc-700 hover:border-cyan-500 p-5 text-center cursor-pointer ${api.locked || busy ? 'opacity-50 pointer-events-none' : ''}`}>
-          <div className="text-2xl">🖼️</div>
+          <IconImage size={28} className="mx-auto text-zinc-500" />
           <div className="text-sm font-semibold mt-1">{busy ? 'Uploading…' : 'Upload pictures'}</div>
           <div className="text-[11px] text-zinc-500">Drag & drop or tap to choose · JPG, PNG, WebP, GIF</div>
           <input type="file" multiple accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={(e) => { if (e.target.files) upload(e.target.files); e.target.value = ''; }} />
@@ -128,7 +129,7 @@ export function MediaPanel({ api }: { api: EditorApi }) {
             {used.has(id) && <span className="absolute top-1 left-1 px-1.5 rounded bg-emerald-500 text-black text-[9px] font-mono">in use</span>}
             <div className="absolute inset-x-0 bottom-0 flex gap-1 p-1 bg-gradient-to-t from-black/80 to-transparent opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
               <button disabled={!targets.length || api.locked} onClick={() => (targets.length === 1 ? useIn(id, targets[0].key) : setMenu(menu === id ? null : id))} className="flex-1 px-1.5 py-1 rounded bg-white/90 text-black text-[10px] font-semibold disabled:opacity-40 cursor-pointer" title={targets.length ? 'Use in the selected block' : 'Select a block with a picture first'}>Use</button>
-              <button disabled={api.locked} aria-label="Delete picture" onClick={() => { if (!used.has(id) || confirm('This picture is used on your page. Delete anyway?')) api.removeAsset(id); }} className="px-1.5 py-1 rounded bg-red-500/90 text-white text-[10px] cursor-pointer">🗑</button>
+              <button disabled={api.locked} aria-label="Delete picture" onClick={() => { if (!used.has(id) || confirm('This picture is used on your page. Delete anyway?')) api.removeAsset(id); }} className="px-1.5 py-1 rounded bg-red-500/90 text-white text-[10px] cursor-pointer inline-flex items-center justify-center"><IconTrash size={13} /></button>
             </div>
             {menu === id && targets.length > 1 && <div className="absolute inset-x-1 bottom-9 rounded bg-zinc-900 border border-zinc-600 shadow-xl z-10">{targets.map((f) => <button key={f.key} onClick={() => useIn(id, f.key)} className="block w-full text-left px-2 py-1.5 text-[11px] hover:bg-zinc-800 cursor-pointer">{f.label}</button>)}</div>}
           </div>
@@ -173,8 +174,10 @@ export function SettingsPanel({ api, onNew, onDuplicate, onBackup, onFullPreview
           <button className={btn} onClick={onBackup}>⬇ Download a backup file (.json)</button>
         </section>
       )}
+      {api.cfg.kind !== 'pro' && <>
       <section><h3 className="text-xs font-mono text-cyan-300 mb-2">{SITE_FIELDS[0].title}</h3><FieldForm fields={SITE_FIELDS[0].fields} value={api.cfg.brand} ctx={api.ctx} tag="brand" onChange={(nv, t) => api.edit(t, (c) => { c.brand = nv as SiteConfig['brand']; })} /></section>
       <section><h3 className="text-xs font-mono text-cyan-300 mb-2">{SITE_FIELDS[2].title}</h3><FieldForm fields={SITE_FIELDS[2].fields} value={api.cfg.meta} ctx={api.ctx} tag="meta" onChange={(nv, t) => api.edit(t, (c) => { c.meta = nv as SiteConfig['meta']; })} /></section>
+      </>}
     </div>
   );
 }
@@ -183,7 +186,7 @@ export function SettingsPanel({ api, onNew, onDuplicate, onBackup, onFullPreview
 export function Inspector({ api, onClose }: { api: EditorApi; onClose?: () => void }) {
   const s = api.cfg.sections.find((x) => x.id === api.sel);
   const [tab, setTab] = useState<'content' | 'style'>('content');
-  if (!s) return <div className="p-4 text-sm text-zinc-500">Select a block on the canvas or in Layers to edit it here.<br /><br />💡 <strong className="text-zinc-300">Double-click any text</strong> on the canvas to type directly.</div>;
+  if (!s) return <div className="p-4 text-sm text-zinc-500">Select a block on the canvas or in Layers to edit it here.<br /><br /><strong className="text-zinc-300">Double-click any text</strong> on the canvas to type directly.</div>;
   const def = SECTION_DEFS[s.type];
   const content = def.fields.filter((f) => f.group !== 'style');
   const style = def.fields.filter((f) => f.group === 'style');
@@ -191,20 +194,20 @@ export function Inspector({ api, onClose }: { api: EditorApi; onClose?: () => vo
   return (
     <div className="flex flex-col h-full min-h-0">
       <div className="flex items-center gap-1 px-3 py-2 border-b border-zinc-800">
-        <span className="text-lg">{def.icon}</span>
+        <SectionIcon type={s.type} size={20} />
         <div className="flex-1 min-w-0"><div className="text-sm font-semibold truncate">{def.label}</div><div className="text-[10px] font-mono text-zinc-500">{s.id}</div></div>
         {!def.fixed && <>
           <button className={ib} aria-label="Duplicate" disabled={api.locked} onClick={() => api.ops.duplicate(s.id)}>⧉</button>
-          <button className={ib} aria-label="Delete" disabled={api.locked} onClick={() => api.ops.remove(s.id)}>🗑</button>
+          <button className={ib} aria-label="Delete" disabled={api.locked} onClick={() => api.ops.remove(s.id)}><IconTrash size={15} /></button>
         </>}
-        {onClose && <button className={ib} aria-label="Close" onClick={onClose}>✕</button>}
+        {onClose && <button className={ib} aria-label="Close" onClick={onClose}><IconClose size={16} /></button>}
       </div>
       {style.length > 0 && (
         <div className="flex border-b border-zinc-800" role="tablist">
           {(['content', 'style'] as const).map((k) => <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)} className={`flex-1 py-2 text-xs font-mono cursor-pointer border-b-2 ${tab === k ? 'border-cyan-400 text-cyan-300' : 'border-transparent text-zinc-400'}`}>{k === 'content' ? 'Content' : 'Style & menu'}</button>)}
         </div>
       )}
-      <div className="flex-1 overflow-y-auto p-3">
+      <div className="flex-1 overflow-y-auto sb-slim p-3">
         <FieldForm key={`${s.id}-${tab}`} fields={tab === 'content' || !style.length ? content : style} value={s.data} ctx={api.ctx} tag={`${s.id}.${tab}`} onChange={set} />
       </div>
     </div>

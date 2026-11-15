@@ -4,7 +4,7 @@
 // Data only (no components), so the chat engine can import it cheaply. Components are mapped in app/games/page.tsx.
 import type { IconName } from '@/components/ui/Icon';
 
-export type GameGroup = 'ai' | 'puzzle' | 'memory' | 'speed';
+export type GameGroup = 'ai' | 'puzzle' | 'memory' | 'speed' | 'arcade';
 
 export interface GameInfo {
   id: string;
@@ -24,6 +24,7 @@ export const GROUP_LABEL: Record<GameGroup, string> = {
   puzzle: 'Puzzles',
   memory: 'Memory',
   speed: 'Speed',
+  arcade: 'Arcade',
 };
 
 export const GAMES: GameInfo[] = [
@@ -196,6 +197,41 @@ export const GAMES: GameInfo[] = [
     ai: 'Solves the game exactly with the nim-sum (XOR) strategy, in normal and misère play.',
     skills: 'Strategy · maths',
     aliases: ['nim', 'stones', 'matchsticks'],
+  },
+  {
+    id: 'snake', title: 'Snake', group: 'arcade', icon: 'bolt',
+    tagline: 'Eat, grow, do not hit yourself. Walls or wrap-around mode.',
+    ai: 'No opponent: the challenge is your own tail. Speeds up as you grow.', skills: 'Reflexes · planning', aliases: ['snake', 'snake game'],
+  },
+  {
+    id: 'tetris', title: 'Tetris', group: 'arcade', icon: 'grid',
+    tagline: 'Falling blocks with ghost piece, hold slot and levels.',
+    ai: 'Standard 7-bag randomiser, wall kicks and a ghost piece showing where it will land.', skills: 'Spatial thinking · speed', aliases: ['tetris', 'blocks', 'falling blocks'],
+  },
+  {
+    id: 'breakout', title: 'Breakout', group: 'arcade', icon: 'layout',
+    tagline: 'Bounce the ball, clear the bricks, keep your lives.',
+    ai: 'Physics with angle control from where the ball hits the paddle; faster every level.', skills: 'Aim · timing', aliases: ['breakout', 'brick breaker', 'bricks', 'arkanoid'],
+  },
+  {
+    id: 'pong', title: 'Pong', group: 'arcade', icon: 'disk',
+    tagline: 'The original. First to seven beats the AI.',
+    ai: 'Predicts where the ball will land (with bounces) and reacts with a delay and error that depend on the level.', skills: 'Reflexes · prediction', aliases: ['pong', 'table tennis', 'ping pong'],
+  },
+  {
+    id: 'flappy', title: 'Flappy', group: 'arcade', icon: 'arrowUp',
+    tagline: 'One tap to flap. Slip through the gaps.',
+    ai: 'No opponent: pipes get tighter the further you go.', skills: 'Timing · calm hands', aliases: ['flappy', 'flappy bird', 'flap'],
+  },
+  {
+    id: 'whack', title: 'Whack-a-Mole', group: 'arcade', icon: 'bell',
+    tagline: '30 seconds of moles, golden bonuses and bombs.',
+    ai: 'Pops up faster the longer you last. Streaks multiply your score.', skills: 'Reaction time', aliases: ['whack a mole', 'whack-a-mole', 'whack', 'mole', 'moles'],
+  },
+  {
+    id: 'typing', title: 'Typing Sprint', group: 'speed', icon: 'terminal',
+    tagline: '45 seconds, live WPM and accuracy.',
+    ai: 'Shuffled word lists so you never get the same run twice.', skills: 'Typing speed · accuracy', aliases: ['typing', 'typing test', 'typing sprint', 'wpm'],
   },
 ];
 

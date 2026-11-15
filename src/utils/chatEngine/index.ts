@@ -34,9 +34,14 @@ import { handleSystemQuery } from './systemHandlers';
 import { handleSmallTalk, isAffirmative, isNegative, FOLLOW_UP_PROMPTS } from './smalltalk';
 import { isGibberish, logUnanswered } from './learningEngine';
 import { searchKnowledge } from './retriever';
+import { matchTaught } from './brain';
+import { tryGameKnowledge } from './gameKnowledge';
+import { tryEgg, tryWorldTalk } from './worldTalk';
+import { eventsNow, DEFAULT_EVENTS_CFG } from '../../lib/events/config';
 import { searchWeb, looksLikeLookup, needsLiveData } from './webSearch';
 import { tryCalculate, formatNumber } from './calc';
 import { tryMathPlus } from './mathPlus';
+import { tryUtilities } from './utilities';
 import { cleanInput, sanitizeMemory } from './sanitize';
 import { normalizeSlang } from './slang';
 import { tryDates } from './dates';
@@ -220,6 +225,16 @@ async function route(
   const chip = answerChip(raw, mode, dlg);
   if (chip) return fromDialogue(chip);
 
+  // 1c2. Something the owner taught from the admin panel ("home training"): their exact wording beats every built-in rule.
+  const taughtHit = matchTaught(raw);
+  if (taughtHit) {
+    return finish(memory, raw, taughtHit.a, 'knowledge', {
+      topic: 'GENERAL_QA',
+      matchedEntryId: 'taught:' + taughtHit.id,
+      suggestions: taughtHit.l ? ['Open ' + (taughtHit.l.replace(/^\//, '').split(/[?#]/)[0] || 'home')] : undefined,
+    });
+  }
+
   // 1d. Guided site tour ("give me a tour" -> "Next stop") and a recap of the conversation so far.
   const tour = tryTour(raw, mode, memory) || tryRecap(raw, mode, memory, dlg.ent);
   if (tour) {
@@ -254,6 +269,22 @@ async function route(
     });
   }
 
+  // 2a-. Game guides: "how do I play snake", "tips for chess", and "I'm losing" while a game is open.
+  const gk = tryGameKnowledge(raw, { game: options.game, extGames: options.extGames });
+  if (gk) {
+    return finish(memory, raw, mode === 'EXPERT' ? gk.expert || gk.human : gk.human, 'system', { topic: 'SYSTEM', suggestions: gk.suggestions });
+  }
+
+  // 2a--. World calendar ("any holidays today?", "Happy Independence Day") and a few easter eggs. Whole-message matches only.
+  const wt = tryWorldTalk(raw, options.eventsCfg) || tryEgg(raw);
+  if (wt) {
+    return finish(memory, raw, mode === 'EXPERT' ? wt.expert : wt.human, 'system', {
+      topic: 'SMALLTALK',
+      command: wt.fx ? { type: 'fx', fx: wt.fx, label: 'EFFECT' } : undefined,
+      suggestions: wt.suggestions,
+    });
+  }
+
   // 2a-. Wider page-name matching (pricing, rates, work, ...). Decided only from the visitor's own words.
   //      Questions that merely mention a page are NOT intercepted here; they get a normal answer plus an
   //      "Open ... →" button (see processChatQuery).
@@ -280,6 +311,12 @@ async function route(
   const sys = handleSystemQuery(raw, mode, aiLabel());
   if (sys) {
     return finish(memory, raw, sys.reply, 'system', { topic: 'SYSTEM', action: sys.action });
+  }
+
+  // 3a+. Exact helpers that need no model: dice/coin/passwords, text tools, naming/palette/font ideas, short notes.
+  const util = tryUtilities(raw, memory);
+  if (util) {
+    return finish(memory, raw, mode === 'EXPERT' ? util.expert : util.human, 'system', { topic: 'GENERAL_QA', suggestions: util.suggestions, learn: util.learn });
   }
 
   // 3b. Calculator ---------------------------------------------------------
@@ -374,6 +411,9 @@ async function route(
   // 4. Small talk ----------------------------------------------------------
   const talk = handleSmallTalk(raw, mode, name);
   if (talk) {
+    // First hello of a session on a day the world marks something: add one friendly line.
+    const todayEv = memory.interactionCount <= 1 && /^(hi|hello|hey|yo|sup|good (morning|afternoon|evening)|howdy|hola)\b/.test(q) ? eventsNow(options.eventsCfg || DEFAULT_EVENTS_CFG)[0] : undefined;
+    if (todayEv) talk.reply += `\n\n${todayEv.say}`;
     return finish(memory, raw, talk.reply, 'rules', {
       topic: talk.keepTopic ? memory.lastTopic : talk.topic,
       learn: talk.learn,

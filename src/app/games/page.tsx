@@ -12,6 +12,9 @@ import { GAME_IDS, GAMES, GROUP_LABEL, GameGroup, GameInfo } from '@/data/gamesD
 import { openChat } from '@/lib/chatBus';
 import { readAll } from '@/components/games/ui';
 import { useReveal } from '@/lib/useGsapEffects';
+import GameBuddy from '@/components/games/GameBuddy';
+import { FirstTimeHint, GuideModal } from '@/components/games/GuideModal';
+import ExternalGames, { useExternalGames } from '@/components/games/ExternalGames';
 
 const LOADERS: Record<string, React.LazyExoticComponent<React.ComponentType>> = {
   chess: lazy(() => import('@/components/games/ChessGame')),
@@ -31,6 +34,13 @@ const LOADERS: Record<string, React.LazyExoticComponent<React.ComponentType>> = 
   sliding: lazy(() => import('@/components/games/SlidingGame')),
   twentyfour: lazy(() => import('@/components/games/TwentyFourGame')),
   nim: lazy(() => import('@/components/games/NimGame')),
+  snake: lazy(() => import('@/components/games/SnakeGame')),
+  tetris: lazy(() => import('@/components/games/TetrisGame')),
+  breakout: lazy(() => import('@/components/games/BreakoutGame')),
+  pong: lazy(() => import('@/components/games/PongGame')),
+  flappy: lazy(() => import('@/components/games/FlappyGame')),
+  whack: lazy(() => import('@/components/games/WhackGame')),
+  typing: lazy(() => import('@/components/games/TypingGame')),
 };
 
 type Filter = 'all' | GameGroup;
@@ -40,6 +50,7 @@ const FILTERS: Array<{ id: Filter; label: string }> = [
   { id: 'puzzle', label: GROUP_LABEL.puzzle },
   { id: 'memory', label: GROUP_LABEL.memory },
   { id: 'speed', label: GROUP_LABEL.speed },
+  { id: 'arcade', label: GROUP_LABEL.arcade },
 ];
 
 /** A broken game must never take the whole page down. */
@@ -90,6 +101,9 @@ function GamesInner() {
   const fromUrl = (params?.get('g') || '').toLowerCase();
   const [active, setActive] = useState<string | null>(GAME_IDS.includes(fromUrl) ? fromUrl : null);
   const [filter, setFilter] = useState<Filter>('all');
+  const [guide, setGuide] = useState(false);
+  const [query, setQuery] = useState('');
+  const extGames = useExternalGames();
   const [records, setRecords] = useState<Record<string, string | null>>({});
   // Games read localStorage and use Math.random for their first board, so they only render on the client
   // (avoids a server/client hydration mismatch).
@@ -118,7 +132,10 @@ function GamesInner() {
     [router]
   );
 
-  const shown = useMemo(() => GAMES.filter((g) => filter === 'all' || g.group === filter), [filter]);
+  const shown = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return GAMES.filter((g) => (filter === 'all' || g.group === filter) && (!q || (g.title + ' ' + g.tagline + ' ' + g.skills + ' ' + g.aliases.join(' ')).toLowerCase().includes(q)));
+  }, [filter, query]);
   const game: GameInfo | undefined = GAMES.find((g) => g.id === active);
   const Active = active ? LOADERS[active] : null;
   const surprise = () => open(GAME_IDS[Math.floor(Math.random() * GAME_IDS.length)]);
@@ -154,10 +171,17 @@ function GamesInner() {
                 <p className="font-mono text-[11px] text-zinc-500">{game.skills}</p>
               </div>
             </div>
-            <button type="button" onClick={() => open(null)} className="inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-zinc-700 px-3 font-mono text-[11px] text-zinc-300 transition hover:border-accent/50 hover:text-accent">
-              <span aria-hidden="true">←</span> ALL GAMES
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <button type="button" onClick={() => setGuide(true)} className="inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-accent/40 px-3 font-mono text-[11px] text-accent transition hover:bg-accent/10 active:scale-95">
+                <Icon name="lightbulb" size={14} /> HOW TO PLAY
+              </button>
+              <GameBuddy />
+              <button type="button" onClick={() => open(null)} className="inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-zinc-700 px-3 font-mono text-[11px] text-zinc-300 transition hover:border-accent/50 hover:text-accent">
+                <span aria-hidden="true">←</span> ALL GAMES
+              </button>
+            </div>
           </div>
+          <FirstTimeHint id={game.id} onMore={() => setGuide(true)} />
           <GameBoundary key={active} onBack={() => open(null)}>
             <Suspense fallback={<Skeleton />}>
               <Active />
@@ -165,6 +189,8 @@ function GamesInner() {
           </GameBoundary>
         </section>
       )}
+
+      {guide && game && <GuideModal id={game.id} title={game.title} onClose={() => setGuide(false)} />}
 
       {/* Catalogue */}
       <section aria-label="Game catalogue">
@@ -185,6 +211,8 @@ function GamesInner() {
           ))}
         </div>
 
+        <div className="mb-4"><input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search games…" aria-label="Search games" className="min-h-11 w-full max-w-sm rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 font-mono text-base text-zinc-100 outline-none focus:border-accent sm:text-sm" /></div>
+        {shown.length === 0 && <p className="py-10 text-center font-mono text-sm text-zinc-500">No game matches that. Try another word.</p>}
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {shown.map((g) => {
             const on = g.id === active;
@@ -196,7 +224,7 @@ function GamesInner() {
                 onClick={() => open(g.id)}
                 aria-current={on ? 'true' : undefined}
                 data-reveal
-                className={`group cursor-pointer rounded-xl border p-4 text-left transition duration-200 hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-accent ${
+                className={`cy-card group cursor-pointer rounded-xl border p-4 text-left transition duration-200 hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-accent ${
                   on ? 'border-accent bg-accent/[0.07]' : 'border-zinc-800 bg-zinc-900/40 hover:border-accent/50 hover:bg-zinc-900/70'
                 }`}
               >
@@ -223,6 +251,8 @@ function GamesInner() {
           })}
         </div>
       </section>
+
+      <ExternalGames games={extGames} />
     </div>
   );
 }

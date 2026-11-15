@@ -22,7 +22,7 @@ export default function ThemeDots({ className = '' }: { className?: string }) {
           aria-pressed={theme === t}
           data-haptic
           title={`${t} theme`}
-          className={`h-5 w-5 rounded-full border-2 transition-transform duration-200 hover:scale-110 active:scale-95 ${
+          className={`hit h-5 w-5 rounded-full border-2 transition-transform duration-200 hover:scale-110 active:scale-95 ${
             theme === t ? 'border-zinc-100 scale-110' : 'border-zinc-700'
           }`}
           style={{ backgroundColor: SWATCH[t] }}

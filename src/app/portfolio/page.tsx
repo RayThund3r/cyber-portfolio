@@ -15,6 +15,7 @@ import { openChat } from '@/lib/chatBus';
 import ProjectCard from '@/components/portfolio/ProjectCard';
 import ProjectModal from '@/components/portfolio/ProjectModal';
 
+import Icon from '@/components/ui/Icon';
 const FILTERS = ['ALL', ...CATEGORIES] as const;
 
 function PortfolioInner() {
@@ -225,7 +226,7 @@ function PortfolioInner() {
               </button>
             )}
             <button type="button" onClick={() => openChat({ prefill: 'Show me ' })} className="transition-colors hover:text-accent max-sm:py-2">
-              💬 ask the assistant
+              <Icon name="chat" size={13} className="mr-1 align-[-2px]" />ask the assistant
             </button>
           </span>
         </div>

@@ -118,7 +118,7 @@ export async function POST(req: Request) {
   }
   if (action === 'logout') { await destroySession(); return ok(); }
 
-  if (!(await isAdmin())) return NextResponse.json({ error: 'Not signed in.', totp: totpRequired() }, { status: 401 });
+  if (!(await isAdmin())) return NextResponse.json({ error: 'Not signed in.', totp: totpRequired(), configured: adminConfigured() }, { status: 401 });
 
   try {
     switch (action) {

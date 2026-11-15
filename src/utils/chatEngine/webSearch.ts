@@ -33,7 +33,7 @@ export function sanitizeQueryForSearch(query: string): string {
     .trim();
 }
 
-const PERSONAL = /\b(my|i|me|you|your|we|our|im|i'm|should|can i|could i|do i)\b/;
+const PERSONAL = /\b(my|i|me|you|your|yourself|urself|myself|yourselves|ourselves|we|our|im|i'm|should|can i|could i|do i)\b/;
 
 /** Questions an encyclopedia cannot answer: live prices, weather, news, "near me"... */
 export function needsLiveData(query: string): boolean {
@@ -47,6 +47,7 @@ export function looksLikeLookup(query: string): boolean {
   const q = query.toLowerCase().trim();
   if (!/[a-z]{3,}/.test(q)) return false; // phone numbers, dates, symbols
   if (needsLiveData(q)) return false;
+  if (/\b(yourself|urself|myself|this (site|chat|bot|assistant|website)|your (owner|creator|name|portfolio))\b/.test(q)) return false; // about me / about this site, never an encyclopedia topic
   if (/^(what|who|when|where|which|why|how)\b/.test(q)) return !PERSONAL.test(q);
   if (/^(define|explain|tell me about|examples? of|types? of|difference between|meaning of|history of|list of|best|top|compare)\b/.test(q))
     return true;

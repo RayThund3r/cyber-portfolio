@@ -43,3 +43,60 @@ This project merges three trees into one:
 - Known and expected: `route.test.ts` prints 3 FAIL lines because it predates your ticket flow (a stored ticket now answers 200 even when email is not configured; that is the intended behaviour).
 - The analytics counters in the extra admin screens live in Redis only (they do not fall back to files); with no Redis they reset on restart and the screens say so.
 - The old admin test file (`admin.test.ts`) targeted my retired stand-alone login and is superseded.
+
+## Round 2 (builder scrollbars, home training, admin access)
+- Builder: scrollbars are now rounded and themed (editor panels via `.sb-slim`, the generated sites follow each template's colours and
+  `color-scheme`); the preview viewer no longer shows a horizontal rail on desktop.
+- Home training: taught answers now match typos, plurals and extra words ("what are your openning hours on sunday?"); Train screen gained
+  Bulk teach (paste a FAQ), Suggest more ways to ask, Check every phrasing, and 8 more quick starts (`src/lib/admin/trainTools.ts`).
+- Admin: /login, /signin, /dashboard, /owner, /administrator and /cms redirect to /admin. The live site only shows the ADMIN link after the
+  latest build deploys successfully.
+
+## Round 3
+- Emoji → real SVG icons across site, admin, studio and builder chrome (`components/ui/Icon.tsx`, `components/builder/icons.tsx`).
+- Builder: template gallery with Buy / Download on every preview (server-confirmed payment gates download), mobile dock, polished editor chrome.
+- Home: live system status (internet + server via `/api/health`), visitor-location node (opt-in GPS, otherwise timezone), feature showcase with previews, "About the dev" (edit `src/data/devProfile.ts`), back-to-top button, scroll-bar scrub easter egg.
+- Games: 7 new 2D games (snake, tetris, breakout, pong, flappy, whack, typing), guides + first-time hint, GameBuddy (live banter + chat), search, and owner games (Admin → Games, `/api/games`, sandboxed embeds).
+- AI: `utils/chatEngine/gameKnowledge.ts` — guides baked in, game-aware help ("I'm losing"), owner games listed.
+- Not verified here: real `next build`, browser rendering, live Upstash/Resend.
+
+## Round 4 — WIP-v8 merge
+v8 was compared file by file against this tree. It is an older line of the same project: everything in it was already here in newer form
+(modular chat engine, Upstash-capable store, hydration-safe page motion, recover screen, unified admin). Nothing was overwritten.
+Taken from v8 / fixed while merging:
+- **One record per ticket** (`tickets/<ID>`, per-ticket lock + Redis lock, auto-migration of an old `tickets` list to `tickets-legacy`) now works on every store backend (Upstash, files, memory). Also used by bulk status, delete and import in Admin.
+- `removeTree` now also drops the empty folder/index entry (deleting a site leaves nothing behind).
+- `.gitignore` (adds `tests/.build*`), a hard-coded `/home/claude/proj` path in `tests/server.pro.test.cjs` made relative, storage tests made backend-agnostic.
+- Deliberately NOT taken: v8's GSAP/SplitText page motion (this tree's Web-Animations version avoids hydration mismatches), its single-file chat widget and older portfolio page, its separate ScrollProgress bar (the nav already has one, now draggable).
+- `node tests/run-all.mjs`: all green.
+
+## WIP-v8 check
+v8 (v7 cloud inbox + builder Pro, tests, stress harness) was diffed file-by-file against this tree. Everything in it was already present
+(engine, cloud server, /api/site, Pro builder, tests); this tree only differs by later fixes (key-guess limits, body caps, icons, scrollbars).
+Only v8-only files: `.gitignore.additions` (already in .gitignore) and the old top ScrollProgress bar (replaced by the nav's progress + scrub handle). Nothing needed merging.
+
+## Round 3 follow-up
+- Fixed: `ratioCss` was imported by the owner-games page and Admin → Games but not defined in `lib/games/ext.ts` (build breaker). Added.
+- Browser smoke test (Chromium, 430px, touch): 7 new games, guide modal, owner-games section, home sections all render and take input with no JS errors.
+- Editor mobile: icon-only Design/View toggle on phones, safe-area padding on the bottom tool bar, "double-tap" hint.
+
+## Round 4 — world events, easter eggs
+- `lib/events/calendar.ts`: offline world calendar (30 days: Uganda, Africa, faith incl. moon-based Eid/Ramadan/Diwali/Lunar New Year 2026-2030 (approx), world, seasonal, tech). Easter is computed.
+- `lib/events/config.ts` + `/api/events` (public) + `/api/admin/events`: owner settings (master switch, effects, per-day off, custom "surprise" events, solemn mood = never any effects).
+- Public: `EventRibbon` (dismissible, per event per day), `FxLayer` (confetti/snow/hearts/lanterns/stars/leaves/rain/matrix/barrel; none for reduced motion), preview any day with `/?event=<id>`.
+- Assistant: `utils/chatEngine/worldTalk.ts` (holiday questions, well-wishes, upcoming days, event line on the first hello) + easter eggs; new `fx` site command.
+- Easter eggs: cheat code (keys, or 8 swipes + 2 taps), typed words (party, matrix, snow, hearts, stars, barrel, sudo), console hello.
+- Admin: new **Events** page (key `g` then `v`), and Overview shows when the site is marking a day.
+- Checked in Chromium (ribbon, effects, eggs, admin add/hide/preview). Moon-based dates can differ by a day.
+
+## Round 5 — status bar + cyber motion kit
+- Home status strip rebuilt as `components/site/StatusTicker.tsx`: status badge pinned on the left (was cut in half on phones), the rest is a smooth ticker under 768px (pauses on touch), static above; plain swipeable row for reduced motion.
+- Motion kit in `globals.css` (all behind prefers-reduced-motion): button light-sweep, HUD corner brackets (`data-tilt` / `.cy-card`), `.cy-glitch`, stepped hero-grid drift, tap ping, route-change line, `.cy-breath`.
+- `components/site/CyberMotion.tsx` (route sweep, tap ping, `[SECTION // X]` labels decode on scroll), `SessionLine` (real time-on-site counter in footer), glitch 404, sweeping loading bar.
+- Checked with real Tailwind CSS in Chromium at phone and desktop width; all earlier smoke tests still pass.
+
+## Round 6 — stress test
+- Harness: every public page (home, services, portfolio, contact, games, track, builder, privacy, 404) with the real nav, footer and chat, rendered with real Tailwind CSS at 320/390/768/1280px, plus behaviour tests (hostile chat input incl. XSS and 6000-char messages, all 24 games opened/closed with key mashing, game search, mobile menu + Escape, offline and server-down badge, contact/track bad input, terminal odd commands, Ctrl+K, themes, 240px width, reduced motion). 
+- Fixed: 57px sideways overflow at tablet width (768px) caused by the top nav (links tighter, ASK_AI and long contact label shown from 1024px, short CONTACT label at tablet).
+- Fixed: small touch targets now have an invisible larger hit area (`.hit`): footer links, theme dots, GPS button, DETAILS/PLAY_NOW/back links, logo.
+- Scroll areas: inner panes (chat, terminal, modals, lists, code) now get a slim themed scrollbar (appears on hover on desktop, hairline on phones). The page itself keeps its hidden bar + nav progress line.

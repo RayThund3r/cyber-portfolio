@@ -8,6 +8,7 @@ import { buildStudioSite } from '@/lib/studio/generate';
 import { PRESETS } from '@/lib/studio/presets';
 import { compress } from './compress';
 
+import Icon from '@/components/ui/Icon';
 async function post(body: unknown) {
   const r = await fetch('/api/studio', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   const d = await r.json().catch(() => ({}));
@@ -109,7 +110,7 @@ export default function StudioEditor({ slug, onBack, onAuthLost }: { slug: strin
         <div className="ml-auto flex flex-wrap gap-2">
           <button className={primary} onClick={saveNow} disabled={save === 'saving'}>Save</button>
           <a className={btn} href={`/api/studio?download=${encodeURIComponent(slug)}`}>⬇ Download site (.zip)</a>
-          <a className={btn} href={`/api/studio?backup=${encodeURIComponent(slug)}`} title="Settings and pictures, to restore this site later">💾 Backup</a>
+          <a className={btn} href={`/api/studio?backup=${encodeURIComponent(slug)}`} title="Settings and pictures, to restore this site later"><Icon name="save" size={13} className="mr-1 align-[-2px]" />Backup</a>
           <button className={btn} onClick={togglePublish}>{published ? 'Unpublish demo' : 'Publish live demo'}</button>
         </div>
       </div>
@@ -130,7 +131,7 @@ export default function StudioEditor({ slug, onBack, onAuthLost }: { slug: strin
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">
         <div className={view === 'edit' ? '' : 'hidden lg:block'}>
-          <div className="mb-3 flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Settings groups">
+          <div className="mb-3 flex gap-2 overflow-x-auto sb-slim pb-1" role="tablist" aria-label="Settings groups">
             {STUDIO_GROUPS.map((x) => (
               <button key={x.id} role="tab" aria-selected={group === x.id} onClick={() => setGroup(x.id)} className={`${btn} flex-shrink-0 ${group === x.id ? 'border-cyan-500 text-cyan-300' : ''}`}>{x.icon} {x.label}</button>
             ))}
@@ -148,7 +149,7 @@ export default function StudioEditor({ slug, onBack, onAuthLost }: { slug: strin
         <div className={view === 'preview' ? '' : 'hidden lg:block'}>
           <div className="sticky top-16">
             <div className="mb-2 flex items-center gap-2">
-              {(Object.keys(DEVICES) as (keyof typeof DEVICES)[]).map((d) => <button key={d} className={`${btn} ${device === d ? 'border-cyan-500 text-cyan-300' : ''}`} onClick={() => setDevice(d)}>{d === 'phone' ? '📱 Phone' : d === 'tablet' ? '▭ Tablet' : '🖥 Desktop'}</button>)}
+              {(Object.keys(DEVICES) as (keyof typeof DEVICES)[]).map((d) => <button key={d} className={`${btn} ${device === d ? 'border-cyan-500 text-cyan-300' : ''}`} onClick={() => setDevice(d)}><Icon name={d === 'phone' ? 'phone' : d === 'tablet' ? 'layout' : 'terminal'} size={13} className="mr-1 align-[-2px]" />{d === 'phone' ? 'Phone' : d === 'tablet' ? 'Tablet' : 'Desktop'}</button>)}
               <span className="ml-auto font-mono text-[10px] text-zinc-500">Live preview: tap around, it is the real site</span>
             </div>
             <div className="flex justify-center overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/40 p-2">

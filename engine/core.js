@@ -51,6 +51,10 @@ var Core = (function () {
   }
   /** Passcode hash. Same formula is used by the builder (to store only a hash) and by the in-site admin (to check). */
   function hashPass(siteKey, pass) { return sha256(siteKey + ':owner:' + pass); }
+  /** Cloud inbox: the owner's proof of identity. token = sha256(siteKey:cloud:passcode) lives in browser memory only;
+      the server stores verifier = sha256("v:" + token) — a hash of a hash. (Different salt from hashPass, so the public login hash can't be replayed.) */
+  function cloudToken(siteKey, pass) { return sha256(siteKey + ':cloud:' + pass); }
+  function cloudVerifier(token) { return sha256('v:' + token); }
   function safeEq(a, b) { a = String(a); b = String(b); var r = a.length ^ b.length, i; for (i = 0; i < Math.max(a.length, b.length); i++) r |= (a.charCodeAt(i) || 0) ^ (b.charCodeAt(i) || 0); return r === 0; }
 
   /* ---------- text / numbers ---------- */
@@ -212,7 +216,7 @@ var Core = (function () {
     return v;
   }
 
-  return { sha256: sha256, hashPass: hashPass, safeEq: safeEq, esc: esc, num: num, clamp: clamp, money: money, slug: slug, url: url, normPhone: normPhone, phoneOk: phoneOk, waUrl: waUrl,
+  return { sha256: sha256, hashPass: hashPass, cloudToken: cloudToken, cloudVerifier: cloudVerifier, safeEq: safeEq, esc: esc, num: num, clamp: clamp, money: money, slug: slug, url: url, normPhone: normPhone, phoneOk: phoneOk, waUrl: waUrl,
     parsePromos: parsePromos, parseKV: parseKV, applyPromo: applyPromo, cartRows: cartRows, cartTotals: cartTotals, cartAdd: cartAdd, stockOf: stockOf, filterProducts: filterProducts, categories: categories,
     parseSlots: parseSlots, dateKey: dateKey, nextDays: nextDays, slotPast: slotPast, ref: ref, csv: csv, merge: merge, bumpVisit: bumpVisit };
 })();

@@ -64,6 +64,8 @@ const PAGES: Record<string, { path: string; label: string }> = {
   games: { path: '/games', label: 'games' },
   arcade: { path: '/games', label: 'games' },
   contact: { path: '/contact', label: 'contact' },
+  admin: { path: '/admin', label: 'admin panel' },
+  login: { path: '/admin', label: 'admin panel' },
 };
 
 export interface CommandDef {
@@ -84,6 +86,7 @@ export const COMMANDS: CommandDef[] = [
   { name: 'games', usage: 'games', desc: 'List the brain games, or open the games page', group: 'site' },
   { name: 'play', usage: 'play <game>', desc: 'Start a game: chess, sudoku, 2048, connect4...', group: 'fun' },
   { name: 'contact', usage: 'contact', desc: 'Open the contact page', group: 'site' },
+  { name: 'admin', usage: 'admin', desc: 'Open the owner sign-in / admin panel', group: 'site' },
   { name: 'home', usage: 'home', desc: 'Back to the top of the home page', group: 'site' },
   { name: 'ask', usage: 'ask [question]', desc: 'Open the AI chat (optionally with a question)', group: 'site' },
   { name: 'repair', usage: 'repair', desc: 'Start a guided repair diagnosis in the chat', group: 'site' },
@@ -249,6 +252,8 @@ export function execute(raw: string, ctx: TermContext): TermResult {
     case 'portfolio':
     case 'projects':
       return { lines: [L('ok', 'opening portfolio...')], effects: [{ type: 'navigate', path: '/portfolio' }] };
+    case 'admin':
+      return { lines: [L('ok', 'opening the owner panel (sign-in required)...')], effects: [{ type: 'navigate', path: '/admin' }] };
     case 'games':
       if (args.length === 0 || arg === 'list' || arg === 'ls')
         return { lines: [L('head', `GAMES (${GAMES.length})`), ...GAMES.map((g) => L('out', `${pad(g.id, 12)}${g.title}`)), L('dim', 'play one: play chess    all of them: open games')] };

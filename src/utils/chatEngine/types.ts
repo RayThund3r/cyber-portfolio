@@ -57,6 +57,8 @@ export type SiteCommand =
   | { type: 'back'; label: string }
   /** Open the home-page terminal and (optionally) run a command in it. */
   | { type: 'terminal'; cmd?: string; label: string }
+  /** A screen effect (confetti, snow, barrel roll...). Harmless and purely visual. */
+  | { type: 'fx'; fx: import('../../lib/events/calendar').FxName; label: string }
   | { type: 'close-chat'; label: string };
 
 export interface ConversationTurn {
@@ -139,6 +141,12 @@ export interface EngineOptions {
   signal?: AbortSignal;
   /** The page the visitor is on (usePathname()). Lets "open services" say "you're already here". */
   pathname?: string;
+  /** The game being played right now (published by the games page), so "any tips?" answers for that game. */
+  game?: import('@/lib/chatBus').GameContext | null;
+  /** Owner-added web games (from /api/games) so "what games are there?" can mention them. */
+  extGames?: Array<{ title: string; description?: string }>;
+  /** The owner's world-events settings (Admin → Events), so the assistant knows about custom events. */
+  eventsCfg?: import('../../lib/events/config').EventsConfig;
   /** Files the visitor has shared in this conversation (analysed locally). */
   files?: FileInsight[];
   /** True when `files` were attached to THIS message. */

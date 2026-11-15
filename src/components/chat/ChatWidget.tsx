@@ -27,6 +27,7 @@ import ChatHeader from './ChatHeader';
 import ChatLauncher from './ChatLauncher';
 import Composer from './Composer';
 import MessageList from './MessageList';
+import { loadBrain } from '@/utils/chatEngine/brain';
 
 export default function ChatWidget() {
   const { run: runCommand, pathname } = useSiteCommands();
@@ -35,6 +36,12 @@ export default function ChatWidget() {
   const [wide, setWide] = useState(false);
   const [draft, setDraft] = useState('');
   const online = useOnline();
+
+  // Answers the owner taught from the admin panel (cached per visit; failure is harmless).
+  useEffect(() => {
+    const t = window.setTimeout(() => { void loadBrain(); }, 1200);
+    return () => window.clearTimeout(t);
+  }, []);
 
   // An unsent message survives closing the chat and reloading the page (this tab only).
   const draftReady = useRef(false);

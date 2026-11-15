@@ -11,6 +11,11 @@ import BackgroundFX from '@/components/fx/BackgroundFX';
 import SiteNav from '@/components/layout/SiteNav';
 import SiteFooter from '@/components/layout/SiteFooter';
 import ChromeGate from '@/components/layout/ChromeGate';
+import EventRibbon from '@/components/site/EventRibbon';
+import FxLayer from '@/components/site/FxLayer';
+import EasterEggs from '@/components/site/EasterEggs';
+import CyberMotion from '@/components/site/CyberMotion';
+import BackToTop from '@/components/site/BackToTop';
 import AnnouncementBar from '@/components/layout/AnnouncementBar';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { ProjectsProvider } from '@/context/ProjectsContext';
@@ -111,6 +116,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             {/* /admin and the template editor are full-screen tools with their own toolbars */}
             <ChromeGate>
               <AnnouncementBar />
+              <EventRibbon />
               <SiteNav />
             </ChromeGate>
             {/* Page transition is handled by app/template.tsx. Pages render <div>/<section> inside this one <main>. */}
@@ -123,6 +129,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             {/* Loaded after the page is idle so it never competes with first paint */}
             <ChromeGate>
               <ChatLoader />
+              <BackToTop />
+              <FxLayer />
+              <EasterEggs />
+              <CyberMotion />
             </ChromeGate>
             <Analytics />
             <PageMotion />

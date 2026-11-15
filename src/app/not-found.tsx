@@ -8,7 +8,7 @@ import { openChat } from '@/lib/chatBus';
 export default function NotFound() {
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col items-center justify-center px-4 py-20 text-center font-mono">
-      <span className="rise text-[10px] uppercase tracking-widest text-accent sm:text-xs">ERR_404 // MODULE_NOT_FOUND</span>
+      <span className="rise"><span className="cy-glitch cy-breath text-[10px] uppercase tracking-widest text-accent sm:text-xs" data-text="ERR_404 // MODULE_NOT_FOUND">ERR_404 // MODULE_NOT_FOUND</span></span>
       <h1 className="rise mt-3 text-3xl font-extrabold text-zinc-100 sm:text-5xl" style={{ '--d': '80ms' } as React.CSSProperties}>
         That page isn&apos;t in the system.
       </h1>

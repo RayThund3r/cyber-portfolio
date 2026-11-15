@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { STATUS_FLOW, STATUS_LABEL, formatUGX } from '@/lib/shared';
 import { api, hasPaymentToCheck, isOpenTicket, kampalaDay, needsAttention, timeAgo, type AdminTicket, type Stats } from './adminKit';
 
+import Icon from '@/components/ui/Icon';
 /** Tiny dependency-free bar chart. */
 function Bars({ data, label, tone = 'text-cyan-400' }: { data: { label: string; value: number }[]; label: string; tone?: string }) {
   const max = Math.max(1, ...data.map((d) => d.value));
@@ -76,7 +77,7 @@ export default function Overview({ tickets, loading, onOpenTicket, goTab }: { ti
     <section className="space-y-6">
       {tickets.length > 0 && (backupAge === null || (typeof backupAge === 'number' && backupAge >= 7)) && (
         <button type="button" onClick={() => goTab('data')} className="w-full rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-left text-sm text-amber-300">
-          💾 {backupAge === null ? 'You have not downloaded a backup yet.' : `Your last backup was ${backupAge} days ago.`} Tap to back up your requests and portfolio.
+          <Icon name="save" size={13} className="mr-1 align-[-2px]" />{backupAge === null ? 'You have not downloaded a backup yet.' : `Your last backup was ${backupAge} days ago.`} Tap to back up your requests and portfolio.
         </button>
       )}
       <div className="ios-stagger grid grid-cols-2 gap-3 lg:grid-cols-5">
@@ -91,14 +92,14 @@ export default function Overview({ tickets, loading, onOpenTicket, goTab }: { ti
         <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
           <h2 className="font-mono text-xs text-cyan-400">NEEDS ATTENTION</h2>
           {d.attention.length === 0 ? (
-            <p className="mt-3 text-sm text-zinc-400">Nothing is waiting on you. 🎉</p>
+            <p className="mt-3 text-sm text-zinc-400">Nothing is waiting on you.</p>
           ) : (
             <ul className="mt-3 space-y-2">
               {d.attention.slice(0, 8).map((t) => (
                 <li key={t.id}>
                   <button type="button" onClick={() => onOpenTicket(t.id)} className="flex w-full items-center justify-between gap-3 rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-left text-sm transition-colors hover:border-zinc-600">
                     <span className="min-w-0 truncate"><span className="font-mono text-xs text-cyan-400">{t.id}</span> <strong className="ml-1">{t.name}</strong></span>
-                    <span className="flex-shrink-0 text-xs text-amber-400">{hasPaymentToCheck(t) ? '💰 verify payment' : `⏰ waiting ${timeAgo(t.createdAt).replace(' ago', '')}`}</span>
+                    <span className="flex-shrink-0 text-xs text-amber-400">{hasPaymentToCheck(t) ? <><Icon name="money" size={13} className="mr-1 align-[-2px]" />verify payment</> : <><Icon name="clock" size={13} className="mr-1 align-[-2px]" />waiting {timeAgo(t.createdAt).replace(' ago', '')}</>}</span>
                   </button>
                 </li>
               ))}

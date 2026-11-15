@@ -4,14 +4,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { buildSite } from '@/lib/builder/generate';
 import type { SiteConfig } from '@/lib/builder/schema';
+import { IconClose, IconDesktop, IconPhone, IconTablet } from './icons';
 
 type Device = 'desktop' | 'tablet' | 'mobile';
 const WIDTH: Record<Device, string> = { desktop: '100%', tablet: '820px', mobile: '390px' };
 const btn = 'px-2.5 py-1.5 rounded border border-zinc-700 text-xs font-mono hover:border-zinc-500 cursor-pointer';
 
-export default function SiteViewer({ config, assets = {}, title, subtitle, actions, onClose, fill = true }: {
+export default function SiteViewer({ config, assets = {}, title, subtitle, actions, dock, onClose, fill = true }: {
   config: SiteConfig; assets?: Record<string, string>; title: string; subtitle?: string;
-  actions?: React.ReactNode; onClose?: () => void; fill?: boolean;
+  actions?: React.ReactNode; dock?: React.ReactNode; onClose?: () => void; fill?: boolean;
 }) {
   const [device, setDevice] = useState<Device>('desktop');
   const [toast, setToast] = useState('');
@@ -38,26 +39,27 @@ export default function SiteViewer({ config, assets = {}, title, subtitle, actio
 
   return (
     <div className={`${fill ? 'h-dvh' : 'h-[80vh]'} flex flex-col bg-zinc-950 text-zinc-100`}>
-      <header className="flex flex-wrap items-center gap-2 px-3 py-2 border-b border-zinc-800">
-        {onClose && <button className={btn} onClick={onClose} aria-label="Close preview">✕</button>}
+      <header className="flex flex-wrap items-center gap-2 px-3 py-2 border-b border-zinc-800 pt-[max(0.5rem,env(safe-area-inset-top))]">
+        {onClose && <button className={`${btn} min-h-10 min-w-10 inline-flex items-center justify-center`} onClick={onClose} aria-label="Close preview"><IconClose size={18} /></button>}
         <div className="min-w-0 mr-auto">
           <div className="text-sm font-semibold truncate">{title}</div>
           {subtitle && <div className="text-[11px] font-mono text-zinc-400 truncate">{subtitle}</div>}
         </div>
         <div className="hidden sm:flex gap-1" role="group" aria-label="Device size">
           {(['desktop', 'tablet', 'mobile'] as const).map((d) => (
-            <button key={d} className={`${btn} ${device === d ? 'border-cyan-500 text-cyan-300' : ''}`} aria-pressed={device === d} onClick={() => setDevice(d)}>{d === 'desktop' ? '🖥 Desktop' : d === 'tablet' ? '▭ Tablet' : '📱 Phone'}</button>
+            <button key={d} className={`${btn} ${device === d ? 'border-cyan-500 text-cyan-300' : ''}`} aria-pressed={device === d} onClick={() => setDevice(d)}><span className="inline-flex items-center gap-1.5">{d === 'desktop' ? <IconDesktop size={15} /> : d === 'tablet' ? <IconTablet size={15} /> : <IconPhone size={15} />}{d === 'desktop' ? 'Desktop' : d === 'tablet' ? 'Tablet' : 'Phone'}</span></button>
           ))}
         </div>
         {actions}
       </header>
-      <div className="flex-1 min-h-0 bg-zinc-900 flex justify-center overflow-auto sm:p-4 relative">
+      <div className="flex-1 min-h-0 bg-zinc-900 flex justify-center overflow-hidden sm:p-4 relative">
         <div style={{ width: WIDTH[device], maxWidth: '100%' }} className="h-full bg-white sm:rounded-lg overflow-hidden shadow-2xl transition-[width] duration-300">
           {/* sandbox WITHOUT allow-same-origin: the previewed site can never touch this app, its cookies or storage */}
           <iframe ref={frame} title={`Preview of ${title}`} sandbox="allow-scripts" srcDoc={html} className="w-full h-full border-0 bg-white" />
         </div>
         {toast && <div role="status" className="absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full bg-zinc-800 border border-zinc-600 text-xs shadow-lg">{toast}</div>}
       </div>
+      {dock}
     </div>
   );
 }

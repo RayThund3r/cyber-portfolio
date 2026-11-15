@@ -5,6 +5,7 @@
 // something they now need to SEE — the widget uses that to tuck itself away on phones.
 'use client';
 
+import { triggerFx } from '@/lib/events/fx';
 import { useCallback } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTheme } from '@/context/ThemeContext';
@@ -67,6 +68,10 @@ export function useSiteCommands() {
           if (cmd.theme) setTheme(cmd.theme);
           else cycleTheme();
           return false; // the visitor stays where they are
+
+        case 'fx':
+          triggerFx(cmd.fx, 6000);
+          return false;
 
         case 'top':
           window.scrollTo({ top: 0, behavior: 'smooth' });

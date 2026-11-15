@@ -10,7 +10,10 @@ import { CATEGORIES, categoryOf } from '@/lib/builder/schema';
 import type { TemplateDef } from '@/lib/builder/templates';
 import { CURRENCIES, FALLBACK_RATES, effectiveUGX, formatMoney, type Rates } from '@/lib/builder/pricing';
 import SiteViewer from '@/components/builder/SiteViewer';
-import { post, lsGet, lsSet } from '@/components/builder/lib';
+import { post, lsGet, lsSet, fetchStatus, downloadProject, type OrderStatus } from '@/components/builder/lib';
+import PurchasePanel from '@/components/builder/PurchaseFlow';
+import { CategoryIcon, IconCart, IconCheckCircle, IconClock, IconClose, IconDownload, IconEye, IconPencil, IconSearch, IconSparkle, IconWhatsApp } from '@/components/builder/icons';
+import { CardSkeleton } from '@/components/builder/ui';
 import { forgetProject, readSaved, type SavedProject } from '@/utils/useProjectRef';
 import { hasWhatsApp, whatsappLink } from '@/utils/chatEngine/siteConfig';
 
@@ -34,7 +37,7 @@ function Thumb({ t }: { t: TemplateDef }) {
       {vis ? (
         // hover slowly "scrolls" the page so people can see more of the design
         <div className="absolute top-0 left-0 w-full h-[210%] transition-transform duration-[2800ms] ease-in-out group-hover:-translate-y-[44%] group-focus-within:-translate-y-[44%] motion-reduce:transition-none">
-          <iframe title={`${t.name} preview`} sandbox="" srcDoc={html} loading="lazy" tabIndex={-1} aria-hidden="true" className="absolute top-0 left-0 border-0 pointer-events-none origin-top-left w-[333.4%] h-[333.4%] scale-[0.3] bg-white" />
+          <iframe title={`${t.name} preview`} sandbox={t.config.kind === 'pro' ? 'allow-scripts' : ''} srcDoc={html} loading="lazy" tabIndex={-1} aria-hidden="true" className="absolute top-0 left-0 border-0 pointer-events-none origin-top-left w-[333.4%] h-[333.4%] scale-[0.3] bg-white" />
         </div>
       ) : <div className="absolute inset-0 animate-pulse bg-zinc-800/50" />}
     </div>
@@ -55,6 +58,10 @@ export default function Showcase() {
   const [err, setErr] = useState('');
   const [link, setLink] = useState('');
   const [preview, setPreview] = useState<TemplateDef | null>(null);
+  // Purchase sheet: either a gallery design (new order) or a saved project (continue / download).
+  const [buying, setBuying] = useState<{ tpl?: TemplateDef; project?: { id: string; key: string; name: string } } | null>(null);
+  const [orders, setOrders] = useState<Record<string, OrderStatus | 'none'>>({});
+  const [dlBusy, setDlBusy] = useState('');
 
   useEffect(() => {
     fetch('/api/builder/templates').then((r) => r.json()).then((d) => setTemplates(d.templates || [])).catch(() => setTemplates([]));
@@ -63,6 +70,18 @@ export default function Showcase() {
     const c = lsGet('sys_currency'); if (c && CURRENCIES.some((x) => x.code === c)) setCur(c);
   }, []);
   useEffect(() => { lsSet('sys_currency', cur); }, [cur]);
+  // The server is the only source of truth for "paid": ask it for each saved project (kept light: no pictures, no config).
+  const loadOrders = useCallback((list: SavedProject[]) => {
+    list.slice(0, 12).forEach((sp) => {
+      if (!sp.key) return;
+      fetchStatus(sp.id, sp.key).then((st) => setOrders((o) => ({ ...o, [sp.id]: st }))).catch(() => setOrders((o) => ({ ...o, [sp.id]: 'none' })));
+    });
+  }, []);
+  useEffect(() => { loadOrders(saved); }, [saved, loadOrders]);
+  const download = async (sp: SavedProject) => {
+    setDlBusy(sp.id); setErr('');
+    try { await downloadProject(sp.id, sp.key); } catch (e: any) { setErr(e.message || 'Download failed'); } finally { setDlBusy(''); }
+  };
   useEffect(() => { document.body.style.overflow = preview ? 'hidden' : ''; return () => { document.body.style.overflow = ''; }; }, [preview]);
 
   const ugx = (t: TemplateDef) => effectiveUGX(t, rates.rates.UGX);
@@ -125,17 +144,17 @@ export default function Showcase() {
         <div className="relative">
           <Thumb t={t} />
           {t.tag && <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-cyan-500 text-black text-[10px] font-mono font-bold">{t.tag}</span>}
-          <span className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/40 transition-colors"><span className="opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300 px-4 py-2 rounded-full bg-white text-black text-xs font-semibold shadow-lg">👁 Click to view</span></span>
+          <span className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/40 transition-colors"><span className="opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300 px-4 py-2 rounded-full bg-white text-black text-xs font-semibold shadow-lg inline-flex items-center gap-1.5"><IconEye size={14} /> Click to view</span></span>
         </div>
       </button>
       <div className="p-4 flex-1 flex flex-col">
-        <div className="flex items-start justify-between gap-2"><h3 className="font-bold">{t.name}</h3><span className="text-[11px] font-mono text-zinc-500 whitespace-nowrap">{categoryOf(t.category).icon} {categoryOf(t.category).label.split(' ')[0]}</span></div>
+        <div className="flex items-start justify-between gap-2"><h3 className="font-bold">{t.name}</h3><span className="text-[11px] font-mono text-zinc-500 whitespace-nowrap inline-flex items-center gap-1"><CategoryIcon id={t.category} size={13} /> {categoryOf(t.category).label.split(' ')[0]}</span></div>
         <p className="text-sm text-zinc-400 mt-1 flex-1">{t.description}</p>
         <div className="mt-4 flex items-end justify-between gap-2">
           {price(t)}
           <div className="flex gap-2">
-            <button onClick={() => setPreview(t)} className="px-3 py-2 rounded border border-zinc-700 text-xs font-mono hover:border-zinc-400 cursor-pointer">View</button>
-            <button disabled={busy !== null} onClick={() => start(t)} className="px-3 py-2 rounded bg-cyan-500 text-black text-xs font-mono font-semibold hover:bg-cyan-400 disabled:opacity-50 cursor-pointer">{busy === t.id ? '…' : 'Edit →'}</button>
+            <button onClick={() => setPreview(t)} className="min-h-11 px-3 rounded border border-zinc-700 text-xs font-mono hover:border-zinc-400 cursor-pointer">View</button>
+            <button onClick={() => setBuying({ tpl: t })} className="min-h-11 px-3 rounded bg-cyan-500 text-black text-xs font-mono font-semibold hover:bg-cyan-400 cursor-pointer inline-flex items-center gap-1.5"><IconCart size={14} /> Buy</button>
           </div>
         </div>
       </div>
@@ -145,7 +164,7 @@ export default function Showcase() {
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans">
       <main className="max-w-7xl mx-auto px-4 sm:px-8 py-8 space-y-10">
-        <Link href="/" className="font-mono text-xs text-cyan-400 hover:opacity-80">← Home</Link>
+        <Link href="/" className="hit font-mono text-xs text-cyan-400 hover:opacity-80">← Home</Link>
 
         <header data-hero className="max-w-3xl">
           <div data-hero-item className="font-mono text-xs text-cyan-400 mb-3">// WEBSITE_SHOWCASE</div>
@@ -157,34 +176,49 @@ export default function Showcase() {
           <section aria-labelledby="mine">
             <h2 id="mine" className="font-mono text-xs text-zinc-400 mb-3">YOUR PROJECTS ON THIS DEVICE</h2>
             <ul className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {saved.map((s) => (
-                <li key={s.id} className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-4 flex items-center gap-2">
-                  <div className="flex-1 min-w-0"><div className="text-sm font-semibold truncate">{s.name}</div><div className="text-[11px] font-mono text-zinc-500 truncate">{s.id}{s.template ? ` · ${s.template}` : ''}</div></div>
-                  <Link href={`/builder/view?id=${s.id}`} className="px-2.5 py-1.5 rounded border border-zinc-700 text-xs font-mono hover:border-zinc-400">View</Link>
-                  <Link href={`/builder/edit?id=${s.id}`} className="px-2.5 py-1.5 rounded bg-cyan-500 text-black text-xs font-mono font-semibold hover:bg-cyan-400">Edit</Link>
-                  <button aria-label={`Remove ${s.name} from this device`} onClick={() => { forgetProject(s.id); setSaved(readSaved()); }} className="text-zinc-500 hover:text-red-400 cursor-pointer px-1">✕</button>
+              {saved.map((sp) => {
+                const o = orders[sp.id];
+                const st = o && o !== 'none' ? o : null;
+                const paid = !!st?.order?.paid;
+                return (
+                <li key={sp.id} className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-3 flex flex-col gap-2">
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 min-w-0"><div className="text-sm font-semibold truncate">{sp.name}</div><div className="text-[11px] font-mono text-zinc-500 truncate">{sp.id}{sp.template ? ` · ${sp.template}` : ''}</div></div>
+                    {st === null && o === undefined ? <span className="bld-skel h-5 w-20 rounded-full" aria-hidden="true" /> : paid
+                      ? <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-mono text-emerald-300"><IconCheckCircle size={12} /> PAID</span>
+                      : st?.order ? <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-mono text-amber-300"><IconClock size={12} /> AWAITING PAYMENT</span>
+                      : <span className="rounded-full border border-zinc-700 px-2 py-0.5 text-[10px] font-mono text-zinc-400">DRAFT</span>}
+                    <button aria-label={`Remove ${sp.name} from this device`} onClick={() => { forgetProject(sp.id); setSaved(readSaved()); }} className="text-zinc-500 hover:text-red-400 cursor-pointer min-h-11 min-w-9 flex items-center justify-center"><IconClose size={16} /></button>
+                  </div>
+                  <div className="flex gap-2 flex-wrap">
+                    <Link href={`/builder/view?id=${sp.id}`} className="min-h-11 inline-flex items-center px-3 rounded border border-zinc-700 text-xs font-mono hover:border-zinc-400">View</Link>
+                    <Link href={`/builder/edit?id=${sp.id}`} className="min-h-11 inline-flex items-center gap-1.5 px-3 rounded border border-zinc-700 text-xs font-mono hover:border-zinc-400"><IconPencil size={14} /> Edit</Link>
+                    {paid
+                      ? <button disabled={dlBusy === sp.id} onClick={() => download(sp)} className="min-h-11 inline-flex items-center gap-1.5 px-3 rounded bg-emerald-500 text-black text-xs font-mono font-semibold hover:bg-emerald-400 disabled:opacity-60 cursor-pointer"><IconDownload size={14} /> {dlBusy === sp.id ? 'Preparing…' : 'Download'}</button>
+                      : <button onClick={() => setBuying({ project: { id: sp.id, key: sp.key, name: sp.name } })} className="min-h-11 inline-flex items-center gap-1.5 px-3 rounded bg-cyan-500 text-black text-xs font-mono font-semibold hover:bg-cyan-400 cursor-pointer"><IconCart size={14} /> {st?.order ? 'Pay / check' : 'Buy'}</button>}
+                  </div>
                 </li>
-              ))}
+              ); })}
             </ul>
           </section>
         )}
 
         {/* toolbar */}
         <section aria-label="Filter templates" className="sticky top-0 z-30 -mx-4 sm:-mx-8 px-4 sm:px-8 py-3 bg-zinc-950/90 backdrop-blur border-b border-zinc-800 space-y-3">
-          <div className="flex gap-2 overflow-x-auto pb-1 -mb-1" role="tablist" aria-label="Categories">
-            {[{ id: 'all', label: 'All', icon: '✨' }, ...CATEGORIES.filter((c) => counts[c.id])].map((c) => {
+          <div className="flex gap-2 overflow-x-auto sb-slim pb-2 -mb-1" role="tablist" aria-label="Categories">
+            {[{ id: 'all', label: 'All' }, ...CATEGORIES.filter((c) => counts[c.id])].map((c) => {
               const on = cat === c.id;
               return (
-                <button key={c.id} role="tab" aria-selected={on} onClick={() => setCat(c.id)} className={`shrink-0 px-3 py-1.5 rounded-full border text-xs font-mono cursor-pointer transition-colors ${on ? 'bg-cyan-500 border-cyan-500 text-black font-semibold' : 'border-zinc-700 text-zinc-300 hover:border-zinc-400'}`}>
-                  {c.icon} {c.label} <span className={on ? 'opacity-70' : 'text-zinc-500'}>{c.id === 'all' ? templates?.length ?? '' : counts[c.id]}</span>
+                <button key={c.id} role="tab" aria-selected={on} onClick={() => setCat(c.id)} className={`shrink-0 min-h-10 inline-flex items-center gap-1.5 px-3.5 rounded-full border text-xs font-mono cursor-pointer transition-colors ${on ? 'bg-cyan-500 border-cyan-500 text-black font-semibold' : 'border-zinc-700 text-zinc-300 hover:border-zinc-400'}`}>
+                  {c.id === 'all' ? <IconSparkle size={14} /> : <CategoryIcon id={c.id} size={14} />} {c.label} <span className={on ? 'opacity-70' : 'text-zinc-500'}>{c.id === 'all' ? templates?.length ?? '' : counts[c.id]}</span>
                 </button>
               );
             })}
           </div>
           <div className="flex flex-wrap gap-2 text-sm">
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search designs…" aria-label="Search templates" className="flex-1 min-w-[10rem] bg-zinc-900 border border-zinc-800 rounded px-3 py-2 focus:outline-none focus:border-cyan-500" />
-            <select value={sort} onChange={(e) => setSort(e.target.value as any)} aria-label="Sort" className="bg-zinc-900 border border-zinc-800 rounded px-2 py-2"><option value="featured">Featured</option><option value="low">Price: low → high</option><option value="high">Price: high → low</option><option value="name">Name A–Z</option></select>
-            <select value={cur} onChange={(e) => setCur(e.target.value)} aria-label="Currency" className="bg-zinc-900 border border-zinc-800 rounded px-2 py-2">{CURRENCIES.map((c) => <option key={c.code} value={c.code}>{c.code} — {c.label}</option>)}</select>
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search designs…" aria-label="Search templates" className="flex-1 min-w-[10rem] min-h-11 bg-zinc-900 border border-zinc-800 rounded px-3 text-base sm:text-sm focus:outline-none focus:border-cyan-500" />
+            <select value={sort} onChange={(e) => setSort(e.target.value as any)} aria-label="Sort" className="bg-zinc-900 border border-zinc-800 rounded px-2 min-h-11 text-base sm:text-sm"><option value="featured">Featured</option><option value="low">Price: low → high</option><option value="high">Price: high → low</option><option value="name">Name A–Z</option></select>
+            <select value={cur} onChange={(e) => setCur(e.target.value)} aria-label="Currency" className="bg-zinc-900 border border-zinc-800 rounded px-2 min-h-11 text-base sm:text-sm">{CURRENCIES.map((c) => <option key={c.code} value={c.code}>{c.code} — {c.label}</option>)}</select>
           </div>
         </section>
 
@@ -192,13 +226,13 @@ export default function Showcase() {
 
         <div ref={grid} className="space-y-12 min-h-[40vh]">
           {templates === null ? (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">{Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-72 rounded-xl bg-zinc-900/60 animate-pulse" />)}</div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">{Array.from({ length: 6 }).map((_, i) => <CardSkeleton key={i} />)}</div>
           ) : filtered.length === 0 ? (
-            <div className="text-center py-16 text-zinc-400"><div className="text-4xl mb-2">🔍</div>No designs match. <button className="underline text-cyan-400 cursor-pointer" onClick={() => { setQ(''); setCat('all'); }}>Clear filters</button></div>
+            <div className="text-center py-16 text-zinc-400"><IconSearch size={36} className="mx-auto mb-3 text-zinc-600" />No designs match. <button className="hit underline text-cyan-400 cursor-pointer" onClick={() => { setQ(''); setCat('all'); }}>Clear filters</button></div>
           ) : grouped ? (
             groups.map(({ c, items }) => (
               <section key={c.id} aria-labelledby={`cat-${c.id}`}>
-                <div className="flex items-baseline justify-between mb-4"><h2 id={`cat-${c.id}`} className="text-xl font-bold">{c.icon} {c.label} <span className="text-sm font-mono text-zinc-500">({items.length})</span></h2><button className="text-xs font-mono text-cyan-400 hover:underline cursor-pointer" onClick={() => setCat(c.id)}>Only show this →</button></div>
+                <div className="flex items-baseline justify-between mb-4"><h2 id={`cat-${c.id}`} className="text-xl font-bold"><span className="inline-flex items-center gap-2"><CategoryIcon id={c.id} size={20} className="text-cyan-400" /> {c.label} <span className="text-sm font-mono text-zinc-500">({items.length})</span></span></h2><button className="text-xs font-mono text-cyan-400 hover:underline cursor-pointer" onClick={() => setCat(c.id)}>Only show this →</button></div>
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">{items.map(card)}</div>
               </section>
             ))
@@ -217,7 +251,7 @@ export default function Showcase() {
             <h2 className="font-mono text-xs text-zinc-400 mb-2">OPEN A PROJECT FROM ANOTHER DEVICE</h2>
             <div className="flex gap-2"><input value={link} onChange={(e) => setLink(e.target.value)} placeholder="Paste your edit link…" aria-label="Edit link" className="flex-1 bg-zinc-950 border border-zinc-800 rounded px-3 py-2 focus:outline-none focus:border-cyan-500" /><button onClick={openLink} className="px-3 py-2 rounded border border-zinc-700 text-xs font-mono hover:border-zinc-500 cursor-pointer">Open</button></div>
             <p className="text-[11px] text-zinc-500 mt-2">Projects save automatically. Keep your edit link private — anyone with it can edit your site.</p>
-            <div className="mt-3 flex flex-wrap gap-2 font-mono text-xs"><Link href="/contact?type=design" className="px-3 py-2 rounded border border-zinc-700 hover:border-zinc-500">Need a custom site? Request a design</Link>{hasWhatsApp() && <a href={whatsappLink('Hello, I have a question about the website builder. ')} target="_blank" rel="noopener noreferrer" className="px-3 py-2 rounded border border-emerald-500/50 text-emerald-400">💬 WhatsApp</a>}</div>
+            <div className="mt-3 flex flex-wrap gap-2 font-mono text-xs"><Link href="/contact?type=design" className="px-3 py-2 rounded border border-zinc-700 hover:border-zinc-500">Need a custom site? Request a design</Link>{hasWhatsApp() && <a href={whatsappLink('Hello, I have a question about the website builder. ')} target="_blank" rel="noopener noreferrer" className="px-3 py-2 rounded border border-emerald-500/50 text-emerald-400 inline-flex items-center gap-1.5"><IconWhatsApp size={14} /> WhatsApp</a>}</div>
           </div>
         </section>
       </main>
@@ -227,14 +261,37 @@ export default function Showcase() {
           <SiteViewer
             config={preview.config}
             title={preview.name}
-            subtitle={`${categoryOf(preview.category).icon} ${categoryOf(preview.category).label}`}
+            subtitle={categoryOf(preview.category).label}
             onClose={() => setPreview(null)}
             actions={<>
               <div className="hidden md:block text-right mr-1">{price(preview)}</div>
-              <button disabled={busy !== null} onClick={() => start(preview)} className="px-4 py-2 rounded bg-cyan-500 text-black text-xs font-mono font-semibold hover:bg-cyan-400 disabled:opacity-50 cursor-pointer">{busy === preview.id ? 'Starting…' : '✎ Edit this design →'}</button>
+              <button onClick={() => setBuying({ tpl: preview })} className="hidden md:inline-flex min-h-10 items-center gap-1.5 px-4 rounded bg-cyan-500 text-black text-xs font-mono font-semibold hover:bg-cyan-400 cursor-pointer"><IconCart size={15} /> Buy &amp; download</button>
+              <button disabled={busy !== null} onClick={() => start(preview)} className="hidden md:inline-flex min-h-10 items-center gap-1.5 px-4 rounded border border-zinc-600 text-xs font-mono hover:border-zinc-300 disabled:opacity-50 cursor-pointer"><IconPencil size={15} /> {busy === preview.id ? 'Starting…' : 'Customise'}</button>
             </>}
+            dock={
+              // phones: a sticky bottom bar, always reachable with one thumb
+              <div className="md:hidden border-t border-zinc-800 bg-zinc-950/95 backdrop-blur px-3 pt-2 flex items-center gap-2" style={{ paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom))' }}>
+                <div className="min-w-0 flex-1">{price(preview)}</div>
+                <button disabled={busy !== null} onClick={() => start(preview)} className="min-h-11 inline-flex items-center gap-1.5 px-3 rounded-lg border border-zinc-600 text-xs font-mono disabled:opacity-50 cursor-pointer"><IconPencil size={15} /> {busy === preview.id ? '…' : 'Edit'}</button>
+                <button onClick={() => setBuying({ tpl: preview })} className="min-h-11 inline-flex items-center gap-1.5 px-4 rounded-lg bg-cyan-500 text-black text-sm font-mono font-semibold cursor-pointer"><IconCart size={16} /> Buy</button>
+              </div>
+            }
           />
         </div>
+      )}
+
+      {buying && (
+        <PurchasePanel
+          templateId={buying.tpl?.id}
+          templateName={buying.tpl?.name ?? buying.project?.name ?? 'Your website'}
+          priceUGX={buying.tpl ? ugx(buying.tpl) : null}
+          project={buying.project ?? null}
+          cur={cur}
+          rates={rates}
+          onClose={() => { setBuying(null); setSaved(readSaved()); }}
+          onChanged={() => { const l = readSaved(); setSaved(l); loadOrders(l); }}
+          onEdit={(id, key) => router.push(`/builder/edit?id=${encodeURIComponent(id)}&key=${encodeURIComponent(key)}`)}
+        />
       )}
     </div>
   );

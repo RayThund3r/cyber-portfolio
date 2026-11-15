@@ -6,10 +6,12 @@
 // Desktop: tool rail + panel + canvas + inspector.  Mobile: canvas + bottom navigation + bottom sheets.
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import Link from 'next/link';
 import { SECTION_DEFS, newSection, type SectionType, type SiteConfig } from '@/lib/builder/schema';
 import { readinessWarnings } from '@/lib/builder/readiness';
+import ProContent from './ProContent';
+import { frameReducer, initialFrames } from '@/lib/builder/frames';
 import { buildSite } from '@/lib/builder/generate';
 import type { FormCtx } from './FieldForm';
 import type { EditorApi } from './editorApi';
@@ -21,16 +23,22 @@ import { compressImage, lsDel, lsGet, lsSet, post, setPath } from './lib';
 import { rememberProject } from '@/utils/useProjectRef';
 import type { TemplateDef } from '@/lib/builder/templates';
 
-type Tool = 'layers' | 'add' | 'media' | 'design' | 'ai' | 'code' | 'settings';
-const TOOLS: { k: Tool; icon: string; label: string }[] = [
-  { k: 'layers', icon: '☰', label: 'Layers' }, { k: 'add', icon: '＋', label: 'Add' }, { k: 'media', icon: '🖼', label: 'Media' },
-  { k: 'design', icon: '🎨', label: 'Design' }, { k: 'ai', icon: '✨', label: 'AI' }, { k: 'code', icon: '</>', label: 'Code' }, { k: 'settings', icon: '⚙', label: 'Project' },
+import { IconCart, IconCheck, IconCheckCircle, IconClose, IconCode, IconCopy, IconDesktop, IconEye, IconEyeOff, IconImage, IconLayers, IconLock, IconPalette, IconPaperclip, IconPencil, IconPhone, IconPlus, IconSettings, IconSparkle, IconTablet, IconTrash, IconWarn, IconBulb, IconFolder } from './icons';
+type Tool = 'layers' | 'add' | 'media' | 'design' | 'ai' | 'code' | 'settings' | 'content';
+const TOOLS: { k: Tool; icon: (p: { size?: number }) => JSX.Element; label: string }[] = [
+  { k: 'layers', icon: IconLayers, label: 'Layers' }, { k: 'add', icon: IconPlus, label: 'Add' }, { k: 'media', icon: IconImage, label: 'Media' },
+  { k: 'design', icon: IconPalette, label: 'Design' }, { k: 'ai', icon: IconSparkle, label: 'AI' }, { k: 'code', icon: IconCode, label: 'Code' }, { k: 'settings', icon: IconSettings, label: 'Project' },
+];
+const TOOLS_PRO: { k: Tool; icon: (p: { size?: number }) => JSX.Element; label: string }[] = [
+  { k: 'content', icon: IconLayers, label: 'Content' }, { k: 'media', icon: IconImage, label: 'Media' }, { k: 'ai', icon: IconSparkle, label: 'AI' }, { k: 'code', icon: IconCode, label: 'Code' }, { k: 'settings', icon: IconSettings, label: 'Project' },
 ];
 const ZOOMS = [0.25, 0.5, 0.67, 0.75, 0.9, 1, 1.25, 1.5, 2];
 const DEVICE_W = { desktop: null, tablet: 820, mobile: 390 } as const;
 type Device = keyof typeof DEVICE_W;
 
-interface Hist { past: SiteConfig[]; present: SiteConfig; future: SiteConfig[]; tag: string; t: number }
+/** Undo history is stored as JSON strings with a byte budget — an 80-step history of a large site would otherwise hold ~80 full copies in memory. */
+interface Hist { past: string[]; present: SiteConfig; future: string[]; tag: string; t: number; v: number; bytes: number }
+const MAX_HIST_CHARS = 12_000_000;
 interface Meta { name: string; templateName: string; priceUGX: number | null; order: { ticket: string; paid: boolean; price: number } | null; updatedAt: string }
 
 function useMedia(q: string) {
@@ -48,7 +56,7 @@ function Sheet({ title, onClose, children, tall }: { title: string; onClose: () 
       <div className="flex items-center gap-2 px-3 py-2 border-b border-zinc-800">
         <button className="mx-auto absolute left-1/2 -translate-x-1/2 -top-0 w-10 h-1.5 mt-1.5 rounded-full bg-zinc-600 cursor-pointer" aria-label="Resize panel" onClick={() => setBig(!big)} />
         <span className="text-sm font-semibold mt-2">{title}</span>
-        <button className="ml-auto mt-2 w-8 h-8 rounded hover:bg-zinc-800 cursor-pointer" aria-label="Close panel" onClick={onClose}>✕</button>
+        <button className="ml-auto mt-2 w-8 h-8 rounded hover:bg-zinc-800 cursor-pointer" aria-label="Close panel" onClick={onClose}><IconClose size={16} /></button>
       </div>
       <div className="flex-1 min-h-0 flex flex-col">{children}</div>
     </div>
@@ -81,30 +89,40 @@ export default function Editor({ mode, id, keyStr }: { mode: 'project' | 'templa
   const [buy, setBuy] = useState(false);
   const [newProj, setNewProj] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [srcDoc, setSrcDoc] = useState('');
+  // two stacked iframes: the new document loads in the hidden one and is swapped in when ready → no white flash on every edit
+  const [fr, dispatchFr] = useReducer(frameReducer, initialFrames);
+  const docs = fr.docs, front = fr.front;
+  const docsRef = useRef(docs); docsRef.current = docs;
+  const [nameV, setNameV] = useState(0);
   const [avail, setAvail] = useState({ w: 900, h: 600 });
   const [hint, setHint] = useState(false);
 
-  const frame = useRef<HTMLIFrameElement>(null);
+  const frameA = useRef<HTMLIFrameElement>(null), frameB = useRef<HTMLIFrameElement>(null);
+  const frames = [frameA, frameB];
+  const frontRef = useRef<0 | 1>(0); frontRef.current = front;
   const canvasRef = useRef<HTMLDivElement>(null);
   const yRef = useRef(0);
-  const savedRef = useRef('');
+  const savedRef = useRef('');                      // content signature at load (only for draft recovery)
+  const savedV = useRef({ v: 0, n: 0 });           // version of what the server has — O(1) dirty checks instead of re-serialising the site
   const revRef = useRef(0);
   const queue = useRef<Promise<void>>(Promise.resolve());
   const retries = useRef(0);
   const cfg = hist?.present;
   const locked = !!meta?.order;
   const draftKey = `sys_draft_${id}`;
-  const latest = useRef<{ cfg?: SiteConfig; name: string }>({ name: '' });
-  latest.current = { cfg, name: projName };
+  const latest = useRef<{ cfg?: SiteConfig; name: string; v: number; n: number }>({ name: '', v: 0, n: 0 });
+  latest.current = { cfg, name: projName, v: hist?.v ?? 0, n: nameV };
+  const isPro = cfg?.kind === 'pro';
 
   /* ───────── load ───────── */
   useEffect(() => {
     (async () => {
+      let loadedKind: string | undefined;
       try {
         if (isProject) {
           const d = await post('/api/builder', { action: 'load', id, key: keyStr });
-          setHist({ past: [], present: d.config, future: [], tag: '', t: 0 });
+          loadedKind = d.config?.kind;
+          setHist({ past: [], present: d.config, future: [], tag: '', t: 0, v: 0, bytes: 0 });
           setAssets(d.assets || {}); setProjName(d.name); revRef.current = d.rev || 0;
           setMeta({ name: d.name, templateName: d.templateName, priceUGX: d.priceUGX, order: d.order, updatedAt: d.updatedAt || '' });
           savedRef.current = JSON.stringify([d.config, d.name]);
@@ -115,11 +133,13 @@ export default function Editor({ mode, id, keyStr }: { mode: 'project' | 'templa
           } catch { /* ignore */ }
         } else {
           const d = await post('/api/admin', { action: 'template.get', id });
-          setHist({ past: [], present: d.template.config, future: [], tag: '', t: 0 });
+          loadedKind = d.template.config?.kind;
+          setHist({ past: [], present: d.template.config, future: [], tag: '', t: 0, v: 0, bytes: 0 });
           setMeta({ name: d.template.name, templateName: d.template.name, priceUGX: null, order: null, updatedAt: '' });
           savedRef.current = JSON.stringify([d.template.config, '']);
         }
-        setTool(window.matchMedia('(min-width: 1024px)').matches ? 'layers' : null);
+        savedV.current = { v: 0, n: 0 };
+        setTool(window.matchMedia('(min-width: 1024px)').matches ? (loadedKind === 'pro' ? 'content' : 'layers') : null);
         setHint(!lsGet('sys_builder_hint'));
       } catch (e: any) { setLoadErr(e.status === 401 ? 'Please sign in to the admin panel first, then reopen this page.' : e.message || 'Could not load.'); }
     })();
@@ -133,23 +153,36 @@ export default function Editor({ mode, id, keyStr }: { mode: 'project' | 'templa
       const next = structuredClone(h.present);
       fn(next);
       const merge = !!tag && h.tag === tag && Date.now() - h.t < 900; // typing in one field = ONE undo step
-      return { past: merge ? h.past : [...h.past.slice(-80), h.present], present: next, future: [], tag, t: Date.now() };
+      let past = h.past, bytes = h.bytes;
+      if (!merge) {
+        const snap = JSON.stringify(h.present); past = [...past, snap]; bytes += snap.length;
+        while ((bytes > MAX_HIST_CHARS || past.length > 120) && past.length > 1) { bytes -= past[0].length; past = past.slice(1); }
+      }
+      return { past, present: next, future: [], tag, t: Date.now(), v: h.v + 1, bytes };
     });
   }, [locked]);
-  const undo = useCallback(() => setHist((h) => (h && h.past.length ? { past: h.past.slice(0, -1), present: h.past[h.past.length - 1], future: [h.present, ...h.future], tag: '', t: 0 } : h)), []);
-  const redo = useCallback(() => setHist((h) => (h && h.future.length ? { past: [...h.past, h.present], present: h.future[0], future: h.future.slice(1), tag: '', t: 0 } : h)), []);
+  const undo = useCallback(() => setHist((h) => {
+    if (!h || !h.past.length) return h;
+    const snap = h.past[h.past.length - 1];
+    return { past: h.past.slice(0, -1), present: JSON.parse(snap), future: [JSON.stringify(h.present), ...h.future].slice(0, 120), tag: '', t: 0, v: h.v + 1, bytes: h.bytes - snap.length };
+  }), []);
+  const redo = useCallback(() => setHist((h) => {
+    if (!h || !h.future.length) return h;
+    const snap = JSON.stringify(h.present);
+    return { past: [...h.past, snap], present: JSON.parse(h.future[0]), future: h.future.slice(1), tag: '', t: 0, v: h.v + 1, bytes: h.bytes + snap.length };
+  }), []);
 
   /* ───────── saving: queued, retried with back-off, conflict-aware, draft backup ───────── */
   const flush = useCallback((force = false): Promise<void> => {
     queue.current = queue.current.then(async () => {
-      const { cfg: c, name } = latest.current;
+      const { cfg: c, name, v, n } = latest.current;
       if (!c) return;
-      if (JSON.stringify([c, name]) === savedRef.current) { setSave('saved'); return; }
+      if (savedV.current.v === v && savedV.current.n === n) { setSave('saved'); return; }
       setSave('saving');
       try {
         if (isProject) { const d = await post('/api/builder', { action: 'save', id, key: keyStr, config: c, name, baseRev: revRef.current, force }); revRef.current = d.rev; }
         else await post('/api/admin', { action: 'template.saveConfig', id, config: c });
-        savedRef.current = JSON.stringify([c, name]); retries.current = 0; setConflict(false); setSave('saved');
+        savedV.current = { v, n }; retries.current = 0; setConflict(false); setSave('saved');
       } catch (e: any) {
         setSave('error');
         if (e.data?.conflict) { setConflict(true); setSaveErr('Changed in another tab or device.'); return; }
@@ -163,15 +196,15 @@ export default function Editor({ mode, id, keyStr }: { mode: 'project' | 'templa
 
   useEffect(() => {
     if (!cfg || locked || conflict) return;
-    if (JSON.stringify([cfg, projName]) === savedRef.current) return;
+    if (savedV.current.v === (hist?.v ?? 0) && savedV.current.n === nameV) return;
     setSave('idle');
     const t1 = setTimeout(() => { if (isProject) lsSet(draftKey, JSON.stringify({ cfg, name: projName, at: Date.now() })); }, 500);
     const t2 = setTimeout(() => flush(), 1200);
     return () => { clearTimeout(t1); clearTimeout(t2); };
-  }, [cfg, projName, locked, conflict, flush, isProject, draftKey]);
+  }, [cfg, projName, nameV, hist?.v, locked, conflict, flush, isProject, draftKey]);
 
   useEffect(() => {
-    const warn = (e: BeforeUnloadEvent) => { const l = latest.current; if (l.cfg && !locked && JSON.stringify([l.cfg, l.name]) !== savedRef.current) e.preventDefault(); };
+    const warn = (e: BeforeUnloadEvent) => { const l = latest.current; if (l.cfg && !locked && (savedV.current.v !== l.v || savedV.current.n !== l.n)) e.preventDefault(); };
     const on = () => { setOnline(true); retries.current = 0; flush(); }, off = () => setOnline(false);
     setOnline(navigator.onLine);
     window.addEventListener('beforeunload', warn); window.addEventListener('online', on); window.addEventListener('offline', off);
@@ -182,10 +215,16 @@ export default function Editor({ mode, id, keyStr }: { mode: 'project' | 'templa
   const html = useMemo(() => (cfg ? buildSite(cfg, { mode: viewMode ? 'view' : 'preview', assetSrc: (a) => assets[a] || '' }).html : ''), [cfg, assets, viewMode]);
   useEffect(() => {
     if (!html) return;
-    const t = setTimeout(() => setSrcDoc(html.replace('/*Y*/0', `/*Y*/${Math.round(yRef.current)}`)), srcDoc ? 250 : 0);
+    const t = setTimeout(() => dispatchFr({ t: 'doc', doc: html.replace('/*Y*/0', `/*Y*/${Math.round(yRef.current)}`) }), docsRef.current[frontRef.current] ? 250 : 0);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [html]);
+  const onFrameLoad = (i: 0 | 1) => {
+    const swaps = i !== frontRef.current && !!docsRef.current[i];   // an empty frame's load event is ignored by the reducer too
+    if (swaps) frontRef.current = i;
+    dispatchFr({ t: 'load', i });
+    if (i === frontRef.current) setTimeout(() => { if (sel && !viewMode && !isPro) frames[i].current?.contentWindow?.postMessage({ t: 'select', id: sel }, '*'); }, 0);
+  };
 
   const ready = !!cfg;
   useEffect(() => {
@@ -198,12 +237,12 @@ export default function Editor({ mode, id, keyStr }: { mode: 'project' | 'templa
     return () => ro.disconnect();
   }, [ready, viewMode]);
 
-  const post2 = useCallback((m: unknown) => frame.current?.contentWindow?.postMessage(m, '*'), []);
+  const post2 = useCallback((m: unknown) => frames[frontRef.current].current?.contentWindow?.postMessage(m, '*'), []); // eslint-disable-line react-hooks/exhaustive-deps
   const select = useCallback((sid: string | null, scroll = false) => {
     setSel(sid);
-    if (sid) { post2({ t: scroll ? 'go' : 'select', id: sid }); if (!isLg) setInspOpen(true); else if (!isXl) setInspOpen(true); }
+    if (sid && !isPro) { post2({ t: scroll ? 'go' : 'select', id: sid }); if (!isLg) setInspOpen(true); else if (!isXl) setInspOpen(true); }
     else post2({ t: 'select', id: null });
-  }, [post2, isLg, isXl]);
+  }, [post2, isLg, isXl, isPro]);
   useEffect(() => { if (cfg && sel && !cfg.sections.some((s) => s.id === sel)) setSel(null); }, [cfg, sel]);
 
   /* ───────── section operations ───────── */
@@ -243,8 +282,8 @@ export default function Editor({ mode, id, keyStr }: { mode: 'project' | 'templa
   }, [id, keyStr]);
 
   const ctx: FormCtx = useMemo(() => ({
-    sections: (cfg?.sections || []).filter((s) => s.type !== 'navbar' && s.type !== 'footer').map((s) => ({ id: s.id, label: `${SECTION_DEFS[s.type].icon} ${SECTION_DEFS[s.type].label}${s.data.title ? ' — ' + String(s.data.title).slice(0, 24) : ''}` })),
-    assets, disabled: locked, upload: isProject ? async (f: File) => (await upload(f)).id : null,
+    sections: (cfg?.sections || []).filter((s) => s.type !== 'navbar' && s.type !== 'footer').map((s) => ({ id: s.id, label: `${SECTION_DEFS[s.type].label}${s.data.title ? ' — ' + String(s.data.title).slice(0, 24) : ''}` })),
+    assets, disabled: locked, upload: isProject ? async (f: File) => (await upload(f)).id : null, siteKey: cfg?.pro?.key,
   }), [cfg, assets, locked, isProject, upload]);
 
   const api: EditorApi = { cfg: cfg as SiteConfig, assets, locked, isProject, projectId: id, projectKey: keyStr, sel, select, edit, undo, redo, ctx, ops, upload, removeAsset, errors, clearErrors: () => setErrors([]) };
@@ -253,9 +292,11 @@ export default function Editor({ mode, id, keyStr }: { mode: 'project' | 'templa
   /* ───────── messages from the canvas ───────── */
   useEffect(() => {
     const on = (e: MessageEvent) => {
-      if (e.source !== frame.current?.contentWindow) return;
+      if (!frames.some((r) => r.current?.contentWindow === e.source)) return;
+      const fromFront = e.source === frames[frontRef.current].current?.contentWindow;
       const m = e.data || {};
       const a = apiRef.current;
+      if (m.t !== 'err' && !fromFront) return; // only the visible document may edit; a still-loading one may only report errors
       if (m.t === 'y') yRef.current = m.y;
       else if (m.t === 'sel' && typeof m.id === 'string') { setSel(m.id); setInspOpen(true); }
       else if (m.t === 'edit' && typeof m.f === 'string') {
@@ -291,8 +332,12 @@ export default function Editor({ mode, id, keyStr }: { mode: 'project' | 'templa
   const fullPreview = () => {
     if (!cfg) return;
     const b = buildSite(cfg, { mode: 'export', assetSrc: (a) => assets[a] || '' });
-    let page = b.html.replace('<link rel="stylesheet" href="css/style.css">', `<style>${b.css}</style>`).replace('<script src="js/script.js"></script>', `<script>${b.js}</script>`);
-    page = page.replace('<link rel="stylesheet" href="css/custom.css">', `<style>${b.customCss}</style>`).replace('<script src="js/custom.js"></script>', `<script>${b.customJs.replace(/<\/script/gi, '<\\/script')}</script>`);
+    let page = b.html;
+    // NOTE: function replacements on purpose — the engine's source contains "$$" and "$&", which a string replacement would mangle
+    for (const f of b.files || []) {
+      if (f.name.endsWith('.css')) page = page.replace(`<link rel="stylesheet" href="${f.name}">`, () => `<style>${f.text.replace(/<\/style/gi, '<\\/style')}</style>`);
+      else if (f.name.endsWith('.js')) page = page.replace(`<script src="${f.name}"></script>`, () => `<script>${f.text.replace(/<\/script/gi, '<\\/script')}</script>`);
+    }
     window.open(URL.createObjectURL(new Blob([page], { type: 'text/html' })), '_blank');
   };
   const backup = () => {
@@ -323,7 +368,7 @@ export default function Editor({ mode, id, keyStr }: { mode: 'project' | 'templa
 
   /* ───────── render ───────── */
   if (loadErr) return <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col items-center justify-center gap-4 px-6 text-center"><p role="alert" className="text-sm text-red-300 max-w-md">{loadErr}</p><Link href="/builder" className="text-cyan-400 text-sm underline">← Back to designs</Link></div>;
-  if (!cfg || !meta) return <div className="min-h-screen bg-zinc-950 text-zinc-400 flex flex-col items-center justify-center gap-3 text-sm font-mono"><div className="w-8 h-8 rounded-full border-2 border-cyan-500 border-t-transparent animate-spin" />Opening your project…</div>;
+  if (!cfg || !meta) return <div className="min-h-screen bg-zinc-950 text-zinc-400 flex flex-col items-center justify-center gap-3 text-sm font-mono"><div className="load-bar" role="progressbar" aria-label="Loading" />Opening your project…</div>;
 
   const fixedW = DEVICE_W[device];
   const pad = isLg ? 24 : 0;
@@ -333,17 +378,19 @@ export default function Editor({ mode, id, keyStr }: { mode: 'project' | 'templa
   const frameH = ah / scale;
   const stepZoom = (d: number) => { const i = ZOOMS.findIndex((z) => z >= zoom - 0.001); const n = ZOOMS[Math.min(ZOOMS.length - 1, Math.max(0, (i < 0 ? ZOOMS.length - 1 : i) + d))]; setZoom(n); setFit(false); };
   const warnings = readinessWarnings(cfg);
-  const dirty = JSON.stringify([cfg, projName]) !== savedRef.current;
-  const saveLabel = locked ? '🔒 locked' : !online ? '⚠ offline — saved on this device' : save === 'saving' ? 'Saving…' : save === 'error' ? `⚠ ${saveErr}` : dirty ? 'Unsaved…' : 'All changes saved';
+  const dirty = savedV.current.v !== hist!.v || savedV.current.n !== nameV;
+  const saveLabel = locked ? 'Locked' : !online ? 'Offline — saved on this device' : save === 'saving' ? 'Saving…' : save === 'error' ? saveErr : dirty ? 'Unsaved…' : 'All changes saved';
 
-  const toolTitle = TOOLS.find((t) => t.k === tool)?.label ?? '';
+  const tools = isPro ? TOOLS_PRO : TOOLS;
+  const toolTitle = tools.find((t) => t.k === tool)?.label ?? '';
   const toolBody = (() => {
     switch (tool) {
-      case 'layers': return <div className="p-3 overflow-y-auto"><LayersPanel api={api} goAdd={() => setTool('add')} /></div>;
-      case 'add': return <div className="p-3 overflow-y-auto"><AddPanel api={api} /></div>;
-      case 'media': return <div className="p-3 overflow-y-auto"><MediaPanel api={api} /></div>;
-      case 'design': return <div className="p-3 overflow-y-auto"><DesignPanel api={api} /></div>;
-      case 'settings': return <div className="p-3 overflow-y-auto"><SettingsPanel api={api} onNew={() => setNewProj(true)} onDuplicate={duplicate} onBackup={backup} onFullPreview={fullPreview} /></div>;
+      case 'content': return <div className="p-3 overflow-y-auto sb-slim"><ProContent api={api} goSection={(sec) => post2({ t: 'go', sec })} /></div>;
+      case 'layers': return <div className="p-3 overflow-y-auto sb-slim"><LayersPanel api={api} goAdd={() => setTool('add')} /></div>;
+      case 'add': return <div className="p-3 overflow-y-auto sb-slim"><AddPanel api={api} /></div>;
+      case 'media': return <div className="p-3 overflow-y-auto sb-slim"><MediaPanel api={api} /></div>;
+      case 'design': return <div className="p-3 overflow-y-auto sb-slim"><DesignPanel api={api} /></div>;
+      case 'settings': return <div className="p-3 overflow-y-auto sb-slim"><SettingsPanel api={api} onNew={() => setNewProj(true)} onDuplicate={duplicate} onBackup={backup} onFullPreview={fullPreview} /></div>;
       case 'ai': return <div className="p-3 flex-1 min-h-0"><AIPanel api={api} /></div>;
       case 'code': return <div className="p-3 flex-1 min-h-0"><CodePanel api={api} /></div>;
       default: return null;
@@ -357,13 +404,13 @@ export default function Editor({ mode, id, keyStr }: { mode: 'project' | 'templa
       <header className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-2 border-b border-zinc-800 bg-zinc-950">
         <Link href={isProject ? '/builder' : '/admin'} className={tb} aria-label="Back to designs">←</Link>
         {isProject
-          ? <input aria-label="Project name" disabled={locked} value={projName} maxLength={60} onChange={(e) => setProjName(e.target.value)} className="bg-transparent border-b border-transparent hover:border-zinc-700 focus:border-cyan-500 outline-none text-sm px-1 py-1 w-28 sm:w-52 truncate" />
+          ? <input aria-label="Project name" disabled={locked} value={projName} maxLength={60} onChange={(e) => { setProjName(e.target.value); setNameV((x) => x + 1); }} className="bg-transparent border-b border-transparent hover:border-zinc-700 focus:border-cyan-500 outline-none text-sm px-1 py-1 w-28 sm:w-52 truncate" />
           : <span className="text-xs sm:text-sm text-amber-300 font-mono truncate">Template: {meta.name}</span>}
         {isProject && isLg && <button className={tb} onClick={() => setNewProj(true)}>＋ New</button>}
 
         <div className="mx-auto flex rounded-lg border border-zinc-700 overflow-hidden" role="group" aria-label="Mode">
-          <button onClick={() => setViewMode(false)} aria-pressed={!viewMode} className={`px-3 h-9 text-xs font-mono cursor-pointer ${!viewMode ? 'bg-cyan-500 text-black font-semibold' : 'hover:bg-zinc-800'}`}>✎ Design</button>
-          <button onClick={() => { setViewMode(true); setInspOpen(false); }} aria-pressed={viewMode} className={`px-3 h-9 text-xs font-mono cursor-pointer ${viewMode ? 'bg-cyan-500 text-black font-semibold' : 'hover:bg-zinc-800'}`}>👁 View</button>
+          <button onClick={() => setViewMode(false)} aria-pressed={!viewMode} aria-label="Design mode" className={`px-2.5 sm:px-3 h-9 min-w-9 text-xs font-mono cursor-pointer inline-flex items-center justify-center gap-1 ${!viewMode ? 'bg-cyan-500 text-black font-semibold' : 'hover:bg-zinc-800'}`}><IconPencil size={14} /><span className="hidden sm:inline">Design</span></button>
+          <button onClick={() => { setViewMode(true); setInspOpen(false); }} aria-pressed={viewMode} aria-label="View mode" className={`px-2.5 sm:px-3 h-9 min-w-9 text-xs font-mono cursor-pointer inline-flex items-center justify-center gap-1 ${viewMode ? 'bg-cyan-500 text-black font-semibold' : 'hover:bg-zinc-800'}`}><IconEye size={14} /><span className="hidden sm:inline">View</span></button>
         </div>
 
         <button className={tb} onClick={undo} disabled={locked || !hist!.past.length} aria-label="Undo" title="Undo (Ctrl+Z)">↶</button>
@@ -377,27 +424,27 @@ export default function Editor({ mode, id, keyStr }: { mode: 'project' | 'templa
               <button className={tb} disabled={!!fixedW && fit} onClick={() => stepZoom(1)} aria-label="Zoom in">＋</button>
             </div>
             <div className="flex gap-1" role="group" aria-label="Device">
-              {(['desktop', 'tablet', 'mobile'] as const).map((d) => <button key={d} className={`${tb} ${device === d ? 'border-cyan-500 text-cyan-300' : ''}`} aria-pressed={device === d} onClick={() => { setDevice(d); setFit(true); setZoom(1); }} title={d}>{d === 'desktop' ? '🖥' : d === 'tablet' ? '▭' : '📱'}</button>)}
+              {(['desktop', 'tablet', 'mobile'] as const).map((d) => <button key={d} className={`${tb} ${device === d ? 'border-cyan-500 text-cyan-300' : ''}`} aria-pressed={device === d} onClick={() => { setDevice(d); setFit(true); setZoom(1); }} title={d}>{d === 'desktop' ? <IconDesktop size={16} /> : d === 'tablet' ? <IconTablet size={16} /> : <IconPhone size={16} />}</button>)}
             </div>
             <button className={tb} onClick={fullPreview}>↗ Preview</button>
           </>
         )}
-        {isProject && !locked && <button className="h-9 px-3 rounded-lg bg-cyan-500 text-black text-xs font-mono font-semibold hover:bg-cyan-400 cursor-pointer whitespace-nowrap" onClick={() => setBuy(true)}>✔ <span className="hidden sm:inline">Confirm & buy</span><span className="sm:hidden">Buy</span></button>}
+        {isProject && !locked && <button className="h-9 px-3 rounded-lg bg-cyan-500 text-black text-xs font-mono font-semibold hover:bg-cyan-400 cursor-pointer whitespace-nowrap" onClick={() => setBuy(true)}><IconCheck size={15} /> <span className="hidden sm:inline">Confirm & buy</span><span className="sm:hidden">Buy</span></button>}
       </header>
 
       {/* ── status banners ── */}
       <div role="status" className="text-[11px] font-mono text-zinc-500 px-3 py-1 border-b border-zinc-900 bg-zinc-950 flex items-center gap-2 flex-wrap">
-        <span>{viewMode ? '👁 View mode — exactly how visitors see your site. Links and menus work.' : saveLabel}</span>
+        <span>{viewMode ? 'View mode — exactly how visitors see your site. Links and menus work.' : saveLabel}</span>
         {viewMode && <span className="ml-auto">{saveLabel}</span>}
       </div>
       {!online && <div className="px-3 py-1.5 text-xs bg-amber-500/10 text-amber-200 border-b border-amber-500/30">You’re offline. Keep editing — your work is stored on this device and will sync when you’re back online.</div>}
       {conflict && <div className="px-3 py-2 text-xs bg-red-500/10 text-red-200 border-b border-red-500/30 flex flex-wrap items-center gap-2">This project was changed in another tab or device. <button className="underline cursor-pointer" onClick={() => location.reload()}>Load the latest (your edits are kept as a recoverable draft)</button> <button className="underline cursor-pointer" onClick={() => flush(true)}>Keep mine and overwrite</button></div>}
-      {draft && !locked && <div className="px-3 py-2 text-xs bg-cyan-500/10 text-cyan-100 border-b border-cyan-500/30 flex flex-wrap items-center gap-2">We recovered unsaved edits from this device. <button className="underline font-semibold cursor-pointer" onClick={() => { edit('draft', (c) => { Object.assign(c, structuredClone(draft.cfg)); }); setProjName(draft.name); setDraft(null); }}>Restore them</button> <button className="underline cursor-pointer" onClick={() => { lsDel(draftKey); setDraft(null); }}>Discard</button></div>}
+      {draft && !locked && <div className="px-3 py-2 text-xs bg-cyan-500/10 text-cyan-100 border-b border-cyan-500/30 flex flex-wrap items-center gap-2">We recovered unsaved edits from this device. <button className="underline font-semibold cursor-pointer" onClick={() => { edit('draft', (c) => { Object.assign(c, structuredClone(draft.cfg)); }); setProjName(draft.name); setNameV((x) => x + 1); setDraft(null); }}>Restore them</button> <button className="underline cursor-pointer" onClick={() => { lsDel(draftKey); setDraft(null); }}>Discard</button></div>}
       {locked && isProject && (
         <div className="px-3 py-2 text-xs bg-amber-500/10 border-b border-amber-500/30 text-amber-200 flex flex-wrap items-center gap-3">
           {meta.order!.paid
-            ? <><span>✅ Paid — your website is ready.</span><button className="px-3 py-1 rounded bg-emerald-500 text-black font-mono font-semibold cursor-pointer" onClick={download}>⬇ Download website (.zip)</button></>
-            : <><span>🔒 Order placed ({meta.order!.ticket}) — waiting for your payment to be confirmed.</span><Link href={`/track?id=${meta.order!.ticket}`} className="underline">Go to payment →</Link><button className="underline cursor-pointer" onClick={unlock}>Unlock to keep editing</button></>}
+            ? <><span>Paid — your website is ready.</span><button className="px-3 py-1 rounded bg-emerald-500 text-black font-mono font-semibold cursor-pointer" onClick={download}>⬇ Download website (.zip)</button></>
+            : <><span>Order placed ({meta.order!.ticket}) — waiting for your payment to be confirmed.</span><Link href={`/track?id=${meta.order!.ticket}`} className="underline">Go to payment →</Link><button className="underline cursor-pointer" onClick={unlock}>Unlock to keep editing</button></>}
         </div>
       )}
 
@@ -405,9 +452,9 @@ export default function Editor({ mode, id, keyStr }: { mode: 'project' | 'templa
       <div className="flex-1 min-h-0 flex">
         {isLg && !viewMode && (
           <nav className="w-16 shrink-0 border-r border-zinc-800 bg-zinc-950 flex flex-col items-center py-2 gap-1" aria-label="Tools">
-            {TOOLS.map((t) => (
+            {tools.map((t) => (
               <button key={t.k} onClick={() => setTool(t.k)} aria-pressed={tool === t.k} className={`w-14 py-2 rounded-lg flex flex-col items-center gap-0.5 cursor-pointer ${tool === t.k ? 'bg-cyan-500/15 text-cyan-300' : 'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100'}`}>
-                <span className="text-lg leading-none">{t.icon}</span><span className="text-[10px] font-mono">{t.label}</span>
+                <span className="leading-none"><t.icon size={20} /></span><span className="text-[10px] font-mono">{t.label}</span>
               </button>
             ))}
           </nav>
@@ -422,16 +469,19 @@ export default function Editor({ mode, id, keyStr }: { mode: 'project' | 'templa
         {/* canvas */}
         <main ref={canvasRef} className="flex-1 min-w-0 overflow-hidden relative bg-[#18181b]" style={{ padding: pad }} onClick={() => { if (hint) { setHint(false); lsSet('sys_builder_hint', '1'); } }}>
           <div className="mx-auto bg-white shadow-2xl overflow-hidden transition-[width] duration-200" style={{ width: frameW * scale, height: ah, borderRadius: isLg ? (device === 'mobile' ? 28 : 10) : 0 }}>
-            <div style={{ width: frameW, height: frameH, transform: `scale(${scale})`, transformOrigin: 'top left' }}>
+            <div style={{ position: 'relative', width: frameW, height: frameH, transform: `scale(${scale})`, transformOrigin: 'top left' }}>
               {/* sandbox WITHOUT allow-same-origin: the site being edited (incl. its custom code) can never touch this app, cookies or storage */}
-              <iframe ref={frame} title={viewMode ? 'Your website' : 'Website canvas'} sandbox="allow-scripts" srcDoc={srcDoc} onLoad={() => { if (!viewMode && sel) post2({ t: 'select', id: sel }); }} style={{ width: frameW, height: frameH, border: 0, background: '#fff', display: 'block' }} />
+              {([0, 1] as const).map((i) => (
+                <iframe key={i} ref={frames[i]} title={viewMode ? 'Your website' : 'Website canvas'} sandbox="allow-scripts" srcDoc={docs[i]} onLoad={() => onFrameLoad(i)}
+                  style={{ position: 'absolute', left: 0, top: 0, width: frameW, height: frameH, border: 0, background: '#fff', display: docs[i] ? 'block' : 'none', visibility: i === front ? 'visible' : 'hidden', zIndex: i === front ? 2 : 1 }} />
+              ))}
             </div>
           </div>
-          {hint && !viewMode && <div className="absolute bottom-3 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full bg-zinc-800/95 border border-zinc-600 text-xs shadow-lg max-w-[92%] text-center pointer-events-none">💡 Tap a block to select it · <strong>double-click text to type</strong> · use the ⠿ layers to reorder</div>}
+          {hint && !viewMode && <div className="absolute bottom-3 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full bg-zinc-800/95 border border-zinc-600 text-xs shadow-lg max-w-[92%] text-center pointer-events-none">Tap a block to select it · <strong>double-tap text to type</strong> · use the ⠿ layers to reorder</div>}
         </main>
 
         {/* inspector: docked on wide screens */}
-        {isXl && !viewMode && (
+        {isXl && !viewMode && !isPro && (
           <aside className="w-[340px] shrink-0 border-l border-zinc-800 bg-zinc-950 flex flex-col min-h-0" aria-label="Inspector">
             <div className="px-3 py-2 border-b border-zinc-800 text-xs font-mono text-zinc-400">INSPECTOR</div>
             <div className="flex-1 min-h-0"><Inspector api={api} /></div>
@@ -440,25 +490,25 @@ export default function Editor({ mode, id, keyStr }: { mode: 'project' | 'templa
       </div>
 
       {/* inspector drawer (laptop widths) */}
-      {isLg && !isXl && !viewMode && inspOpen && sel && (
+      {isLg && !isXl && !viewMode && !isPro && inspOpen && sel && (
         <aside className="fixed right-0 top-[88px] bottom-0 w-[340px] z-40 border-l border-zinc-700 bg-zinc-950 shadow-2xl flex flex-col" aria-label="Inspector"><Inspector api={api} onClose={() => setInspOpen(false)} /></aside>
       )}
 
       {/* ── mobile: bottom nav + sheets ── */}
       {!isLg && (
         <>
-          {!viewMode && inspOpen && sel && <Sheet title="Edit block" tall onClose={() => setInspOpen(false)}><Inspector api={api} /></Sheet>}
+          {!viewMode && !isPro && inspOpen && sel && <Sheet title="Edit block" tall onClose={() => setInspOpen(false)}><Inspector api={api} /></Sheet>}
           {!viewMode && tool && !(inspOpen && sel) && <Sheet title={toolTitle} tall={tool === 'ai' || tool === 'code'} onClose={() => setTool(null)}>{toolBody}</Sheet>}
-          <nav className="h-14 shrink-0 border-t border-zinc-800 bg-zinc-950 grid grid-cols-7 z-50" aria-label="Tools">
+          <nav className="h-[calc(3.5rem+env(safe-area-inset-bottom))] pb-[env(safe-area-inset-bottom)] shrink-0 border-t border-zinc-800 bg-zinc-950 grid z-50" style={{ gridTemplateColumns: `repeat(${viewMode ? 7 : tools.length}, minmax(0, 1fr))` }} aria-label="Tools">
             {viewMode ? (
               <>
-                <button className="col-span-3 text-xs font-mono text-zinc-300 cursor-pointer" onClick={() => setViewMode(false)}>✎ Back to editing</button>
-                <div className="col-span-2 flex items-center justify-center gap-1">{(['desktop', 'tablet', 'mobile'] as const).map((d) => <button key={d} aria-pressed={device === d} onClick={() => { setDevice(d); setFit(true); }} className={`w-9 h-9 rounded cursor-pointer ${device === d ? 'bg-cyan-500/20 text-cyan-300' : 'text-zinc-400'}`}>{d === 'desktop' ? '🖥' : d === 'tablet' ? '▭' : '📱'}</button>)}</div>
+                <button className="col-span-3 text-xs font-mono text-zinc-300 cursor-pointer" onClick={() => setViewMode(false)}><IconPencil size={14} /> Back to editing</button>
+                <div className="col-span-2 flex items-center justify-center gap-1">{(['desktop', 'tablet', 'mobile'] as const).map((d) => <button key={d} aria-pressed={device === d} onClick={() => { setDevice(d); setFit(true); }} className={`w-9 h-9 rounded cursor-pointer ${device === d ? 'bg-cyan-500/20 text-cyan-300' : 'text-zinc-400'}`}>{d === 'desktop' ? <IconDesktop size={16} /> : d === 'tablet' ? <IconTablet size={16} /> : <IconPhone size={16} />}</button>)}</div>
                 <button className="col-span-2 text-xs font-mono text-zinc-300 cursor-pointer" onClick={fullPreview}>↗ Preview</button>
               </>
-            ) : TOOLS.map((t) => (
+            ) : tools.map((t) => (
               <button key={t.k} onClick={() => { setInspOpen(false); setTool(tool === t.k ? null : t.k); }} aria-pressed={tool === t.k && !inspOpen} className={`flex flex-col items-center justify-center gap-0.5 cursor-pointer ${tool === t.k && !(inspOpen && sel) ? 'text-cyan-300 bg-cyan-500/10' : 'text-zinc-400'}`}>
-                <span className="text-base leading-none">{t.icon}</span><span className="text-[9px] font-mono">{t.label}</span>
+                <span className="leading-none"><t.icon size={20} /></span><span className="text-[9px] font-mono">{t.label}</span>
               </button>
             ))}
           </nav>

@@ -20,14 +20,15 @@ export const PHONE_RE = /^[\d\s\-+()]{6,30}$/;
  */
 export function clientIp(req: Request): string {
   const h = (n: string) => (req.headers.get(n) || '').trim();
-  const direct = h('cf-connecting-ip') || h('x-vercel-forwarded-for') || h('fly-client-ip');
+  // Platform headers a visitor cannot forge come first (Cloudflare only when you say you are behind it, Vercel, Fly).
+  if (process.env.TRUST_CLOUDFLARE === '1' && h('cf-connecting-ip')) return h('cf-connecting-ip').slice(0, 64);
+  const direct = h('x-vercel-forwarded-for') || h('fly-client-ip') || (process.env.TRUST_CLOUDFLARE === '1' ? '' : h('cf-connecting-ip'));
   if (direct) return direct.split(',')[0].trim().slice(0, 64);
+  const raw = process.env.TRUSTED_PROXY_HOPS;
+  const hops = raw === undefined || raw === '' ? 1 : Math.max(0, Math.min(10, parseInt(raw, 10) || 0));
   const xff = h('x-forwarded-for').split(',').map((x) => x.trim()).filter(Boolean);
-  if (xff.length) {
-    const hops = Math.max(1, Math.min(5, Number(process.env.TRUSTED_PROXY_HOPS) || 1));
-    return xff[Math.max(0, xff.length - hops)].slice(0, 64);
-  }
-  return (h('x-real-ip') || 'unknown').slice(0, 64);
+  if (hops > 0 && xff.length) return xff[Math.max(0, xff.length - hops)].slice(0, 64);
+  return (hops > 0 ? h('x-real-ip') : '').slice(0, 64) || 'unknown';
 }
 
 /** Reads a JSON request body without ever holding more than `maxBytes` in memory. */

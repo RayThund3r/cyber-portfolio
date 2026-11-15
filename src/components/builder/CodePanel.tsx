@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react';
 import { buildSite } from '@/lib/builder/generate';
 import type { EditorApi } from './editorApi';
 
+import { IconCart, IconCheck, IconCheckCircle, IconClose, IconCode, IconCopy, IconDesktop, IconEye, IconEyeOff, IconImage, IconLayers, IconLock, IconPalette, IconPaperclip, IconPencil, IconPhone, IconPlus, IconSettings, IconSparkle, IconTablet, IconTrash, IconWarn, IconBulb, IconFolder } from './icons';
 type Lang = 'css' | 'js' | 'html';
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
@@ -42,7 +43,7 @@ function CodeBox({ value, onChange, lang, readOnly }: { value: string; onChange?
   const h = n * 20 + 16;
   return (
     // ONE scroll container holds gutter + highlight + textarea, so they can never drift out of sync
-    <div className="flex-1 min-h-0 overflow-auto bg-zinc-950 font-mono text-[13px] leading-5 border border-zinc-800 rounded">
+    <div className="flex-1 min-h-0 overflow-auto sb-slim bg-zinc-950 font-mono text-[13px] leading-5 border border-zinc-800 rounded">
       <div className="flex" style={{ minWidth: '100%', width: `calc(${width}ch + 3.5rem)`, height: h }}>
         <pre aria-hidden="true" className="select-none text-right text-zinc-600 px-2 py-2 sticky left-0 bg-zinc-950 m-0 shrink-0 z-10">{Array.from({ length: n }, (_, i) => i + 1).join('\n')}</pre>
         <div className="relative flex-1" style={{ height: h }}>
@@ -104,7 +105,7 @@ export default function CodePanel({ api }: { api: EditorApi }) {
       <div className="text-[11px] text-amber-200/90 bg-amber-500/10 border border-amber-500/30 rounded p-2">
         Optional, for people who know a little code. It runs only on <strong>your</strong> website, and changes appear in the canvas live. Made a mistake? <kbd className="font-mono">Ctrl+Z</kbd> or empty the box.
       </div>
-      <div className="flex gap-1 overflow-x-auto" role="tablist">
+      <div className="flex gap-1 overflow-x-auto sb-slim" role="tablist">
         {TABS.map((x) => <button key={x.k} role="tab" aria-selected={tab === x.k} onClick={() => setTab(x.k)} className={`px-2.5 py-1.5 rounded text-xs font-mono cursor-pointer whitespace-nowrap ${tab === x.k ? 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/40' : 'border border-zinc-800 text-zinc-400 hover:text-zinc-200'}`}>{x.label}</button>)}
       </div>
       {tab !== 'out' && (
@@ -118,9 +119,9 @@ export default function CodePanel({ api }: { api: EditorApi }) {
       )}
       <CodeBox value={value} lang={t.lang} readOnly={tab === 'out' || api.locked} onChange={tab === 'out' ? undefined : (v) => api.edit(`code.${tab}`, (c) => { c.code[tab] = v.slice(0, 60000); })} />
       {tab === 'out' && <p className="text-[11px] text-zinc-500">This is the real <code>index.html</code> that goes in your download (read-only). Change the page with the editor or the code tabs.</p>}
-      <div className="rounded border border-zinc-800 bg-zinc-900/50 max-h-28 overflow-auto">
+      <div className="rounded border border-zinc-800 bg-zinc-900/50 max-h-28 overflow-auto sb-slim">
         <div className="flex items-center justify-between px-2 py-1 text-[11px] font-mono text-zinc-400 border-b border-zinc-800"><span>Console {api.errors.length ? `· ${api.errors.length} error${api.errors.length > 1 ? 's' : ''}` : '· no errors'}</span>{api.errors.length > 0 && <button className="hover:text-white cursor-pointer" onClick={api.clearErrors}>clear</button>}</div>
-        {api.errors.slice(-6).map((e, i) => <div key={i} className="px-2 py-1 text-[11px] font-mono text-red-300 border-b border-zinc-800/60">⚠ {e.m}{e.l ? ` (line ${e.l})` : ''}</div>)}
+        {api.errors.slice(-6).map((e, i) => <div key={i} className="px-2 py-1 text-[11px] font-mono text-red-300 border-b border-zinc-800/60 flex items-center gap-1"><IconWarn size={12} /> {e.m}{e.l ? ` (line ${e.l})` : ''}</div>)}
       </div>
     </div>
   );

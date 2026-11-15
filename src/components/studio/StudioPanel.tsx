@@ -4,6 +4,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import StudioEditor from './StudioEditor';
 
+import Icon from '@/components/ui/Icon';
 async function post(body: unknown) {
   const r = await fetch('/api/studio', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   const d = await r.json().catch(() => ({}));
@@ -84,7 +85,7 @@ export default function StudioPanel({ onAuthLost }: { onAuthLost: () => void }) 
                   <button className={primary} onClick={() => setEditing(s.slug)}>Design</button>
                   {s.published && <a className={btn} href={`/demo/${s.slug}`} target="_blank" rel="noopener noreferrer">Open demo ↗</a>}
                   <a className={btn} href={`/api/studio?download=${encodeURIComponent(s.slug)}`}>⬇ .zip</a>
-                  <a className={btn} href={`/api/studio?backup=${encodeURIComponent(s.slug)}`} title="Settings and pictures, to restore this site later">💾 Backup</a>
+                  <a className={btn} href={`/api/studio?backup=${encodeURIComponent(s.slug)}`} title="Settings and pictures, to restore this site later"><Icon name="save" size={13} className="mr-1 align-[-2px]" />Backup</a>
                   <button className={btn} disabled={busy} onClick={() => run(async () => { await post({ action: 'duplicate', slug: s.slug }); await load(); })}>Duplicate</button>
                   <button className={`${btn} !border-red-500/50 text-red-400`} disabled={busy} onClick={() => { if (confirm(`Delete "${s.name}" and all its pictures? This cannot be undone.`)) run(async () => { await post({ action: 'delete', slug: s.slug }); await load(); }); }}>Delete</button>
                 </div>

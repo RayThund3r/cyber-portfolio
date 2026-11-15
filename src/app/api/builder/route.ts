@@ -27,7 +27,7 @@ export async function POST(req: Request) {
   const key = clean(b?.key, 64);
 
   // every action that opens a site with its key goes through the same wrong-key guard
-  const keyed = ['load', 'save', 'upload', 'duplicate', 'deleteAsset', 'delete', 'order', 'unorder'].includes(action);
+  const keyed = ['load', 'status', 'save', 'upload', 'duplicate', 'deleteAsset', 'delete', 'order', 'unorder'].includes(action);
   if (keyed && tooManyGuesses(ip, id)) return bad(GUESS_MSG, 429);
   const wrong = (error: string) => { if (error === 'Project not found.') noteWrongKey(ip, id); }; // only a wrong KEY counts
 
@@ -47,6 +47,18 @@ export async function POST(req: Request) {
         id: p.id, name: p.name, templateId: p.templateId, templateName: p.templateName,
         priceUGX: await priceNow(p.templateId), config: p.config, assets: await assetDataUrls(p), rev: p.rev, updatedAt: p.updatedAt,
         order: st && !st.cancelled ? st : null,
+      });
+    }
+
+    case 'status': {
+      // light-weight order status for the gallery / preview (no config, no pictures). Only the holder of the edit key gets it.
+      if (rateLimit(`b-status:${ip}`, 600, 10 * 60_000)) return bad('Too many requests. Try again shortly.', 429);
+      const p = await authProject(id, key);
+      if (!p) { noteWrongKey(ip, id); return bad('We could not open that project. Check the link or code.', 404); }
+      const st = await orderState(p);
+      return ok({
+        id: p.id, name: p.name, templateId: p.templateId, templateName: p.templateName, priceUGX: await priceNow(p.templateId),
+        order: st && !st.cancelled ? st : null, contact: st && !st.cancelled ? (p.contact?.email || p.contact?.phone || '') : '',
       });
     }
 

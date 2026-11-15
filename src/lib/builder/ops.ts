@@ -6,6 +6,7 @@
 // Isomorphic: used by the server (real AI) and the browser (offline assistant).
 import { CATEGORIES, FONT_PAIRS, PALETTES, SECTION_DEFS, SECTION_ORDER, newSection, type Field, type SectionInstance, type SectionType, type SiteConfig } from './schema';
 import { sanitizeConfig, type SanitizeCtx } from './sanitize';
+import { PRO_GROUPS, proSchemaDoc } from './pro';
 
 export type Op = { op: string; [k: string]: any };
 export interface ApplyResult { config: SiteConfig; applied: string[]; skipped: string[] }
@@ -47,6 +48,19 @@ export function applyOps(input: SiteConfig, ops: unknown, ctx: ApplyCtx = {}): A
           if (!p) { skipped.push(`unknown palette ${raw.id}`); break; }
           cfg.theme = { ...cfg.theme, mode: p.mode, primary: p.primary, secondary: p.secondary, bg: p.bg, alt: p.alt, text: p.text };
           applied.push(`Applied the ${p.label} colour theme`);
+          break;
+        }
+        case 'setPro': {
+          if (cfg.kind !== 'pro' || !cfg.pro) { skipped.push('setPro: this is not a Pro site'); break; }
+          const g = PRO_GROUPS.find((x) => x.id === raw.group && x.id !== 'owner'); // the AI can never touch the owner passcode
+          if (!g) { skipped.push(`setPro: unknown group ${raw.group}`); break; }
+          const vals = pick(raw.values, g.fields.map((f) => f.key));
+          // models often send pictures as plain strings — the schema wants {u: url}
+          const objify = (arr: unknown) => (Array.isArray(arr) ? arr.map((x) => (typeof x === 'string' ? { u: x } : x)) : arr);
+          if (Array.isArray(vals.products)) vals.products = vals.products.map((p: any) => (p && typeof p === 'object' ? { ...p, images: objify(p.images) } : p));
+          if (g.id === 'gallery' && Array.isArray(vals.items)) vals.items = vals.items.map((x: any) => (typeof x === 'string' ? { u: x } : x));
+          cfg.pro[g.id] = { ...cfg.pro[g.id], ...vals };
+          applied.push(`Updated “${g.title}”`);
           break;
         }
         case 'setBrand': Object.assign(cfg.brand, pick(raw.values, ['name', 'logo'])); applied.push('Updated the brand'); break;
@@ -129,7 +143,8 @@ function fieldDoc(f: Field): string {
   if (f.type === 'list') return `${f.key}[{${f.fields!.map(fieldDoc).join(', ')}}]`;
   return `${f.key}(${f.type}${f.max ? `≤${f.max}` : ''})`;
 }
-export function schemaDoc(): string {
+export function schemaDoc(cfg?: SiteConfig): string {
+  if (cfg?.kind === 'pro') return proSchemaDoc();
   const types = SECTION_ORDER.map((t) => `- ${t}: ${SECTION_DEFS[t].fields.filter((f) => f.group !== 'style').map(fieldDoc).join(', ')}; style: bg(default|alt|primary|dark), space(compact|normal|spacious), navLabel(text)`);
   return [
     'SECTION TYPES (fields you may set):', ...types,
@@ -143,8 +158,15 @@ export function schemaDoc(): string {
   ].join('\n');
 }
 
+const clipAny = (v: any): any => {
+  if (typeof v === 'string') return v.length > 220 ? v.slice(0, 220) + `…(${v.length} chars)` : v;
+  if (Array.isArray(v)) return v.slice(0, 12).map(clipAny).concat(v.length > 12 ? [`…+${v.length - 12} more`] : []);
+  if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, clipAny(x)]));
+  return v;
+};
 /** Compact view of the current site for the model (long strings clipped, lists shortened). */
 export function compactConfig(cfg: SiteConfig): unknown {
+  if (cfg.kind === 'pro' && cfg.pro) { const { owner: _o, ...rest } = cfg.pro as Record<string, any>; return clipAny({ kind: 'pro', ...rest, code: { css: `${cfg.code.css.length} chars`, js: `${cfg.code.js.length} chars`, head: `${cfg.code.head.length} chars` } }); }
   const clip = (v: any, depth = 0): any => {
     if (typeof v === 'string') return v.length > 220 ? v.slice(0, 220) + `…(${v.length} chars)` : v;
     if (Array.isArray(v)) return v.slice(0, 12).map((x) => clip(x, depth + 1)).concat(v.length > 12 ? [`…+${v.length - 12} more`] : []);
@@ -169,7 +191,25 @@ const COLOURS: Record<string, { id?: string; values?: Record<string, any> }> = {
   yellow: { values: { primary: '#eab308', secondary: '#f59e0b' } }, teal: { values: { primary: '#0d9488', secondary: '#0ea5e9' } },
 };
 
+function proLocalAssistant(text: string): { message: string; ops: Op[] } {
+  const q = text.toLowerCase(), ops: Op[] = [], say: string[] = [];
+  const name = text.match(/(?:rename (?:it|the site|my site)(?: to)?|call (?:it|my (?:business|shop|site))|(?:business|shop|company) name (?:is|to)|my (?:business|shop|company) is(?: called)?)\s+["“]?([^"”.,\n]{2,40})/i);
+  if (name) { ops.push({ op: 'setPro', group: 'business', values: { name: name[1].trim() } }); say.push(`named the business “${name[1].trim()}”`); }
+  const pal: Record<string, [string, string]> = { blue: ['#2563eb', '#0ea5e9'], green: ['#16a34a', '#065f46'], red: ['#dc2626', '#f97316'], orange: ['#f97316', '#ef4444'], purple: ['#7c3aed', '#ec4899'], pink: ['#ec4899', '#a855f7'], teal: ['#0d9488', '#0ea5e9'], yellow: ['#eab308', '#f59e0b'], black: ['#111827', '#6b7280'], brown: ['#92400e', '#b45309'] };
+  const c = q.match(/\b(blue|green|red|orange|purple|pink|teal|yellow|black|brown)\b/);
+  if (c && /\b(colou?r|theme|make it|look)\b/.test(q)) { ops.push({ op: 'setPro', group: 'look', values: { accent: pal[c[1]][0], accent2: pal[c[1]][1] } }); say.push(`used ${c[1]} as the main colour`); }
+  if (/\bdark (mode|theme)\b/.test(q)) { ops.push({ op: 'setPro', group: 'look', values: { theme: 'dark' } }); say.push('set the site to dark mode'); }
+  else if (/\blight (mode|theme)\b/.test(q)) { ops.push({ op: 'setPro', group: 'look', values: { theme: 'light' } }); say.push('set the site to light mode'); }
+  const mode = q.match(/\b(?:make it|change (?:it )?to|switch to|turn it into)\s+(?:an?\s+)?(online shop|shop|booking|appointments?|quote)/);
+  if (mode) { const m = /shop/.test(mode[1]) ? 'shop' : /book|appoint/.test(mode[1]) ? 'book' : 'quote'; ops.push({ op: 'setPro', group: 'setup', values: { mode: m } }); say.push(`switched the site type to “${m}”`); }
+  const wa = text.match(/whats\s*app(?: number)?\s*(?:is|to|:)?\s*(\+?[\d ]{9,16})/i);
+  if (wa) { ops.push({ op: 'setPro', group: 'business', values: { wa: wa[1].trim() } }); say.push('set your WhatsApp number'); }
+  if (!ops.length) return { message: 'Without an AI connection I can do simple things: “call my business Mama Pima Bakery”, “make it green”, “dark mode”, “make it a booking site”, “my whatsapp is 0700123456”. For writing all your products and text, the owner needs to connect an AI key.', ops: [] };
+  return { message: `Done — I ${say.join(', ')}.`, ops };
+}
+
 export function localAssistant(prompt: string, cfg: SiteConfig): { message: string; ops: Op[] } {
+  if (cfg.kind === 'pro') return proLocalAssistant(prompt.trim());
   const text = prompt.trim();
   const q = text.toLowerCase();
   const ops: Op[] = [];

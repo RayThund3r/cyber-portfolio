@@ -6,6 +6,7 @@ import { groupQuestions, kbSnippet } from '@/lib/admin/derive';
 import type { Stats } from '@/lib/admin/stats';
 import { processChatQuery } from '@/utils/chatEngine';
 import type { PersonaMode, SessionMemory } from '@/utils/chatEngine/types';
+import TrainPanel from '@/components/admin/TrainPanel';
 import { AButton, Badge, Bars, Card, CopyBtn, Donut, Empty, ErrorBox, inputCls, Notice, PageHead, Skel, Tabs, useToast } from '@/components/admin/ui';
 
 type Q = { t: number; q: string; src: string; gap: boolean };
@@ -30,13 +31,16 @@ const SAMPLES = ['my phone will not charge', 'laptop overheating and loud fan', 
 
 export default function ChatLab() {
   const toast = useToast();
-  const [tab, setTab] = useState<'insights' | 'gaps' | 'play' | 'stress'>('insights');
+  const [tab, setTab] = useState<'insights' | 'gaps' | 'train' | 'play' | 'stress'>('insights');
   const log = useApi<{ questions: Q[] }>('/api/admin/chat', { every: 60000 });
   const stats = useApi<Stats>('/api/admin/stats?days=30');
   const qs = log.data?.questions;
   const grouped = useMemo(() => groupQuestions(qs || []), [qs]);
   const [snippet, setSnippet] = useState<string | null>(null);
   const [seed, setSeed] = useState('');
+  const [teachSeed, setTeachSeed] = useState('');
+  const clearTeachSeed = useCallback(() => setTeachSeed(''), []);
+  const teach = (q: string) => { setTeachSeed(q); setTab('train'); };
 
   // playground
   const [mode, setMode] = useState<PersonaMode>('HUMAN');
@@ -67,7 +71,7 @@ export default function ChatLab() {
   return (
     <>
       <PageHead title="Chat Lab" sub="See what visitors ask, teach the assistant what it missed, and test it live on the real engine." icon="brain"
-        right={<Tabs value={tab} onChange={setTab} items={[{ id: 'insights', label: 'Insights' }, { id: 'gaps', label: 'Gaps', badge: grouped.gaps.length }, { id: 'play', label: 'Playground' }, { id: 'stress', label: 'Stress test' }]} />} />
+        right={<Tabs value={tab} onChange={setTab} items={[{ id: 'insights', label: 'Insights' }, { id: 'gaps', label: 'Gaps', badge: grouped.gaps.length }, { id: 'train', label: 'Train' }, { id: 'play', label: 'Playground' }, { id: 'stress', label: 'Stress test' }]} />} />
       {log.error && <ErrorBox text={log.error} retry={log.reload} />}
 
       {tab === 'insights' && (!qs ? <Skel h="h-56" /> : (
@@ -85,9 +89,11 @@ export default function ChatLab() {
           <Notice title="Knowledge gaps = free content ideas">Each row is something visitors asked that the assistant could not answer. Draft an entry, paste it into <code className="text-accent">utils/chatEngine/knowledgeBase.ts</code>, fill in the answers and redeploy.</Notice>
           {grouped.gaps.length === 0 ? <Card><Empty icon="check" title="No gaps recorded" text="Either the assistant is covering everything, or there is not enough traffic yet." /></Card> : (
             <ul className="space-y-2">{grouped.gaps.map((g) => (
-              <li key={g.key} className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-3"><div className="flex flex-wrap items-center gap-3"><span className="min-w-0 flex-1 text-sm text-zinc-200">{g.text}</span><Badge tone="warn">{g.n}×</Badge><span className="font-mono text-[10px] text-zinc-600">{relTime(g.last)}</span><AButton small icon="play" onClick={() => tryIt(g.text)}>Try now</AButton><AButton small icon="lightbulb" onClick={() => setSnippet(snippet === g.key ? null : g.key)}>Draft entry</AButton></div>
+              <li key={g.key} className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-3"><div className="flex flex-wrap items-center gap-3"><span className="min-w-0 flex-1 text-sm text-zinc-200">{g.text}</span><Badge tone="warn">{g.n}×</Badge><span className="font-mono text-[10px] text-zinc-600">{relTime(g.last)}</span><AButton small icon="play" onClick={() => tryIt(g.text)}>Try now</AButton><AButton small icon="brain" variant="solid" onClick={() => teach(g.text)}>Teach this</AButton><AButton small icon="lightbulb" onClick={() => setSnippet(snippet === g.key ? null : g.key)}>Draft entry</AButton></div>
                 {snippet === g.key && <div className="mt-3"><pre className="max-h-64 overflow-auto rounded-lg border border-zinc-800 bg-zinc-950 p-3 font-mono text-[11px] text-emerald-200">{kbSnippet(g.text)}</pre><div className="mt-2"><CopyBtn text={kbSnippet(g.text)} label="Copy entry" /></div></div>}</li>))}</ul>)}
         </div>))}
+
+      {tab === 'train' && <TrainPanel seed={teachSeed} onSeedUsed={clearTeachSeed} />}
 
       {tab === 'play' && (
         <div className="grid gap-4 lg:grid-cols-[1fr_16rem]">

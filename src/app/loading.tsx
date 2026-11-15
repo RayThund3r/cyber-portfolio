@@ -6,7 +6,7 @@ export default function Loading() {
   return (
     <div role="status" aria-live="polite" className="fixed left-0 right-0 top-0 z-[100]">
       <div className="h-0.5 w-full overflow-hidden bg-zinc-900">
-        <div className="h-full w-1/3 animate-pulse bg-accent-strong" />
+        <div className="load-bar !h-0.5 !w-full !rounded-none" />
       </div>
       <span className="sr-only">Loading…</span>
     </div>

@@ -10,7 +10,7 @@
 // question made only of vague words ("ask", "use", "something") is never confident.
 
 import { KnowledgeEntry, KnowledgeHit } from './types';
-import { KNOWLEDGE } from './knowledgeBase';
+import { getActiveKnowledgeBase } from './knowledgeBase';
 import { tokens, tokenMatch, normalize } from './text';
 import { getLearnedAliases } from './learningEngine';
 
@@ -44,7 +44,7 @@ let df = new Map<string, number>();
 let avgLen = 1;
 
 function build(): IndexedDoc[] {
-  const docs: IndexedDoc[] = KNOWLEDGE.map((entry) => {
+  const docs: IndexedDoc[] = getActiveKnowledgeBase().map((entry) => {
     const tf = new Map<string, number>();
     const add = (ts: string[], weight: number) =>
       ts.forEach((t) => tf.set(t, (tf.get(t) || 0) + weight));
@@ -150,6 +150,16 @@ export function searchKnowledge(query: string, limit = 3): KnowledgeHit[] {
       confidence = Math.max(confidence, 0.85);
     }
     if (onlyGeneric) confidence = Math.min(confidence, 0.3);
+
+    // Answers the owner taught by hand outrank built-in ones when they match: an exact phrasing wins outright.
+    if (doc.entry.id.startsWith('taught:')) {
+      if (doc.entry.keywords.some((k) => normalize(k) === nq)) {
+        score += 60;
+        confidence = 1;
+      } else if (confidence >= 0.5) {
+        score *= 1.35;
+      }
+    }
 
     const boost = learnedBoost.get(doc.entry.id);
     if (boost) {

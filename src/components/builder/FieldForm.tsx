@@ -3,12 +3,16 @@
 
 import { useState } from 'react';
 import type { Field } from '@/lib/builder/schema';
+import { cloudToken, cloudVerifier, hashPass } from '@/lib/builder/sha256';
 
+import { IconCart, IconCheck, IconCheckCircle, IconClose, IconCode, IconCopy, IconDesktop, IconEye, IconEyeOff, IconImage, IconLayers, IconLock, IconPalette, IconPaperclip, IconPencil, IconPhone, IconPlus, IconSettings, IconSparkle, IconTablet, IconTrash, IconWarn, IconBulb, IconFolder } from './icons';
 export interface FormCtx {
   sections: { id: string; label: string }[];          // for "link to a section" pickers
   assets: Record<string, string>;                      // asset id → data URL (preview)
   upload: ((file: File) => Promise<string>) | null;    // returns asset id; null = URLs only
   disabled: boolean;
+  /** Pro sites: the site key that salts the owner-passcode hash. */
+  siteKey?: string;
 }
 
 const inp = 'w-full bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-cyan-500 disabled:opacity-50';
@@ -22,8 +26,8 @@ export function FieldForm({ fields, value, onChange, ctx, tag }: {
 }) {
   return (
     <div className="space-y-3">
-      {fields.map((f) => (
-        <FieldRow key={f.key} f={f} v={value[f.key]} ctx={ctx} tag={`${tag}.${f.key}`} set={(nv, t) => onChange({ ...value, [f.key]: nv }, t)} />
+      {fields.filter((f) => !f.hidden).map((f) => (
+        <FieldRow key={f.key} f={f} v={value[f.key]} ctx={ctx} tag={`${tag}.${f.key}`} set={(nv, t) => onChange({ ...value, [f.key]: nv }, t)} setMany={(patch, t) => onChange({ ...value, ...patch }, t)} />
       ))}
     </div>
   );
@@ -39,13 +43,17 @@ function Label({ f, children }: { f: Field; children: React.ReactNode }) {
   );
 }
 
-function FieldRow({ f, v, set, ctx, tag }: { f: Field; v: any; set: (v: any, tag: string) => void; ctx: FormCtx; tag: string }) {
+function FieldRow({ f, v, set, setMany, ctx, tag }: { f: Field; v: any; set: (v: any, tag: string) => void; setMany: (patch: Record<string, any>, tag: string) => void; ctx: FormCtx; tag: string }) {
   const dis = ctx.disabled;
   switch (f.type) {
     case 'text':
       return <Label f={f}><input className={inp} disabled={dis} value={v ?? ''} maxLength={f.max} placeholder={f.placeholder} onChange={(e) => set(e.target.value, tag)} /></Label>;
     case 'textarea':
       return <Label f={f}><textarea className={inp} rows={3} disabled={dis} value={v ?? ''} maxLength={f.max} placeholder={f.placeholder} onChange={(e) => set(e.target.value, tag)} /></Label>;
+    case 'number':
+      return <Label f={f}><input type="number" inputMode="decimal" className={inp} disabled={dis} min={f.min} max={f.max} value={v ?? ''} onChange={(e) => set(e.target.value === '' ? '' : Number(e.target.value), tag)} /></Label>;
+    case 'passcode':
+      return <PasscodeField f={f} v={v} setMany={(patch) => setMany(patch, tag)} ctx={ctx} />;
     case 'code':
       return <Label f={f}><textarea className={`${inp} font-mono text-xs leading-5`} rows={8} spellCheck={false} wrap="off" disabled={dis} value={v ?? ''} maxLength={f.max} onChange={(e) => set(e.target.value, tag)} /></Label>;
     case 'select':
@@ -116,7 +124,7 @@ function ImageField({ f, v, set, ctx }: { f: Field; v: string; set: (v: string) 
                 <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={(e) => { pick(e.target.files?.[0]); e.target.value = ''; }} />
               </label>
             )}
-            {v && <button type="button" disabled={ctx.disabled} className={small} onClick={() => set('')}>✕ Remove</button>}
+            {v && <button type="button" disabled={ctx.disabled} className={small} onClick={() => set('')}>Remove</button>}
           </div>
           <input className={`${inp} text-xs`} disabled={ctx.disabled} placeholder="…or paste a picture link (https://…)" value={v?.startsWith('asset:') ? '' : v ?? ''} onChange={(e) => set(e.target.value.trim())} />
           {err && <p role="alert" className="text-[11px] text-red-400">{err}</p>}
@@ -146,7 +154,7 @@ function ListField({ f, items, set, ctx, tag }: { f: Field; items: Record<string
               </button>
               <button type="button" aria-label="Move up" disabled={ctx.disabled || i === 0} className={small} onClick={() => move(i, -1)}>↑</button>
               <button type="button" aria-label="Move down" disabled={ctx.disabled || i === items.length - 1} className={small} onClick={() => move(i, 1)}>↓</button>
-              <button type="button" aria-label="Remove" disabled={ctx.disabled} className={small} onClick={() => { set(items.filter((_, k) => k !== i), `${tag}.del`); setOpenIdx(null); }}>🗑</button>
+              <button type="button" aria-label="Remove" disabled={ctx.disabled} className={small} onClick={() => { set(items.filter((_, k) => k !== i), `${tag}.del`); setOpenIdx(null); }}><IconTrash size={14} /></button>
             </div>
             {openIdx === i && (
               <div className="p-3 border-t border-zinc-800">
@@ -159,6 +167,31 @@ function ListField({ f, items, set, ctx, tag }: { f: Field; items: Record<string
       <button type="button" disabled={ctx.disabled || items.length >= max} className={`${small} mt-2`} onClick={() => { set([...items, blank()], `${tag}.add`); setOpenIdx(items.length); }}>
         + Add {f.itemLabel?.toLowerCase() || 'item'}
       </button>
+    </div>
+  );
+}
+
+/** Only a SHA-256 hash of the passcode is ever stored (the plain text never leaves this component). */
+function PasscodeField({ f, v, setMany, ctx }: { f: Field; v: string; setMany: (patch: Record<string, string>) => void; ctx: FormCtx }) {
+  const [val, setVal] = useState('');
+  const [err, setErr] = useState('');
+  const save = () => {
+    if (val.length < 8) { setErr('Use at least 8 characters.'); return; }
+    if (!ctx.siteKey) { setErr('Not ready yet — try again in a moment.'); return; }
+    // two derived values from one passcode: the site-login hash, and the cloud inbox verifier (a hash of a hash). The passcode itself is never stored.
+    setMany({ [f.key]: hashPass(ctx.siteKey, val), ...(f.companion ? { [f.companion]: cloudVerifier(cloudToken(ctx.siteKey, val)) } : {}) }); setVal(''); setErr('');
+  };
+  const clear = () => setMany({ [f.key]: '', ...(f.companion ? { [f.companion]: '' } : {}) });
+  return (
+    <div>
+      <span className="block text-[11px] font-mono text-zinc-400 mb-1">{f.label}</span>
+      <p className={`text-xs mb-2 ${v ? 'text-emerald-300' : 'text-zinc-400'}`}>{v ? '✓ Your own passcode is set (stored scrambled — nobody can read it back).' : 'No passcode set yet — we will generate a strong one and put it in your download (ADMIN-PASSCODE.txt).'}</p>
+      <div className="flex gap-2">
+        <input type="password" autoComplete="new-password" className={inp} disabled={ctx.disabled} value={val} placeholder="Choose a passcode (8+ characters)" onChange={(e) => setVal(e.target.value)} />
+        <button type="button" disabled={ctx.disabled || !val} className={small} onClick={save}>Set</button>
+        {v && <button type="button" disabled={ctx.disabled} className={small} onClick={clear}>Remove</button>}
+      </div>
+      {err && <p role="alert" className="text-[11px] text-red-400 mt-1">{err}</p>}
     </div>
   );
 }

@@ -20,6 +20,7 @@ import SuccessCheck from '@/components/ui/SuccessCheck';
 import { buildIcs, downloadIcs } from '@/lib/calendar';
 import { SITE } from '@/utils/chatEngine/siteConfig';
 
+import Icon from '@/components/ui/Icon';
 function ContactInner() {
   const { theme, themeClasses } = useTheme();
   const params = useSearchParams();
@@ -294,7 +295,7 @@ function ContactInner() {
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-5 py-3 rounded bg-emerald-500 hover:bg-emerald-400 text-black font-mono text-xs font-semibold transition-colors"
             >
-              💬 Prefer WhatsApp? Chat with us directly
+              <Icon name="chat" size={13} className="mr-1 align-[-2px]" />Prefer WhatsApp? Chat with us directly
             </a>
           </div>
         )}
@@ -317,7 +318,7 @@ function ContactInner() {
                   </>
                 )}
               </span>
-              <button onClick={() => setErrorMessage(null)} className="text-red-400 hover:text-red-200 font-bold shrink-0">✕</button>
+              <button onClick={() => setErrorMessage(null)} className="text-red-400 hover:text-red-200 font-bold shrink-0" aria-label="Dismiss"><Icon name="close" size={14} className="" /></button>
             </div>
           )}
 
@@ -336,7 +337,7 @@ function ContactInner() {
                 </p>
               )}
               {bookedSlot && (
-                <p className="text-xs text-zinc-300">📅 Visit requested: <span className="font-bold">{bookedSlot.date} at {bookedSlot.time}</span>. We&apos;ll confirm it.</p>
+                <p className="text-xs text-zinc-300"><Icon name="calendar" size={13} className="mr-1 align-[-2px]" />Visit requested: <span className="font-bold">{bookedSlot.date} at {bookedSlot.time}</span>. We&apos;ll confirm it.</p>
               )}
               <div className="flex flex-wrap justify-center gap-2">
                 {bookedSlot && (
@@ -348,7 +349,7 @@ function ContactInner() {
                     }}
                     className="min-h-11 rounded border border-zinc-700 px-4 text-xs text-zinc-200 transition-colors hover:border-current"
                   >
-                    📅 Add to calendar
+                    <Icon name="calendar" size={13} className="mr-1 align-[-2px]" />Add to calendar
                   </button>
                 )}
                 {ticket && (
@@ -359,7 +360,7 @@ function ContactInner() {
                     }}
                     className="min-h-11 rounded border border-zinc-700 px-4 text-xs text-zinc-200 transition-colors hover:border-current"
                   >
-                    {copiedRef ? 'Copied ✓' : '⧉ Copy reference'}
+                    {copiedRef ? <><Icon name="check" size={13} className="mr-1 align-[-2px]" />Copied</> : <><Icon name="copy" size={13} className="mr-1 align-[-2px]" />Copy reference</>}
                   </button>
                 )}
               </div>
@@ -482,7 +483,7 @@ function ContactInner() {
 
               {formType === 'repair' && (
                 <div className="space-y-3 rounded-lg border border-zinc-800 bg-zinc-900/30 p-4" data-reveal>
-                  <p className="text-xs font-mono text-zinc-300">📅 BOOK_A_VISIT <span className="text-zinc-400">(optional — pick a time to bring your device in)</span></p>
+                  <p className="text-xs font-mono text-zinc-300"><Icon name="calendar" size={13} className="mr-1 align-[-2px]" />BOOK_A_VISIT <span className="text-zinc-400">(optional — pick a time to bring your device in)</span></p>
                   <input
                     type="date"
                     aria-label="Preferred visit date"
@@ -536,7 +537,7 @@ function ContactInner() {
                 />
                 <span>
                   I agree to my details being used to reply to this request. See the{' '}
-                  <Link href="/privacy" className={`underline ${themeClasses.accent}`}>Privacy notice</Link>.
+                  <Link href="/privacy" className={`hit underline ${themeClasses.accent}`}>Privacy notice</Link>.
                 </span>
               </label>
 

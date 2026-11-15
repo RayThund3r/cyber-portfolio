@@ -199,7 +199,7 @@ function feelings(q: string, memory: SessionMemory): PersonaReply | null {
       keepTopic: true,
     };
   }
-  if (/\b(tell me|give me|say|share)\b.{0,10}\b(something|a fact|a fun fact|anything|a random fact|trivia)\b.{0,12}\b(interesting|cool|fun|random|new)?\b|^(fun fact|random fact|surprise me|amaze me|entertain me)\b/.test(q) || /^i'?m (so )?bored$|^(im|i am) bored$/.test(q)) {
+  if (!/\babout (yourself|yourselves|urself|you|me|this|your|the owner)\b/.test(q) && (/\b(tell me|give me|say|share)\b.{0,10}\b(something|a fact|a fun fact|anything|a random fact|trivia)\b.{0,12}\b(interesting|cool|fun|random|new)?\b|^(fun fact|random fact|surprise me|amaze me|entertain me)\b/.test(q) || /^i'?m (so )?bored$|^(im|i am) bored$/.test(q))) {
     const fact = FACTS[(memory.interactionCount || 0) % FACTS.length];
     return {
       human: `Here's one: ${fact}\n\nWant another, or a joke?`,

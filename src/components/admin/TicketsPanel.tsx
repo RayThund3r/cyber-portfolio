@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { STATUS_FLOW, STATUS_LABEL, type TicketStatus } from '@/lib/shared';
 import { api, box, btn, downloadText, hasPaymentToCheck, kampalaDay, needsAttention, primary, ticketsToCsv, timeAgo, type AdminTicket } from './adminKit';
 
+import Icon from '@/components/ui/Icon';
 const ALL_STATUSES: TicketStatus[] = [...STATUS_FLOW, 'CANCELLED'];
 const PAGE = 25;
 type Sort = 'newest' | 'oldest' | 'visit' | 'attention';
@@ -113,10 +114,10 @@ export default function TicketsPanel({
   return (
     <section className="space-y-4">
       {error && <p className="text-xs text-red-400" role="alert">{error}</p>}
-      {pendingPay > 0 && <p className="text-xs font-mono text-amber-400">💰 {pendingPay} payment(s) waiting for you to verify.</p>}
+      {pendingPay > 0 && <p className="text-xs font-mono text-amber-400"><Icon name="money" size={13} className="mr-1 align-[-2px]" />{pendingPay} payment(s) waiting for you to verify.</p>}
       {fresh.length > 0 && (
         <button type="button" onClick={clearFresh} className="w-full rounded border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-left text-xs font-mono text-emerald-400">
-          🔔 {fresh.length} new request{fresh.length > 1 ? 's' : ''} arrived while you were here. Tap to dismiss.
+          <Icon name="bell" size={13} className="mr-1 align-[-2px]" />{fresh.length} new request{fresh.length > 1 ? 's' : ''} arrived while you were here. Tap to dismiss.
         </button>
       )}
 
@@ -171,12 +172,12 @@ export default function TicketsPanel({
                   <button className="flex flex-1 cursor-pointer flex-wrap items-center justify-between gap-2 py-4 pr-4 text-left" onClick={() => setOpenId(openId === t.id ? null : t.id)} aria-expanded={openId === t.id}>
                     <span>
                       <span className="font-mono text-xs text-cyan-400">{t.id}</span> <strong className="ml-2">{t.name}</strong>{' '}
-                      <span className="text-xs text-zinc-400">· {t.kind}{t.slot ? ` · 📅 ${t.slot.date} ${t.slot.time}` : ''}</span>
+                      <span className="text-xs text-zinc-400">· {t.kind}{t.slot ? ` · ${t.slot.date} ${t.slot.time}` : ''}</span>
                       {fresh.includes(t.id) && <span className="ml-2 rounded bg-emerald-500/20 px-1.5 py-0.5 font-mono text-[10px] text-emerald-400">NEW</span>}
                     </span>
                     <span className="text-xs font-mono text-zinc-300">
                       <span className={needsAttention(t) ? 'mr-2 text-amber-400' : 'mr-2 text-zinc-500'}>{timeAgo(t.createdAt)}</span>
-                      {hasPaymentToCheck(t) && '💰 '}{STATUS_LABEL[t.status]}
+                      {hasPaymentToCheck(t) && <Icon name="money" size={13} className="mr-1 align-[-2px]" />}{STATUS_LABEL[t.status]}
                     </span>
                   </button>
                 </div>

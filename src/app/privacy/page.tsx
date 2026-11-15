@@ -16,7 +16,7 @@ export default function PrivacyPage() {
   return (
     <div className="flex-1 bg-zinc-950 text-zinc-100 font-sans">
       <div className="max-w-2xl mx-auto px-5 py-12 space-y-6 text-sm leading-relaxed text-zinc-300">
-        <Link href="/" className="font-mono text-xs text-cyan-400 hover:opacity-80">← Home</Link>
+        <Link href="/" className="hit font-mono text-xs text-cyan-400 hover:opacity-80">← Home</Link>
         <h1 className="text-3xl font-extrabold text-zinc-100">Privacy notice</h1>
         <p className="text-zinc-400">Based in {SITE.location}. Last updated: replace with date.</p>
 
@@ -38,6 +38,14 @@ export default function PrivacyPage() {
           <p>
             Your message is delivered to the site owner by email using the Resend email service. Our server logs may
             keep a copy of a request for a short time so that a message is not lost if email delivery fails.
+          </p>
+        </section>
+        <section>
+          <h2 className="text-lg font-bold text-zinc-100 mb-1">Your location &amp; connection status</h2>
+          <p>
+            The &ldquo;NODE&rdquo; line shows an approximate place worked out inside your browser from its time zone and language; it is not sent to us. If you tap
+            USE_GPS your browser asks for permission first, the result is rounded to about 1&nbsp;km, shown only on your screen and never stored or sent.
+            The status badge on the home page makes a small request to our own server every 30 seconds to check that it is running; the request carries no data.
           </p>
         </section>
         <section>

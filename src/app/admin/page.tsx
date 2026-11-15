@@ -14,6 +14,7 @@ import TicketsPanel from '@/components/admin/TicketsPanel';
 import DataPanel from '@/components/admin/DataPanel';
 import StudioPanel from '@/components/studio/StudioPanel';
 
+import Icon from '@/components/ui/Icon';
 /** The extra tools live on their own pages (shared frame, same sign-in). */
 const TOOLS: Array<[string, string]> = [['/admin/overview', 'Pulse'], ['/admin/analytics', 'Analytics'], ['/admin/chat', 'Chat Lab'], ['/admin/site', 'Site'], ['/admin/health', 'Health'], ['/admin/security', 'Security'], ['/admin/board', 'Board'], ['/admin/shell', 'Shell'], ['/admin/lab', 'Lab']];
 
@@ -23,10 +24,11 @@ export default function AdminPage() {
   const [authed, setAuthed] = useState<boolean | null>(null);
   const [tab, setTab] = useState<Tab>('overview');
   const [totp, setTotp] = useState(false);
+  const [configured, setConfigured] = useState(true);
   const [storage, setStorage] = useState<{ persistent: boolean; where: string; note: string } | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
 
-  useEffect(() => { api('me').then((r: any) => { setStorage(r?.storage ?? null); setAuthed(true); }).catch((e) => { setTotp(!!e.data?.totp); setAuthed(false); }); }, []);
+  useEffect(() => { api('me').then((r: any) => { setStorage(r?.storage ?? null); setAuthed(true); }).catch((e) => { setTotp(!!e.data?.totp); setConfigured(e.data?.configured !== false); setAuthed(false); }); }, []);
 
   // One live copy of the requests, shared by the Overview and Tickets tabs (refreshes every 45 s while visible).
   const onAuthLost = useCallback(() => setAuthed(false), []);
@@ -39,7 +41,7 @@ export default function AdminPage() {
   }, [attention]);
 
   if (authed === null) return <div className="min-h-screen bg-zinc-950" />;
-  if (!authed) return <Login totp={totp} onDone={() => { api('me').then((r: any) => setStorage(r?.storage ?? null)).catch(() => undefined); setAuthed(true); }} />;
+  if (!authed) return <Login totp={totp} configured={configured} onDone={() => { api('me').then((r: any) => setStorage(r?.storage ?? null)).catch(() => undefined); setAuthed(true); }} />;
 
   const tabs: { id: Tab; label: string; badge?: number }[] = [
     { id: 'overview', label: 'OVERVIEW' },
@@ -98,7 +100,7 @@ export default function AdminPage() {
   );
 }
 
-function Login({ onDone, totp }: { onDone: () => void; totp: boolean }) {
+function Login({ onDone, totp, configured }: { onDone: () => void; totp: boolean; configured: boolean }) {
   const [pw, setPw] = useState(''); const [code, setCode] = useState(''); const [err, setErr] = useState<string | null>(null); const [busy, setBusy] = useState(false);
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 flex items-center justify-center px-4">
@@ -107,6 +109,11 @@ function Login({ onDone, totp }: { onDone: () => void; totp: boolean }) {
         try { await api('login', { password: pw, code }); onDone(); } catch (x: any) { setErr(x.message); } finally { setBusy(false); }
       }}>
         <h1 className="font-mono text-sm text-cyan-400">ADMIN_LOGIN</h1>
+        {!configured && (
+          <div role="note" className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs leading-relaxed text-amber-200">
+            <b>Admin isn&apos;t switched on yet.</b> In Vercel open <i>Settings → Environment Variables</i>, add <code className="font-mono">ADMIN_PASSWORD</code> (10+ characters), then redeploy. After that, sign in here.
+          </div>
+        )}
         <input type="password" autoComplete="current-password" className={box} placeholder="Password" value={pw} onChange={(e) => setPw(e.target.value)} aria-label="Password" />
         {totp && <input inputMode="numeric" autoComplete="one-time-code" maxLength={7} className={box} placeholder="6-digit authenticator code" value={code} onChange={(e) => setCode(e.target.value)} aria-label="Authenticator code" />}
         {err && <p role="alert" className="text-xs text-red-400">{err}</p>}
@@ -135,11 +142,11 @@ function TicketEditor({ t, onSaved }: { t: AdminTicket; onSaved: (t: AdminTicket
   return (
     <div className="border-t border-zinc-800 p-4 space-y-4 text-sm">
       <div className="grid sm:grid-cols-2 gap-3 text-xs text-zinc-300">
-        <div>📞 {t.phone || '—'} {t.wa && <a className="underline text-emerald-400" href={`https://wa.me/${t.wa}`} target="_blank" rel="noopener noreferrer">WhatsApp</a>}<br />✉ {t.email || '—'}</div>
+        <div><Icon name="phone" size={13} className="mr-1 align-[-2px]" />{t.phone || '—'} {t.wa && <a className="underline text-emerald-400" href={`https://wa.me/${t.wa}`} target="_blank" rel="noopener noreferrer">WhatsApp</a>}<br /><Icon name="mail" size={13} className="mr-1 align-[-2px]" />{t.email || '—'}</div>
         <div className="text-zinc-400">Created {new Date(t.createdAt).toLocaleString('en-UG', { timeZone: 'Africa/Kampala' })}</div>
       </div>
       <p className="whitespace-pre-wrap bg-zinc-950 border border-zinc-800 rounded p-3 text-zinc-200">{t.details}</p>
-      {t.kind === 'template' && <p className="text-xs text-cyan-300">🌐 Website order{t.projectId ? ` — project ${t.projectId} (see the SITES tab to preview / download)` : ''}. Confirming the payment below unlocks the customer&apos;s download automatically.</p>}
+      {t.kind === 'template' && <p className="text-xs text-cyan-300"><Icon name="globe" size={13} className="mr-1 align-[-2px]" />Website order{t.projectId ? ` — project ${t.projectId} (see the SITES tab to preview / download)` : ''}. Confirming the payment below unlocks the customer&apos;s download automatically.</p>}
 
       <div className="grid sm:grid-cols-3 gap-3">
         <label className="text-xs font-mono text-zinc-400">STATUS
@@ -181,8 +188,8 @@ function TicketEditor({ t, onSaved }: { t: AdminTicket; onSaved: (t: AdminTicket
       <div className="flex flex-wrap items-center gap-3">
         <button className={primary} disabled={busy} onClick={() => save()}>{busy ? '…' : 'SAVE'}</button>
         <label className="text-xs text-zinc-400 flex items-center gap-1"><input type="checkbox" checked={notify} onChange={(e) => setNotify(e.target.checked)} /> email customer (needs a verified sender)</label>
-        <button type="button" className={btn} onClick={() => { if (!printJobCard(t)) setMsg('Allow pop-ups to print the job card.'); }}>🖨 Job card</button>
-        {t.wa && <a className={btn} href={`https://wa.me/${t.wa}?text=${waText}`} target="_blank" rel="noopener noreferrer">💬 Send via WhatsApp</a>}
+        <button type="button" className={btn} onClick={() => { if (!printJobCard(t)) setMsg('Allow pop-ups to print the job card.'); }}><Icon name="print" size={13} className="mr-1 align-[-2px]" />Job card</button>
+        {t.wa && <a className={btn} href={`https://wa.me/${t.wa}?text=${waText}`} target="_blank" rel="noopener noreferrer"><Icon name="chat" size={13} className="mr-1 align-[-2px]" />Send via WhatsApp</a>}
         {msg && <span role="status" className="text-xs text-zinc-300">{msg}</span>}
       </div>
       <div className="text-[11px] font-mono text-zinc-400">Quote {formatUGX(t.quoteUGX)} · Deposit {formatUGX(t.depositUGX)}</div>
@@ -267,7 +274,7 @@ function Insights() {
           <button className={btn} onClick={async () => { if (confirm('Clear the sign-in log? One entry will remain saying it was cleared.')) { await api('clearAudit'); location.reload(); } }}>Clear log</button></div>
       </div>
       <div><h2 className="font-mono text-xs text-zinc-400 mb-2">ERRORS</h2>
-        {s.errors.length ? s.errors.map((e, i) => <div key={i} className="border-b border-zinc-900 py-2"><div className="text-red-300">{e.msg}</div><div className="text-[11px] font-mono text-zinc-400">{e.where} · ×{e.n} · last {new Date(e.last).toLocaleString('en-UG', { timeZone: 'Africa/Kampala' })}</div></div>) : <p className="text-xs text-zinc-400">No errors recorded 🎉</p>}</div>
+        {s.errors.length ? s.errors.map((e, i) => <div key={i} className="border-b border-zinc-900 py-2"><div className="text-red-300">{e.msg}</div><div className="text-[11px] font-mono text-zinc-400">{e.where} · ×{e.n} · last {new Date(e.last).toLocaleString('en-UG', { timeZone: 'Africa/Kampala' })}</div></div>) : <p className="text-xs text-zinc-400">No errors recorded</p>}</div>
     </section>
   );
 }
@@ -309,14 +316,14 @@ function Templates() {
                 <label className="text-xs font-mono text-zinc-400 flex items-center gap-2">USD<input className={`${box} w-24`} inputMode="numeric" placeholder="—" value={t.priceUSD ?? ''} onChange={(e) => set(t.id, { priceUSD: num(e.target.value) })} /></label>
                 <label className="text-xs font-mono text-zinc-400 flex items-center gap-2">UGX override<input className={`${box} w-36`} inputMode="numeric" placeholder="auto (live rate)" value={t.priceUGX ?? ''} onChange={(e) => set(t.id, { priceUGX: num(e.target.value) })} /></label>
                 <label className="text-xs text-zinc-300 flex items-center gap-1"><input type="checkbox" checked={t.enabled} onChange={(e) => set(t.id, { enabled: e.target.checked })} /> visible</label>
-                <span className="text-xs font-mono text-cyan-300">{eff === null ? '🚫 not for sale' : eff === 0 ? '🎁 free' : `Customers pay ${formatUGX(eff)}`}</span>
+                <span className="text-xs font-mono text-cyan-300">{eff === null ? <><Icon name="ban" size={13} className="mr-1 align-[-2px]" />not for sale</> : eff === 0 ? <><Icon name="gift" size={13} className="mr-1 align-[-2px]" />free</> : `Customers pay ${formatUGX(eff)}`}</span>
               </div>
               <div className="flex flex-wrap gap-2">
                 <button className={primary} onClick={() => act('template.save', { ...t })}>SAVE</button>
-                <a className={btn} href={`/builder/edit?template=${t.id}`} target="_blank" rel="noopener noreferrer">✎ Edit design</a>
-                <a className={btn} href={`/builder/view?t=${t.id}`} target="_blank" rel="noopener noreferrer">👁 View</a>
-                <button className={btn} onClick={() => act('template.duplicate', { id: t.id }, 'Duplicated ✓ (hidden until you enable it)')}>⧉ Duplicate</button>
-                <button className={btn} onClick={() => confirm(`Delete “${t.name}”?`) && act('template.delete', { id: t.id }, 'Deleted ✓')}>🗑 Delete</button>
+                <a className={btn} href={`/builder/edit?template=${t.id}`} target="_blank" rel="noopener noreferrer"><Icon name="pencil" size={13} className="mr-1 align-[-2px]" />Edit design</a>
+                <a className={btn} href={`/builder/view?t=${t.id}`} target="_blank" rel="noopener noreferrer"><Icon name="eye" size={13} className="mr-1 align-[-2px]" />View</a>
+                <button className={btn} onClick={() => act('template.duplicate', { id: t.id }, 'Duplicated ✓ (hidden until you enable it)')}><Icon name="copy" size={13} className="mr-1 align-[-2px]" />Duplicate</button>
+                <button className={btn} onClick={() => confirm(`Delete “${t.name}”?`) && act('template.delete', { id: t.id }, 'Deleted ✓')}><Icon name="trash" size={13} className="mr-1 align-[-2px]" />Delete</button>
               </div>
             </li>
           );
@@ -356,7 +363,7 @@ function Sites() {
               <div className="text-[11px] font-mono text-zinc-400">{r.id} · {r.kb} KB · {new Date(r.updatedAt).toLocaleDateString('en-UG')}{r.contact ? ` · ${r.contact.name} ${r.contact.phone || r.contact.email}` : ''}</div>
             </div>
             <span className={`text-xs font-mono ${badge(r.status)}`}>{r.status.replace('_', ' ')}{r.price ? ` · ${formatUGX(r.price)}` : ''}{r.ticket ? ` · ${r.ticket}` : ''}</span>
-            <button className={btn} onClick={() => preview(r.id)}>👁 Preview</button>
+            <button className={btn} onClick={() => preview(r.id)}><Icon name="eye" size={13} className="mr-1 align-[-2px]" />Preview</button>
             <a className={btn} href={`/api/admin/zip?id=${r.id}`}>⬇ Zip</a>
             <button className={btn} onClick={async () => { if (confirm(`Delete project ${r.id}? This cannot be undone.`)) { await api('site.delete', { id: r.id }); load(); } }}>🗑</button>
           </li>

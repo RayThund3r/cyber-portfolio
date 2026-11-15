@@ -49,3 +49,7 @@ export function sha256(msg: string): string {
 
 /** Same formula as the in-site admin login (engine/core.js hashPass). */
 export const hashPass = (siteKey: string, pass: string) => sha256(`${siteKey}:owner:${pass}`);
+
+/** Cloud inbox owner token / verifier — must match engine/core.js and server/cloud.ts exactly. */
+export const cloudToken = (siteKey: string, pass: string) => sha256(`${siteKey}:cloud:${pass}`);
+export const cloudVerifier = (token: string) => sha256(`v:${token}`);

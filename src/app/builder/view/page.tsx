@@ -31,7 +31,7 @@ export default function ViewPage() {
           const t = (templates || []).find((x: any) => x.id === tplId);
           if (!t) throw new Error('That design is not available.');
           setData({
-            title: t.name, subtitle: `${categoryOf(t.category).icon} ${categoryOf(t.category).label}`, config: t.config, assets: {},
+            title: t.name, subtitle: categoryOf(t.category).label, config: t.config, assets: {},
             edit: async () => { setBusy(true); try { const d = await post('/api/builder', { action: 'create', templateId: t.id }); router.push(`/builder/edit?id=${d.id}&key=${encodeURIComponent(d.key)}`); } catch (e: any) { setErr(e.message); setBusy(false); } },
           });
         } else if (ref && ref !== 'bad') {
@@ -44,13 +44,13 @@ export default function ViewPage() {
 
   if (ref === 'bad' && tplId === null) return <RecoverScreen id={new URLSearchParams(window.location.search).get('id')?.toUpperCase() || ''} target="view" />;
   if (err) return <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col items-center justify-center gap-3 px-6 text-center"><p role="alert" className="text-sm text-red-300 max-w-sm">{err}</p><Link href="/builder" className="text-cyan-400 underline text-sm">← Browse designs</Link></div>;
-  if (!data) return <div className="min-h-screen bg-zinc-950 text-zinc-400 flex items-center justify-center text-sm font-mono">Loading site…</div>;
+  if (!data) return <div className="min-h-screen bg-zinc-950 text-zinc-400 flex flex-col items-center justify-center gap-3 text-sm font-mono"><div className="load-bar" role="progressbar" aria-label="Loading" />Loading site…</div>;
 
   return (
     <SiteViewer
       config={data.config} assets={data.assets} title={data.title} subtitle={data.subtitle}
       onClose={() => router.push('/builder')}
-      actions={<button disabled={busy} onClick={data.edit} className="px-4 py-2 rounded bg-cyan-500 text-black text-xs font-mono font-semibold hover:bg-cyan-400 disabled:opacity-50 cursor-pointer">{busy ? 'Starting…' : '✎ Edit →'}</button>}
+      actions={<button disabled={busy} onClick={data.edit} className="px-4 py-2 rounded bg-cyan-500 text-black text-xs font-mono font-semibold hover:bg-cyan-400 disabled:opacity-50 cursor-pointer">{busy ? 'Starting…' : 'Edit →'}</button>}
     />
   );
 }

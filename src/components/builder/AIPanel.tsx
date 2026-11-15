@@ -6,6 +6,7 @@ import { applyOps, localAssistant } from '@/lib/builder/ops';
 import { post, fileToPacked } from './lib';
 import type { EditorApi } from './editorApi';
 
+import { IconCart, IconCheck, IconCheckCircle, IconClose, IconCode, IconCopy, IconDesktop, IconEye, IconEyeOff, IconImage, IconLayers, IconLock, IconPalette, IconPaperclip, IconPencil, IconPhone, IconPlus, IconSettings, IconSparkle, IconTablet, IconTrash, IconWarn, IconBulb, IconFolder } from './icons';
 interface Msg { id: number; role: 'user' | 'assistant'; text: string; chips?: string[]; applied?: string[]; notes?: string[]; undoable?: boolean; offline?: boolean }
 interface Pending { name: string; mime: string; data: string; assetId?: string; thumb?: string }
 
@@ -99,32 +100,32 @@ export default function AIPanel({ api }: { api: EditorApi }) {
   return (
     <div className="relative flex flex-col h-full min-h-0" onDragOver={(e) => { e.preventDefault(); setDrag(true); }} onDragLeave={() => setDrag(false)} onDrop={(e) => { e.preventDefault(); setDrag(false); if (!disabled && e.dataTransfer.files.length) addFiles(e.dataTransfer.files); }}>
       {!api.isProject && <p className="text-xs text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded p-2 mb-2">The AI assistant works inside customer projects.</p>}
-      <div className="flex-1 min-h-0 overflow-y-auto space-y-3 pr-1" role="log" aria-live="polite">
+      <div className="flex-1 min-h-0 overflow-y-auto sb-slim space-y-3 pr-1" role="log" aria-live="polite">
         {msgs.map((m) => (
           <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className={`max-w-[92%] rounded-xl px-3 py-2 text-sm whitespace-pre-wrap ${m.role === 'user' ? 'bg-cyan-500 text-black' : 'bg-zinc-800 text-zinc-100'}`}>
               {m.text}
-              {m.chips && m.chips.length > 0 && <div className="flex flex-wrap gap-1 mt-1.5">{m.chips.map((c) => <span key={c} className="px-1.5 py-0.5 rounded bg-black/20 text-[10px] font-mono">📎 {c}</span>)}</div>}
+              {m.chips && m.chips.length > 0 && <div className="flex flex-wrap gap-1 mt-1.5">{m.chips.map((c) => <span key={c} className="px-1.5 py-0.5 rounded bg-black/20 text-[10px] font-mono inline-flex items-center gap-1"><IconPaperclip size={11} /> {c}</span>)}</div>}
               {m.applied && m.applied.length > 0 && <ul className="mt-2 text-[11px] text-emerald-300 list-disc pl-4">{m.applied.map((a) => <li key={a}>{a}</li>)}</ul>}
-              {m.notes?.map((n) => <div key={n} className="mt-1 text-[11px] text-amber-300">⚠ {n}</div>)}
+              {m.notes?.map((n) => <div key={n} className="mt-1 text-[11px] text-amber-300 flex items-center gap-1"><IconWarn size={12} /> {n}</div>)}
               {m.offline && <div className="mt-1 text-[10px] font-mono text-zinc-400">built-in assistant (AI not connected)</div>}
               {m.undoable && <button onClick={() => undoMsg(m.id)} className="mt-2 px-2 py-1 rounded border border-zinc-600 text-[11px] font-mono hover:border-zinc-300 cursor-pointer">↶ Undo this</button>}
             </div>
           </div>
         ))}
         {busy && <div className="flex items-center gap-2 text-xs text-zinc-400 font-mono"><span className="inline-block w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />{busy}{ac.current && <button className="underline cursor-pointer" onClick={() => ac.current?.abort()}>stop</button>}</div>}
-        {msgs.length === 1 && !busy && <div className="space-y-1.5 pt-1">{IDEAS.map((i) => <button key={i} disabled={disabled} onClick={() => send(i)} className="block w-full text-left px-3 py-2 rounded-lg border border-zinc-800 hover:border-cyan-500/50 text-xs text-zinc-300 cursor-pointer disabled:opacity-40">✨ {i}</button>)}</div>}
+        {msgs.length === 1 && !busy && <div className="space-y-1.5 pt-1">{IDEAS.map((i) => <button key={i} disabled={disabled} onClick={() => send(i)} className="block w-full text-left px-3 py-2 rounded-lg border border-zinc-800 hover:border-cyan-500/50 text-xs text-zinc-300 cursor-pointer disabled:opacity-40 inline-flex items-center gap-1"><IconSparkle size={12} /> {i}</button>)}</div>}
         <div ref={end} />
       </div>
 
       {drag && <div className="absolute inset-2 z-20 rounded-xl border-2 border-dashed border-cyan-400 bg-cyan-500/10 flex items-center justify-center text-sm text-cyan-200 pointer-events-none">Drop files for the AI to read</div>}
 
       <div className="pt-2 space-y-2 border-t border-zinc-800 mt-2">
-        {files.length > 0 && <div className="flex flex-wrap gap-1.5">{files.map((f, i) => <span key={i} className="inline-flex items-center gap-1 pl-1.5 pr-1 py-0.5 rounded bg-zinc-800 text-[11px]">{f.thumb ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={f.thumb} alt="" className="w-4 h-4 rounded object-cover" /> : '📄'}{f.name.slice(0, 22)}<button aria-label={`Remove ${f.name}`} className="px-1 text-zinc-400 hover:text-white cursor-pointer" onClick={() => setFiles((x) => x.filter((_, k) => k !== i))}>✕</button></span>)}</div>}
+        {files.length > 0 && <div className="flex flex-wrap gap-1.5">{files.map((f, i) => <span key={i} className="inline-flex items-center gap-1 pl-1.5 pr-1 py-0.5 rounded bg-zinc-800 text-[11px]">{f.thumb ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={f.thumb} alt="" className="w-4 h-4 rounded object-cover" /> : <IconFolder size={13} />}{f.name.slice(0, 22)}<button aria-label={`Remove ${f.name}`} className="px-1 text-zinc-400 hover:text-white cursor-pointer" onClick={() => setFiles((x) => x.filter((_, k) => k !== i))}><IconClose size={12} /></button></span>)}</div>}
         <label className="flex items-center gap-2 text-[11px] text-zinc-400 cursor-pointer"><input type="checkbox" checked={allowCode} onChange={(e) => setAllowCode(e.target.checked)} /> Let the AI write custom code (CSS / JS / HTML) <span className="text-zinc-600">— off by default for safety</span></label>
         <div className="flex gap-2 items-end">
           <label className={`shrink-0 w-10 h-10 rounded-lg border border-zinc-700 flex items-center justify-center cursor-pointer hover:border-zinc-400 ${disabled ? 'opacity-40 pointer-events-none' : ''}`} title="Attach files">
-            📎<input type="file" multiple className="hidden" accept="image/*,.pdf,.docx,.pptx,.txt,.md,.csv,.json" onChange={(e) => { if (e.target.files) addFiles(e.target.files); e.target.value = ''; }} />
+            <IconPaperclip size={16} /><input type="file" multiple className="hidden" accept="image/*,.pdf,.docx,.pptx,.txt,.md,.csv,.json" onChange={(e) => { if (e.target.files) addFiles(e.target.files); e.target.value = ''; }} />
           </label>
           <textarea value={input} disabled={disabled} rows={2} placeholder="Ask for anything… (Enter to send)" aria-label="Message to the AI assistant"
             onChange={(e) => setInput(e.target.value)}

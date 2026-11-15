@@ -1,6 +1,7 @@
 // src/app/admin/page.tsx — Overview: KPIs, traffic chart, live radar, "needs attention", anomalies and a plain-language digest.
 'use client';
 import Link from 'next/link';
+import { eventsNow, type EventsConfig } from '@/lib/events/config';
 import { useMemo, useState } from 'react';
 import Icon from '@/components/ui/Icon';
 import { fmtNum, pct, relTime, useApi } from '@/lib/admin/client';
@@ -26,12 +27,15 @@ export default function Overview() {
   const live = useApi<{ events: LiveEvent[]; activeNow: number; uniqueToday: number; now: number }>('/api/admin/live', { every: 6000 });
   const desk = useApi<DeskSummary>('/api/admin/desk?limit=5', { every: 60000 });
   const chat = useApi<{ questions: Array<{ t: number; q: string; src: string; gap: boolean }> }>('/api/admin/chat');
+  const evCfg = useApi<{ cfg: EventsConfig }>('/api/admin/events');
+  const marking = useMemo(() => eventsNow(evCfg.data?.cfg), [evCfg.data]);
   const s = stats.data;
   const unread = desk.data?.fresh ?? 0;
   const gaps = useMemo(() => groupQuestions(chat.data?.questions || []).gaps, [chat.data]);
   const anomalies = useMemo(() => (s ? findAnomalies(s.days) : []), [s]);
   const lines = useMemo(() => (s ? digest(s, { unread, gaps: gaps.length }) : []), [s, unread, gaps.length]);
   const attention: Array<{ href: string; icon: 'bell' | 'brain' | 'bolt' | 'shield'; text: string; tone: 'warn' | 'bad' | 'accent' }> = [];
+  if (marking[0]) attention.push({ href: '/admin/events', icon: 'bell', text: `The site is marking today: ${marking[0].name}`, tone: 'accent' });
   if (unread) attention.push({ href: '/admin', icon: 'bell', text: `${unread} new request${unread === 1 ? '' : 's'} waiting`, tone: 'accent' });
   if (gaps.length) attention.push({ href: '/admin/chat', icon: 'brain', text: `${gaps.length} question${gaps.length === 1 ? '' : 's'} the assistant could not answer`, tone: 'warn' });
   if (me?.store === 'memory') attention.push({ href: '/admin/health', icon: 'bolt', text: 'Storage is temporary: connect free Upstash to keep data', tone: 'warn' });

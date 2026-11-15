@@ -41,12 +41,59 @@
   var MODE = function () { return SITE.mode || 'none'; };
   var on = function (k) { return SITE.f[k] !== false; };
 
+  /* ---------- cloud inbox (optional): orders / bookings / enquiries are sent to the platform so the owner sees them on ANY device ---------- */
+  var TOKEN = '', CL = null, CLERR = '', SLOTS = {};      // TOKEN (owner proof) lives in memory only — never stored
+  function cloud() { var c = SITE.cloud; return c && c.u && c.id && /^https?:\/\//.test(c.u) && window.fetch && !BASE.preview ? c : null; }   // never talks to the network in editor previews
+  function cpost(action, extra, ms) {
+    var c = cloud(); if (!c) return Promise.resolve({ ok: false, status: 0 });
+    var ctl = window.AbortController ? new AbortController() : null, tm = setTimeout(function () { if (ctl) ctl.abort(); }, ms || 10000);
+    return fetch(String(c.u).replace(/\/$/, '') + '/api/site', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.assign({ id: c.id, action: action }, extra)), signal: ctl ? ctl.signal : undefined })
+      .then(function (r) { clearTimeout(tm); return r.json().then(function (d) { return { ok: r.ok, status: r.status, data: d || {} }; }, function () { return { ok: r.ok, status: r.status, data: {} }; }); }, function () { clearTimeout(tm); return { ok: false, status: 0 }; });
+  }
+  function fetchSlots(date) {
+    var c = cloud(); if (!c || !date) return; var s = SLOTS[date]; if (s && Date.now() - s.t < 20000) return;
+    SLOTS[date] = { t: Date.now(), taken: s ? s.taken : {} };
+    fetch(String(c.u).replace(/\/$/, '') + '/api/site?id=' + encodeURIComponent(c.id) + '&date=' + encodeURIComponent(date)).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+      if (!d || !Array.isArray(d.taken)) return; var m = {}; d.taken.forEach(function (x) { m[x] = 1; }); SLOTS[date] = { t: Date.now(), taken: m };
+      if (BK.day === date) { var el = $('#slots'); if (el) el.innerHTML = slotsHTML(); }
+    }).catch(function () { /* offline: local knowledge only */ });
+  }
+  function src(k) {      // what the admin shows: cloud records (every device) + anything still only on this device
+    if (!CL) return DB[k];
+    if (k === 'subs') { var s2 = CL.subs.slice(); DB.subs.forEach(function (e) { if (s2.indexOf(e) < 0) s2.push(e); }); return s2; }
+    var seen = {}, out = CL[k].slice(); out.forEach(function (r) { seen[r.ref] = 1; });
+    DB[k].forEach(function (r) { if (!seen[r.ref]) out.push(r); });
+    return out.sort(function (a, b) { return num(b.at) - num(a.at); });
+  }
+  function cloudRefresh() {
+    if (!cloud() || !TOKEN) return;
+    cpost('owner.list', { token: TOKEN }).then(function (r) {
+      if (r.ok && r.data && Array.isArray(r.data.orders)) { CL = { orders: r.data.orders, bookings: r.data.bookings || [], enquiries: r.data.enquiries || [], subs: r.data.subs || [] }; CLERR = ''; }
+      else { CL = null; CLERR = r.status === 401 ? 'auth' : r.status === 429 ? 'locked' : 'offline'; }
+      if (authed && location.hash === '#admin' && !SHEET) renderAdmin();
+    });
+  }
+  var KIND = { orders: 'order', bookings: 'booking', enquiries: 'enquiry' };
+  function setStatus(list, ref, st) {
+    [DB[list], CL && CL[list]].forEach(function (a) { (a || []).forEach(function (r) { if (r.ref === ref) r.st = st; }); }); saveDB();
+    if (CL && TOKEN) cpost('owner.update', { token: TOKEN, kind: KIND[list], ref: ref, status: st }).then(function (r) {
+      if (r.status === 409) toast('That time is already booked by someone else — the booking stays cancelled.');
+      else if (!r.ok && r.status !== 404) toast('Could not sync that change — check your connection.');
+      if (r.status === 409 || (!r.ok && r.status !== 404)) cloudRefresh();
+    });
+  }
+  function cloudBanner() {
+    if (!cloud()) return '';
+    var m = CL ? ['✅', 'Live: orders, bookings and messages from every device appear here.'] : CLERR === 'auth' ? ['⚠', 'Cloud sign-in failed — this passcode does not match the one registered for the cloud inbox. Showing this device only.'] : CLERR === 'locked' ? ['⏳', 'Too many failed attempts — the cloud inbox is locked for a few minutes. Showing this device only.'] : TOKEN && !CLERR ? ['⋯', 'Connecting to the cloud inbox…'] : ['⚠', 'Cloud inbox unreachable — showing this device only.'];
+    return '<div class="note" style="margin-bottom:14px">' + m[0] + ' ' + esc(m[1]) + ' <button class="btn ghost sm" data-act="crefresh" style="margin-left:8px">↻ Refresh</button></div>';
+  }
+
   /* ---------- translations (UI chrome only; your own text stays as you wrote it) ---------- */
   var SW = { 'Home': 'Mwanzo', 'About': 'Kuhusu', 'Services': 'Huduma', 'Shop': 'Duka', 'Gallery': 'Picha', 'Reviews': 'Maoni', 'FAQ': 'Maswali', 'Book': 'Weka nafasi', 'Get a quote': 'Omba bei', 'Contact': 'Mawasiliano',
     'Add': 'Weka', 'Add to cart': 'Weka kikapuni', 'Your order': 'Oda yako', 'Cart is empty': 'Kikapu ni tupu', 'Search…': 'Tafuta…', 'All': 'Zote', 'Sold out': 'Imeisha', 'Subtotal': 'Jumla ndogo', 'Discount': 'Punguzo',
     'Delivery': 'Usafirishaji', 'Total': 'Jumla', 'Promo code': 'Nambari ya punguzo', 'Apply': 'Tumia', 'Your name': 'Jina lako', 'Phone / WhatsApp': 'Simu / WhatsApp', 'Pickup': 'Chukua mwenyewe', 'Deliver to me': 'Niletewe',
     'Address': 'Anwani', 'Payment': 'Malipo', 'Note (optional)': 'Maelezo (si lazima)', 'Place order': 'Weka oda', 'Order placed': 'Oda imewekwa', 'Send on WhatsApp': 'Tuma kwa WhatsApp', 'Track order': 'Fuatilia oda',
-    'Close': 'Funga', 'Message': 'Ujumbe', 'Send message': 'Tuma ujumbe', 'Thank you! We will reply soon.': 'Asante! Tutakujibu hivi karibuni.', 'Choose a day': 'Chagua siku', 'Choose a time': 'Chagua saa', 'Confirm booking': 'Thibitisha',
+    'Close': 'Funga', 'That time was just taken — please choose another.': 'Muda huo umechukuliwa — tafadhali chagua mwingine.', 'Please check your details.': 'Tafadhali angalia taarifa zako.', 'Message': 'Ujumbe', 'Send message': 'Tuma ujumbe', 'Thank you! We will reply soon.': 'Asante! Tutakujibu hivi karibuni.', 'Choose a day': 'Chagua siku', 'Choose a time': 'Chagua saa', 'Confirm booking': 'Thibitisha',
     'Send request': 'Tuma ombi', 'Subscribe': 'Jiunge', 'Your email': 'Barua pepe yako', 'Favourites': 'Vipendwa', 'Sort': 'Panga', 'Price: low → high': 'Bei: ndogo → kubwa', 'Price: high → low': 'Bei: kubwa → ndogo', 'Name A–Z': 'Jina A–Z',
     'Pay on pickup / delivery': 'Lipa unapochukua / unapopokea', 'Reference': 'Kumbukumbu', 'Status': 'Hali', 'Cash': 'Pesa taslimu', 'Back to top': 'Juu', 'Pending': 'Inasubiri', 'Paid': 'Imelipwa', 'Ready': 'Tayari', 'Delivered': 'Imefikishwa', 'Cancelled': 'Imeghairiwa', 'Confirmed': 'Imethibitishwa' };
   var t = function (s) { return LG === 'sw' && SW[s] ? SW[s] : s; };
@@ -75,15 +122,42 @@
   var val = function (id) { var e = document.getElementById(id); return e ? String(e.value == null ? '' : e.value).trim() : ''; };
   var wa = function (msg) { return SITE.b.wa ? Core.waUrl(SITE.b.wa, msg) : ''; };
 
-  /* ---------- delivery of orders / bookings / enquiries to the owner (optional endpoint e.g. Formspree) ---------- */
+  /* ---------- delivery of orders / bookings / enquiries: cloud inbox + optional email endpoint, offline-safe ---------- */
   var flushing = false;
-  function deliver(kind, obj) { if (!Core.url(SITE.ep) || !/^https:/i.test(SITE.ep)) return; var q = ls.g('q', []); q.push({ k: kind, o: obj, n: 0 }); ls.s('q', q.slice(-100)); flush(); }
-  function flush() {
-    if (flushing || !SITE.ep) return; var q = ls.g('q', []); if (!q.length || !window.fetch) return; flushing = true;
-    var it = q[0], done = function (ok) { var cur2 = ls.g('q', []); if (ok) cur2.shift(); else { it.n++; if (it.n >= 5) cur2.shift(); else cur2[0] = it; } ls.s('q', cur2); flushing = false; if (ok && cur2.length) flush(); };
+  var CKIND = { order: 'order', booking: 'booking', enquiry: 'enquiry', subscriber: 'sub' };
+  function emailEp() { return Core.url(SITE.ep) && /^https:/i.test(SITE.ep) ? SITE.ep : ''; }
+  function deliver(kind, obj, cloudDone) {
+    var needC = !!cloud() && !cloudDone, needE = !!emailEp();
+    if (!needC && !needE) return;
+    var q = ls.g('q', []); q.push({ k: kind, o: obj, n: 0, c: needC ? 0 : 1, e: needE ? 0 : 1 }); ls.s('q', q.slice(-100)); flush();
+  }
+  function adoptRef(kind, oldRef, newRef) {   // the server may (very rarely) assign a different reference
+    if (!newRef || newRef === oldRef) return; var list = { order: 'orders', booking: 'bookings', enquiry: 'enquiries' }[kind];
+    if (list) { DB[list].forEach(function (r) { if (r.ref === oldRef) r.ref = newRef; }); saveDB(); }
+  }
+  function cloudSend(it) {
+    return cpost('submit', { kind: CKIND[it.k] || it.k, data: it.o }).then(function (r) {
+      if (r.ok) { adoptRef(it.k, it.o && it.o.ref, r.data && r.data.ref); return 'ok'; }
+      if (r.status === 409 && it.k === 'booking') { DB.bookings.forEach(function (b) { if (b.ref === it.o.ref) b.st = 'Conflict'; }); saveDB(); return 'ok'; } // someone else took the slot while we were offline
+      if (r.status >= 400 && r.status < 500 && r.status !== 429 && r.status !== 408) return 'ok'; // our data is invalid / site unknown: retrying can't help
+      return 'retry';
+    });
+  }
+  function endpointSend(it) {
     var body = JSON.stringify(Object.assign({ kind: it.k, site: SITE.b.name }, it.o));
     var to = new Promise(function (r) { setTimeout(function () { r(false); }, 12000); });
-    Promise.race([fetch(SITE.ep, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, body: body }).then(function (r) { return r.ok; }, function () { return false; }), to]).then(done);
+    return Promise.race([fetch(SITE.ep, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, body: body }).then(function (r) { return r.ok; }, function () { return false; }), to]);
+  }
+  function flush() {
+    if (flushing || !window.fetch) return; var q = ls.g('q', []); if (!q.length) return; flushing = true;
+    var it = q[0], jobs = [];
+    if (!it.c) { if (cloud()) jobs.push(cloudSend(it).then(function (r) { if (r === 'ok') it.c = 1; })); else it.c = 1; }
+    if (!it.e) { if (emailEp()) jobs.push(endpointSend(it).then(function (ok) { if (ok) it.e = 1; })); else it.e = 1; }
+    Promise.all(jobs).then(function () {
+      var cur2 = ls.g('q', []), done = it.c && it.e;
+      if (done) cur2.shift(); else { it.n++; if (it.n >= 8) cur2.shift(); else cur2[0] = it; }
+      ls.s('q', cur2); flushing = false; if (done && cur2.length) flush();
+    });
   }
 
   /* ---------- views ---------- */
@@ -176,9 +250,9 @@
   }
 
   /* booking + quote */
-  var BK = { day: '', time: '', svc: '' };
+  var BK = { day: '', time: '', svc: '' }, BOOKING = false;   // BOOKING = a request is in flight (blocks double-submits from any input method)
   function svcNames() { var n = arr((SITE.sv || {}).items).map(function (s) { return s && s.t; }).filter(Boolean); return n.length ? n : [SITE.b.name]; }
-  function takenSet() { var m = {}; DB.bookings.forEach(function (b) { if (b.st !== 'Cancelled') m[b.date + ' ' + b.time] = 1; }); return m; }
+  function takenSet() { var m = {}; DB.bookings.forEach(function (b) { if (b.st !== 'Cancelled' && b.st !== 'Conflict') m[b.date + ' ' + b.time] = 1; }); var cs = SLOTS[BK.day]; if (cs) for (var k in cs.taken) m[BK.day + ' ' + k] = 1; return m; }
   function daysHTML() {
     var k = SITE.bk, days = Core.nextDays(new Date(), k.ahead || 14, arr(k.closed).map(Number));
     if (!BK.day || !days.some(function (d) { return d.key === BK.day; })) BK.day = days[0] ? days[0].key : '';
@@ -214,7 +288,7 @@
   function vFooter() {
     var b = SITE.b;
     return '<footer><div class="w"><div><div class="logo" style="margin-bottom:8px"><b style="font-family:var(--hf);color:var(--tx);font-size:18px">' + esc(b.name) + '</b></div><div>' + esc(b.tag || '') + '</div><div style="margin-top:10px">© ' + new Date().getFullYear() + ' ' + esc(b.name) + '</div>' +
-      (on('admin') && BASE.adm && BASE.adm.h ? '<div style="margin-top:6px"><a href="#admin">Owner login</a></div>' : '') + '</div>' +
+      (MODE() === 'shop' && on('track') ? '<div style="margin-top:6px"><a href="#" data-act="track">' + esc(t('Track order')) + '</a></div>' : '') + (on('admin') && BASE.adm && BASE.adm.h ? '<div style="margin-top:6px"><a href="#admin">Owner login</a></div>' : '') + '</div>' +
       (on('news') ? '<div><b style="color:var(--tx)">' + esc(t('Subscribe')) + '</b><div class="nlf"><input id="nl" type="email" placeholder="' + esc(t('Your email')) + '" aria-label="' + esc(t('Your email')) + '"><button class="btn sm" data-act="news">' + esc(t('Subscribe')) + '</button></div></div>' : '') + '</div></footer>';
   }
   var V = { about: vAbout, services: vServices, catalog: vCatalog, gallery: vGallery, testimonials: vTesti, faq: vFaq, book: vBook, quote: vQuote, contact: vContact };
@@ -260,7 +334,7 @@
     io = new IntersectionObserver(function (es) { es.forEach(function (x) { if (x.isIntersecting) { x.target.classList.add('in'); io.unobserve(x.target); } }); }, { rootMargin: '0px 0px -8% 0px', threshold: 0.05 });
     els.forEach(function (e) { io.observe(e); });
   }
-  function after() { slInit(); reveal(); onScroll(); }
+  function after() { slInit(); reveal(); onScroll(); if ($('#slots')) fetchSlots(BK.day); }
   function onScroll() { var n = $('.nav'), b = $('.topb'); if (n) n.classList.toggle('sc', window.pageYOffset > 12); if (b) b.classList.toggle('on', window.pageYOffset > 700); }
 
   /* ---------- lightbox ---------- */
@@ -344,8 +418,11 @@
     openSheet('<h3>' + esc(t('Track order')) + '</h3><div class="fm"><label>' + esc(t('Reference')) + '<input id="tr_r" value="' + esc(ref || '') + '"></label><label>' + esc(t('Phone / WhatsApp')) + '<input id="tr_p" type="tel"></label><button class="btn" data-act="trackgo">' + esc(t('Track order')) + '</button></div><div id="tr_o"></div>');
   }
   function trackGo() {
-    var r = val('tr_r').toUpperCase(), p = Core.normPhone(val('tr_p')), o = DB.orders.filter(function (x) { return x.ref === r && Core.normPhone(x.phone) === p; })[0], out = $('#tr_o');
-    if (!out) return; out.innerHTML = o ? '<div class="note"><b>' + esc(t(o.st)) + '</b><br>' + o.items.map(function (i) { return esc(i.q + ' × ' + i.n); }).join('<br>') + '<br>' + esc(M(o.total)) + '</div>' : '<div class="note">—</div>';
+    var r = val('tr_r').toUpperCase(), ph = val('tr_p'), p = Core.normPhone(ph), out = $('#tr_o'); if (!out) return;
+    var local = DB.orders.filter(function (x) { return x.ref === r && Core.normPhone(x.phone) === p; })[0];
+    var show = function (o) { var el = $('#tr_o'); if (el) el.innerHTML = o ? '<div class="note"><b>' + esc(t(o.st)) + '</b><br>' + o.items.map(function (i) { return esc(i.q + ' × ' + i.n); }).join('<br>') + '<br>' + esc(M(o.total)) + '</div>' : '<div class="note">—</div>'; };
+    if (!cloud() || !r) return show(local);
+    cpost('track', { ref: r, phone: ph }, 8000).then(function (res) { show(res.ok && res.data && res.data.st ? { st: res.data.st, items: res.data.items || [], total: res.data.total } : local); });
   }
 
   /* ---------- booking / quote / contact / newsletter ---------- */
@@ -353,7 +430,19 @@
     var n = val('bk_n'), p = val('bk_p'), s = val('bk_s'); if (n.length < 2) return toast(t('Your name')); if (!Core.phoneOk(p)) return toast(t('Phone / WhatsApp')); if (!BK.day || !BK.time) return toast(t('Choose a time'));
     var used = {}; DB.bookings.forEach(function (b) { used[b.ref] = 1; });
     var b = { ref: Core.ref('BKG', Date.now(), Math.random, used), at: Date.now(), name: n, phone: Core.normPhone(p), svc: s, date: BK.day, time: BK.time, note: val('bk_m'), st: 'Pending', dep: DEP[s] || 0 };
-    DB.bookings.unshift(b); DB.bookings = DB.bookings.slice(0, 500); saveDB(); deliver('booking', b); BK.time = ''; var sl = $('#slots'); if (sl) sl.innerHTML = slotsHTML();
+    if (!cloud()) return finishBook(b, false);
+    if (BOOKING) return; BOOKING = true;
+    var btn = $('[data-act=book]'); if (btn) btn.setAttribute('disabled', '');   // visual feedback while we ask the server
+    cpost('submit', { kind: 'booking', data: b }).then(function (r) {
+      BOOKING = false; if (btn) btn.removeAttribute('disabled');
+      if (r.ok) { if (r.data && r.data.ref) b.ref = r.data.ref; finishBook(b, true); }
+      else if (r.status === 409) { toast(t('That time was just taken — please choose another.')); BK.time = ''; delete SLOTS[BK.day]; fetchSlots(BK.day); var el = $('#slots'); if (el) el.innerHTML = slotsHTML(); }
+      else if (r.status >= 400 && r.status < 500 && r.status !== 429 && r.status !== 408) toast(t('Please check your details.'));
+      else finishBook(b, false);    // offline / server busy: keep it on this device and send it as soon as we can
+    });
+  }
+  function finishBook(b, delivered) {
+    DB.bookings.unshift(b); DB.bookings = DB.bookings.slice(0, 500); saveDB(); deliver('booking', b, delivered); BK.time = ''; var sl = $('#slots'); if (sl) sl.innerHTML = slotsHTML();
     var msg = '*' + SITE.b.name + ' — booking ' + b.ref + '*\n' + b.name + ' · ' + b.phone + '\n' + b.svc + '\n' + b.date + ' ' + b.time + (b.note ? '\n' + b.note : ''), link = wa(msg), p2 = SITE.cat.pay || {};
     openSheet('<h3>' + esc(t('Confirm booking')) + ' ✓</h3><p>' + esc(b.svc) + '<br><b>' + esc(b.date + ' · ' + b.time) + '</b><br>' + esc(t('Reference')) + ': <b>' + esc(b.ref) + '</b></p>' +
       (b.dep ? '<div class="note">Deposit: <b>' + esc(M(b.dep)) + '</b>' + (p2.mtn ? ' — MTN <b>' + esc(p2.mtn) + '</b>' : '') + (p2.airtel ? ' — Airtel <b>' + esc(p2.airtel) + '</b>' : '') + '</div>' : '') +
@@ -371,11 +460,28 @@
   /* ---------- owner admin (convenience, not security: everything is stored on this device) ---------- */
   var authed = false, AT = 'dash', EDIT = null;
   function lock() { return ls.g('lk', { n: 0, t: 0 }); }
+  var LOGGING = false;
   function doLogin() {
-    var l = lock(), now = Date.now(); if (l.t > now) return toast('Too many attempts. Try again in ' + Math.ceil((l.t - now) / 1000) + 's');
-    var ok = !!(BASE.adm && BASE.adm.h) && Core.safeEq(Core.hashPass(KEY, val('pw')), (OWN && OWN.patch && OWN.patch.adm && OWN.patch.adm.h && num(OWN.at) > num(BASE.updatedAt)) ? OWN.patch.adm.h : BASE.adm.h);
-    if (ok) { ls.s('lk', { n: 0, t: 0 }); authed = true; renderAdmin(); return; }
-    l.n++; if (l.n >= 5) { l.t = now + 30000; l.n = 0; } ls.s('lk', l); toast('Wrong passcode');
+    var l = lock(), now = Date.now(), typed = val('pw'); if (l.t > now) return toast('Too many attempts. Try again in ' + Math.ceil((l.t - now) / 1000) + 's');
+    var localOk = !!(BASE.adm && BASE.adm.h) && Core.safeEq(Core.hashPass(KEY, typed), (OWN && OWN.patch && OWN.patch.adm && OWN.patch.adm.h && num(OWN.at) > num(BASE.updatedAt)) ? OWN.patch.adm.h : BASE.adm.h);
+    var fail = function () { l.n++; if (l.n >= 5) { l.t = Date.now() + 30000; l.n = 0; } ls.s('lk', l); toast('Wrong passcode'); };
+    var succeed = function (data) {
+      ls.s('lk', { n: 0, t: 0 }); authed = true; TOKEN = cloud() ? Core.cloudToken(KEY, typed) : ''; CLERR = '';
+      CL = data ? { orders: data.orders, bookings: data.bookings || [], enquiries: data.enquiries || [], subs: data.subs || [] } : null;
+      renderAdmin(); if (TOKEN && !data) cloudRefresh();
+    };
+    if (!cloud()) return localOk ? succeed() : fail();
+    // Cloud inbox configured → the CLOUD decides whether the passcode is current (so a passcode changed on another device works
+    // everywhere, and an old one stops working everywhere). The passcode saved with the site is only the OFFLINE fallback.
+    if (LOGGING) return; LOGGING = true;
+    cpost('owner.list', { token: Core.cloudToken(KEY, typed) }, 9000).then(function (r) {
+      LOGGING = false;
+      if (r.ok && r.data && Array.isArray(r.data.orders)) succeed(r.data);
+      else if (r.status === 401) fail();
+      else if (r.status === 429) toast('Too many failed attempts — please try again in a few minutes.');
+      else if (localOk) succeed();      // server unreachable / site not registered: fall back to the passcode saved with this site
+      else fail();
+    });
   }
   var AT_TABS = [['dash', '📊', 'Dashboard'], ['prod', '🛍', 'Products'], ['ord', '🧾', 'Orders'], ['bk', '📅', 'Bookings'], ['enq', '✉', 'Enquiries'], ['set', '⚙', 'Settings'], ['sec', '🔒', 'Backup']];
   function tabs(cls) { return AT_TABS.filter(function (x) { return !(x[0] === 'prod' && MODE() !== 'shop') && !(x[0] === 'ord' && MODE() !== 'shop') && !(x[0] === 'bk' && MODE() !== 'book'); }).map(function (x) { return '<button class="' + (AT === x[0] ? 'on' : '') + '" data-act="at" data-v="' + x[0] + '">' + x[1] + ' <span>' + x[2] + '</span></button>'; }).join(''); }
@@ -384,11 +490,12 @@
   var dt = function (ms) { var d = new Date(ms); return d.getDate() + '/' + (d.getMonth() + 1) + ' ' + ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); };
   var sel = function (id, opts, v, act, dataId) { return '<select id="' + id + '"' + (act ? ' data-ch="' + act + '" data-id="' + esc(dataId) + '"' : '') + '>' + opts.map(function (o) { return '<option' + (o === v ? ' selected' : '') + '>' + esc(o) + '</option>'; }).join('') + '</select>'; };
   function aDash() {
-    var live = DB.orders.filter(function (o) { return o.st !== 'Cancelled'; }), rev = live.reduce(function (a, o) { return a + o.total; }, 0), days = [], v = DB.visits || {}, i, d, mx = 1;
+    var O = src('orders'), B2 = src('bookings'), E = src('enquiries'), S = src('subs');
+    var live = O.filter(function (o) { return o.st !== 'Cancelled'; }), rev = live.reduce(function (a, o) { return a + o.total; }, 0), days = [], v = DB.visits || {}, i, d, mx = 1;
     for (i = 6; i >= 0; i--) { d = new Date(); d.setDate(d.getDate() - i); var k = Core.dateKey(d); days.push([k.slice(5), v[k] || 0]); mx = Math.max(mx, v[k] || 0); }
-    return '<h2>Dashboard</h2><div class="kp"><div><b>' + DB.orders.length + '</b><span>Orders (this device)</span></div><div><b>' + esc(M(rev)) + '</b><span>Revenue</span></div><div><b>' + DB.bookings.filter(function (b) { return b.st === 'Pending'; }).length + '</b><span>Pending bookings</span></div><div><b>' + DB.enquiries.filter(function (e) { return e.st === 'New'; }).length + '</b><span>New enquiries</span></div><div><b>' + DB.subs.length + '</b><span>Subscribers</span></div></div>' +
+    return '<h2>Dashboard</h2><div class="kp"><div><b>' + O.length + '</b><span>Orders' + (CL ? '' : ' (this device)') + '</span></div><div><b>' + esc(M(rev)) + '</b><span>Revenue</span></div><div><b>' + B2.filter(function (b) { return b.st === 'Pending'; }).length + '</b><span>Pending bookings</span></div><div><b>' + E.filter(function (e) { return e.st === 'New'; }).length + '</b><span>New enquiries</span></div><div><b>' + S.length + '</b><span>Subscribers</span></div></div>' +
       '<div class="cd"><b>Visits — last 7 days (this device)</b><div class="bars">' + days.map(function (x) { return '<i title="' + x[0] + ': ' + x[1] + '" style="height:' + Math.max(3, Math.round((x[1] / mx) * 100)) + '%"></i>'; }).join('') + '</div></div>' +
-      '<div class="note" style="margin-top:14px">ℹ Orders, bookings and enquiries are stored on the device they were made on and sent to you by WhatsApp' + (SITE.ep ? ' and to your email endpoint' : '') + '. Use <b>Settings → Publish</b> to share your product and price changes with every visitor.</div>';
+      (cloud() ? '' : '<div class="note" style="margin-top:14px">ℹ Orders, bookings and enquiries are stored on the device they were made on and sent to you by WhatsApp' + (SITE.ep ? ' and to your email endpoint' : '') + '. Use <b>Settings → Publish</b> to share your product and price changes with every visitor.</div>');
   }
   function aProd() {
     return '<h2>Products</h2><div class="act" style="margin-bottom:14px"><button class="btn" data-act="pnew">+ New product</button></div>' + (PRODUCTS.length ? PRODUCTS.map(function (p) {
@@ -400,15 +507,15 @@
       area('pf_i', 'Picture links (one per line)', arr(p.images).join('\n'), 3) + '<label>Or upload pictures<input id="pf_f" type="file" accept="image/*" multiple data-ch="pimg"></label><input type="hidden" id="pf_id" value="' + esc(p.id) + '"><button class="btn full" data-act="psave">Save</button></div>';
   }
   function aOrd() {
-    return '<h2>Orders</h2><div class="act" style="margin-bottom:12px"><button class="btn ghost sm" data-act="csv" data-v="orders">⬇ CSV</button></div>' + (DB.orders.length ? DB.orders.map(function (o) {
+    return '<h2>Orders</h2><div class="act" style="margin-bottom:12px"><button class="btn ghost sm" data-act="csv" data-v="orders">⬇ CSV</button></div>' + (src('orders').length ? src('orders').map(function (o) {
       return '<div class="cd" style="margin-bottom:10px"><div class="act" style="justify-content:space-between"><b>' + esc(o.ref) + '</b><small>' + dt(o.at) + '</small></div><div>' + esc(o.name) + ' · ' + esc(o.phone) + '</div><div style="color:var(--mut);font-size:14px">' + o.items.map(function (i) { return esc(i.q + '× ' + i.n); }).join(', ') + '</div><div class="act" style="margin-top:8px"><b>' + esc(M(o.total)) + '</b>' + sel('', ['Pending', 'Paid', 'Ready', 'Delivered', 'Cancelled'], o.st, 'ostat', o.ref) + '<button class="btn ghost sm" data-act="rcpt" data-id="' + esc(o.ref) + '">Receipt</button><a class="btn wa sm" target="_blank" rel="noopener" href="' + esc(Core.waUrl(o.phone, 'Hello ' + o.name + ', about your order ' + o.ref + ' (' + o.st + ')')) + '">💬</a></div></div>'; }).join('') : '<p class="empty">No orders on this device yet.</p>');
   }
   function aBk() {
-    return '<h2>Bookings</h2><div class="act" style="margin-bottom:12px"><button class="btn ghost sm" data-act="csv" data-v="bookings">⬇ CSV</button></div>' + (DB.bookings.length ? DB.bookings.map(function (b) {
-      return '<div class="cd" style="margin-bottom:10px"><div class="act" style="justify-content:space-between"><b>' + esc(b.ref) + '</b><small>' + esc(b.date + ' ' + b.time) + '</small></div><div>' + esc(b.name) + ' · ' + esc(b.phone) + ' · ' + esc(b.svc) + '</div><div class="act" style="margin-top:8px">' + (b.dep ? '<small>Deposit ' + esc(M(b.dep)) + '</small>' : '') + sel('', ['Pending', 'Confirmed', 'Done', 'Cancelled'], b.st, 'bstat', b.ref) + '<a class="btn wa sm" target="_blank" rel="noopener" href="' + esc(Core.waUrl(b.phone, 'Hello ' + b.name + ', your booking ' + b.ref + ' for ' + b.date + ' ' + b.time + ' is ' + b.st)) + '">💬</a></div></div>'; }).join('') : '<p class="empty">No bookings on this device yet.</p>');
+    return '<h2>Bookings</h2><div class="act" style="margin-bottom:12px"><button class="btn ghost sm" data-act="csv" data-v="bookings">⬇ CSV</button></div>' + (src('bookings').length ? src('bookings').map(function (b) {
+      return '<div class="cd" style="margin-bottom:10px"><div class="act" style="justify-content:space-between"><b>' + esc(b.ref) + '</b><small>' + esc(b.date + ' ' + b.time) + '</small></div><div>' + esc(b.name) + ' · ' + esc(b.phone) + ' · ' + esc(b.svc) + '</div><div class="act" style="margin-top:8px">' + (b.dep ? '<small>Deposit ' + esc(M(b.dep)) + '</small>' : '') + sel('', ['Pending', 'Confirmed', 'Done', 'Cancelled', 'Conflict'], b.st, 'bstat', b.ref) + '<a class="btn wa sm" target="_blank" rel="noopener" href="' + esc(Core.waUrl(b.phone, 'Hello ' + b.name + ', your booking ' + b.ref + ' for ' + b.date + ' ' + b.time + ' is ' + b.st)) + '">💬</a></div></div>'; }).join('') : '<p class="empty">No bookings on this device yet.</p>');
   }
   function aEnq() {
-    return '<h2>Enquiries</h2><div class="act" style="margin-bottom:12px"><button class="btn ghost sm" data-act="csv" data-v="enquiries">⬇ CSV</button></div>' + (DB.enquiries.length ? DB.enquiries.map(function (e) {
+    return '<h2>Enquiries</h2><div class="act" style="margin-bottom:12px"><button class="btn ghost sm" data-act="csv" data-v="enquiries">⬇ CSV</button></div>' + (src('enquiries').length ? src('enquiries').map(function (e) {
       return '<div class="cd" style="margin-bottom:10px"><div class="act" style="justify-content:space-between"><b>' + esc(e.name) + '</b><small>' + dt(e.at) + ' · ' + esc(e.kind) + '</small></div><div>' + esc(e.contact) + (e.svc ? ' · ' + esc(e.svc) : '') + '</div><p style="margin:6px 0">' + esc(e.msg) + '</p><div class="act"><button class="btn ghost sm" data-act="edone" data-id="' + esc(e.ref) + '">' + (e.st === 'New' ? 'Mark done' : '✓ Done') + '</button><button class="btn ghost sm" data-act="edel" data-id="' + esc(e.ref) + '">🗑</button></div></div>'; }).join('') : '<p class="empty">No enquiries yet.</p>');
   }
   function aSet() {
@@ -425,7 +532,7 @@
     document.documentElement.removeAttribute('data-menu'); document.title = 'Owner admin — ' + SITE.b.name;
     if (!authed) { app.innerHTML = '<div class="lgn"><div class="cd"><h2>' + esc(SITE.b.name) + '</h2><p style="color:var(--mut)">Owner login</p><input id="pw" type="password" autocomplete="current-password" placeholder="Passcode" aria-label="Passcode" style="padding:13px;border-radius:12px;border:1px solid var(--ln);background:var(--bg)"><button class="btn" data-act="login">Sign in</button><a href="#home" style="color:var(--mut)">← Back to site</a></div></div>'; return; }
     var body = { dash: aDash, prod: aProd, ord: aOrd, bk: aBk, enq: aEnq, set: aSet, sec: aSec }[AT] || aDash;
-    app.innerHTML = '<div class="ad"><aside class="sb"><b style="font-family:var(--hf);padding:8px 14px 14px;font-size:18px">' + esc(SITE.b.name) + '</b>' + tabs() + '<a href="#home" style="margin-top:auto;padding:11px 14px;color:var(--mut)">← View site</a><button data-act="logout">Sign out</button></aside><main class="am">' + body() + '</main><nav class="tb">' + tabs() + '<button data-act="logout"><span>Out</span></button></nav></div>';
+    app.innerHTML = '<div class="ad"><aside class="sb"><b style="font-family:var(--hf);padding:8px 14px 14px;font-size:18px">' + esc(SITE.b.name) + '</b>' + tabs() + '<a href="#home" style="margin-top:auto;padding:11px 14px;color:var(--mut)">← View site</a><button data-act="logout">Sign out</button></aside><main class="am">' + cloudBanner() + body() + '</main><nav class="tb">' + tabs() + '<button data-act="logout"><span>Out</span></button></nav></div>';
   }
   function route() {
     closeSheet(true); lbClose();
@@ -476,16 +583,23 @@
     promo: function () { readCK(); var sub = Core.cartTotals(Core.cartRows(CART, PRODUCTS), 0, 0).sub, r = Core.applyPromo(CK.promo, PROMOS, sub); CK.code = r.code; toast(r.code ? r.code + ' ✓' : 'Invalid code'); reCart(); },
     place: placeOrder, track: function (a) { openTrack(a && a.dataset.ref); }, trackgo: trackGo,
     lb: function (a) { var items = arr((SITE.gal || {}).items).filter(function (x) { return x && Core.url(x.u, true); }).map(function (x) { return { u: Core.url(x.u, true), c: x.c }; }); lbOpen(items, +a.dataset.i || 0); }, lbx: lbClose, lbp: function () { lbMove(-1); }, lbn: function () { lbMove(1); },
-    day: function (a) { BK.day = a.dataset.v; BK.time = ''; var d = $('#days'), s = $('#slots'); if (d) d.innerHTML = daysHTML(); if (s) s.innerHTML = slotsHTML(); }, slot: function (a) { BK.time = a.dataset.v; var s = $('#slots'); if (s) s.innerHTML = slotsHTML(); },
+    day: function (a) { BK.day = a.dataset.v; BK.time = ''; var d = $('#days'), s = $('#slots'); if (d) d.innerHTML = daysHTML(); if (s) s.innerHTML = slotsHTML(); fetchSlots(BK.day); }, slot: function (a) { BK.time = a.dataset.v; var s = $('#slots'); if (s) s.innerHTML = slotsHTML(); },
     book: doBook, quote: function () { doEnquiry('Quote', val('qt_n'), val('qt_p'), val('qt_m'), val('qt_s')); }, contact: function () { doEnquiry('Message', val('ct_n'), val('ct_p'), val('ct_m')); },
     news: function () { var e = val('nl'); if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) return toast(t('Your email')); if (DB.subs.indexOf(e) < 0) { DB.subs.push(e); saveDB(); deliver('subscriber', { email: e }); } toast('✓'); },
-    login: doLogin, logout: function () { authed = false; location.hash = '#home'; }, at: function (a) { AT = a.dataset.v; renderAdmin(); },
+    login: doLogin, logout: function () { authed = false; TOKEN = ''; CL = null; CLERR = ''; location.hash = '#home'; }, at: function (a) { AT = a.dataset.v; renderAdmin(); if (CL || TOKEN) cloudRefresh(); },
     pnew: function () { openSheet(pForm(), true); }, pedit: function (a) { openSheet(pForm(findP(a.dataset.id)), true); }, psave: saveProduct,
     pdel: function (a) { var id = a.dataset.id; confirmDlg('Delete this product?', function () { patchOwn(function (p) { p.cat = Object.assign({}, p.cat || SITE.cat, { products: PRODUCTS.filter(function (x) { return x.id !== id; }) }); }); renderAdmin(); }, 'Delete'); },
-    sset: saveSettings, csv: function (a) { var c = CSVS[a.dataset.v]; download(a.dataset.v + '.csv', '\ufeff' + Core.csv(DB[c[1]], c[2]), 'text/csv'); }, rcpt: function (a) { receipt(a.dataset.id); }, print: function () { window.print(); },
-    edone: function (a) { DB.enquiries.forEach(function (e) { if (e.ref === a.dataset.id) e.st = 'Done'; }); saveDB(); renderAdmin(); }, edel: function (a) { DB.enquiries = DB.enquiries.filter(function (e) { return e.ref !== a.dataset.id; }); saveDB(); renderAdmin(); },
+    sset: saveSettings, csv: function (a) { var c = CSVS[a.dataset.v]; download(a.dataset.v + '.csv', '\ufeff' + Core.csv(src(c[1]), c[2]), 'text/csv'); }, rcpt: function (a) { receipt(a.dataset.id); }, print: function () { window.print(); },
+    edone: function (a) { setStatus('enquiries', a.dataset.id, 'Done'); renderAdmin(); }, edel: function (a) { var ref = a.dataset.id; DB.enquiries = DB.enquiries.filter(function (e) { return e.ref !== ref; }); if (CL) CL.enquiries = CL.enquiries.filter(function (e) { return e.ref !== ref; }); saveDB(); if (CL && TOKEN) cpost('owner.delete', { token: TOKEN, kind: 'enquiry', ref: ref }); renderAdmin(); }, crefresh: function () { CLERR = ''; if (TOKEN) { CL = null; renderAdmin(); cloudRefresh(); } },
     publish: function () { var d = Core.merge(BASE, OWN && OWN.patch ? OWN.patch : {}); d.updatedAt = Date.now(); delete d.preview; download('site-data.json', JSON.stringify(d, null, 1)); toast('Upload site-data.json to your hosting'); },
-    pw: function () { var p = val('pw1'); if (p.length < 8) return toast('Use 8+ characters'); patchOwn(function (x) { x.adm = { h: Core.hashPass(KEY, p) }; }); toast('Passcode changed ✓'); },
+    pw: function () {
+      var p = val('pw1'); if (p.length < 8) return toast('Use 8+ characters');
+      var apply = function () { patchOwn(function (x) { x.adm = { h: Core.hashPass(KEY, p) }; }); toast('Passcode changed ✓'); };
+      if (!cloud()) return apply();
+      if (!TOKEN) return toast('Sign in again to change the passcode.');
+      var nt = Core.cloudToken(KEY, p);   // the cloud inbox must learn the new passcode too, or the owner would be locked out of it
+      cpost('owner.rotate', { token: TOKEN, verifier: Core.cloudVerifier(nt) }).then(function (r) { if (r.ok) { TOKEN = nt; apply(); cloudRefresh(); } else toast('Could not change the passcode on the server — nothing was changed.'); });
+    },
     bkx: function () { download(KEY + '-backup.json', JSON.stringify({ db: DB, own: OWN })); },
     reset: function () { confirmDlg('Erase orders, bookings, enquiries and your local edits on this device?', function () { DB = { orders: [], bookings: [], enquiries: [], subs: [], visits: {} }; OWN = null; saveDB(); ls.s('own', null); compute(); renderAdmin(); toast('Reset'); }, 'Erase'); }
   };
@@ -501,8 +615,8 @@
   document.addEventListener('change', function (ev) {
     var e = ev.target, k = e && e.dataset && e.dataset.ch; if (!k) return;
     if (k === 'sort') { FILT.sort = e.value; redraw(); } else if (k === 'ckdl') reCart();
-    else if (k === 'ostat') { DB.orders.forEach(function (o) { if (o.ref === e.dataset.id) o.st = e.value; }); saveDB(); toast('✓'); }
-    else if (k === 'bstat') { DB.bookings.forEach(function (o) { if (o.ref === e.dataset.id) o.st = e.value; }); saveDB(); toast('✓'); }
+    else if (k === 'ostat') { setStatus('orders', e.dataset.id, e.value); toast('✓'); }
+    else if (k === 'bstat') { setStatus('bookings', e.dataset.id, e.value); toast('✓'); }
     else if (k === 'pimg') { var files = Array.prototype.slice.call(e.files || []).slice(0, 6); Promise.all(files.map(function (f) { return resize(f, 900); })).then(function (urls) { var ta = $('#pf_i'); if (ta) ta.value = (ta.value ? ta.value + '\n' : '') + urls.join('\n'); toast(urls.length + ' ✓'); }, function () { toast('Could not read that picture'); }); }
     else if (k === 'bki') { var f2 = e.files && e.files[0]; if (!f2) return; var r = new FileReader(); r.onload = function () { try { var d = JSON.parse(r.result); if (d.db && Array.isArray(d.db.orders)) { DB = d.db; ['bookings', 'enquiries', 'subs'].forEach(function (x) { if (!Array.isArray(DB[x])) DB[x] = []; }); saveDB(); } if (d.own && d.own.patch) { OWN = d.own; ls.s('own', OWN); compute(); } toast('Backup restored ✓'); renderAdmin(); } catch (x) { toast('That file is not a valid backup'); } }; r.readAsText(f2); }
   });
@@ -510,7 +624,7 @@
   window.addEventListener('scroll', onScroll, { passive: true });
   window.addEventListener('hashchange', route);
   window.addEventListener('online', flush);
-  document.addEventListener('visibilitychange', function () { if (!document.hidden) flush(); });
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) { flush(); if (authed && TOKEN && !SHEET) cloudRefresh(); } });
 
   /* ---------- boot ---------- */
   var today = Core.dateKey(new Date()); if (!ls.g('v_' + today, false)) { ls.s('v_' + today, true); DB.visits = Core.bumpVisit(DB.visits, today); saveDB(); }

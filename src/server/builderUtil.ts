@@ -3,7 +3,7 @@
 // Everything is written against the store's exported API only (readJson / update / removeJson / listNames), so it works with
 // whichever backend the store uses (disk, or a hosted key-value service).
 import 'server-only';
-import { listNames, readJson, removeJson, update } from './store';
+import { listNames, readJson, removeJson, removeTree as dropTree, update } from './store';
 import { BLANK_ID, BLANK_TEMPLATE, PRESETS, type TemplateDef } from '@/lib/builder/templates';
 import { CATEGORIES } from '@/lib/builder/schema';
 
@@ -15,6 +15,7 @@ export async function putJson(name: string, data: unknown): Promise<void> {
 /** Removes every document stored under `dir/` (one level, e.g. all pictures of a site). */
 export async function removeTree(dir: string): Promise<void> {
   for (const n of await listNames(dir)) await removeJson(`${dir}/${n}`);
+  await dropTree(dir); // also drops the (now empty) folder / index entry
 }
 
 /* ───────── template catalogue (with migration of older stored catalogues) ───────── */

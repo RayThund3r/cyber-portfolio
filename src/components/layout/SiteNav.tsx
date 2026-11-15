@@ -15,6 +15,7 @@ import { ROUTES, isActivePath } from '@/lib/siteMap';
 import { openChat } from '@/lib/chatBus';
 import { withGsap } from '@/lib/motion';
 import { lockScroll } from '@/lib/scrollLock';
+import Icon from '@/components/ui/Icon';
 import ThemeDots from './ThemeDots';
 import ModeToggle from './ModeToggle';
 
@@ -23,6 +24,9 @@ export default function SiteNav() {
   const [open, setOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const barRef = useRef<HTMLDivElement>(null);
+  const thumbRef = useRef<HTMLSpanElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [scrub, setScrub] = useState(false);
   const toggleRef = useRef<HTMLButtonElement>(null);
 
   const close = useCallback((returnFocus = false) => {
@@ -72,6 +76,7 @@ export default function SiteNav() {
       const max = el.scrollHeight - el.clientHeight;
       const p = max > 0 ? Math.min(1, Math.max(0, el.scrollTop / max)) : 0;
       if (barRef.current) barRef.current.style.transform = `scaleX(${p})`;
+      if (thumbRef.current) thumbRef.current.style.left = `${p * 100}%`;
     };
     const onScroll = () => {
       if (!raf) raf = requestAnimationFrame(update);
@@ -86,6 +91,29 @@ export default function SiteNav() {
     };
   }, [pathname]);
 
+  // Easter egg: the thin progress line under the bar is also a scrub handle. Press and drag along it (or tap it) to scroll the page.
+  // It has no visible change until you hover or drag, and it never intercepts anything except that last few pixels of the bar.
+  const scrubTo = useCallback((clientX: number) => {
+    const track = trackRef.current;
+    if (!track) return;
+    const r = track.getBoundingClientRect();
+    const ratio = r.width > 0 ? Math.min(1, Math.max(0, (clientX - r.left) / r.width)) : 0;
+    const el = document.documentElement;
+    const max = el.scrollHeight - el.clientHeight;
+    const prev = el.style.scrollBehavior;
+    el.style.scrollBehavior = 'auto'; // follow the finger exactly; the site's smooth-scroll would lag behind it
+    window.scrollTo(0, ratio * max);
+    el.style.scrollBehavior = prev;
+  }, []);
+  const onScrubDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* ignore */ }
+    setScrub(true);
+    scrubTo(e.clientX);
+  };
+  const onScrubMove = (e: React.PointerEvent<HTMLDivElement>) => { if (scrub) scrubTo(e.clientX); };
+  const onScrubEnd = () => setScrub(false);
+
   const desktopLinks = ROUTES.filter((r) => r.path !== '/contact');
 
   return (
@@ -98,7 +126,7 @@ export default function SiteNav() {
       }`}
     >
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-3 px-4 sm:h-16 sm:px-8">
-        <Link href="/" className="group flex min-w-0 items-center gap-2" aria-label="System Portfolio home">
+        <Link href="/" className="group flex min-h-11 min-w-0 items-center gap-2" aria-label="System Portfolio home">
           <span className="h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-accent shadow-[0_0_10px_var(--accent)]" />
           <span className="truncate font-mono text-xs font-bold tracking-widest text-accent transition-opacity group-hover:opacity-80 sm:text-sm">
             SYS_PORTFOLIO.v1
@@ -113,7 +141,7 @@ export default function SiteNav() {
                 key={r.path}
                 href={r.path}
                 aria-current={active ? 'page' : undefined}
-                className={`rounded px-3 py-2 transition-colors duration-200 ${
+                className={`rounded px-2 py-2 transition-colors duration-200 lg:px-3 ${
                   active ? 'text-accent' : 'text-zinc-400 hover:text-zinc-100'
                 }`}
               >
@@ -131,19 +159,28 @@ export default function SiteNav() {
           <button
             type="button"
             onClick={() => openChat()}
-            className="hidden rounded border border-zinc-800 px-3 py-2 font-mono text-xs text-zinc-300 transition-colors hover:border-accent/40 hover:text-accent md:inline-flex"
+            className="hidden rounded border border-zinc-800 px-3 py-2 font-mono text-xs text-zinc-300 transition-colors hover:border-accent/40 hover:text-accent lg:inline-flex"
             title="Ask the assistant (Ctrl/⌘ + K)"
           >
             ASK_AI
           </button>
+          <Link
+            href="/admin"
+            prefetch={false}
+            className="hidden touch-target items-center justify-center rounded border border-accent/30 px-2.5 font-mono text-xs text-accent transition-colors hover:bg-accent/10 md:inline-flex"
+            title="Owner panel (sign-in required)"
+            aria-label="Admin panel"
+          >
+            <Icon name="lock" size={13} /><span className="hidden lg:inline">&nbsp;ADMIN</span>
+          </Link>
           <Link
             href="/contact"
             onClick={() => setOpen(false)}
             aria-current={isActivePath(pathname, '/contact') ? 'page' : undefined}
             className="inline-flex touch-target items-center justify-center rounded border border-accent/30 bg-accent/10 px-3 font-mono text-xs font-semibold text-accent transition-all duration-300 hover:scale-105 active:scale-95 glow-accent sm:px-3.5"
           >
-            <span className="xs:hidden">CONTACT</span>
-            <span className="hidden xs:inline">INITIATE_CONTACT →</span>
+            <span className="xs:hidden md:inline lg:hidden">CONTACT</span>
+            <span className="hidden xs:inline md:hidden lg:inline">INITIATE_CONTACT →</span>
           </Link>
 
           <button
@@ -164,8 +201,24 @@ export default function SiteNav() {
       </div>
 
       {/* scroll progress */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px overflow-hidden" aria-hidden="true">
-        <div ref={barRef} className="h-full origin-left bg-accent" style={{ transform: 'scaleX(0)' }} />
+      <div
+        ref={trackRef}
+        className="group absolute inset-x-0 bottom-0 h-3 touch-none"
+        aria-hidden="true"
+        onPointerDown={onScrubDown}
+        onPointerMove={onScrubMove}
+        onPointerUp={onScrubEnd}
+        onPointerCancel={onScrubEnd}
+        onLostPointerCapture={onScrubEnd}
+      >
+        <div className={`pointer-events-none absolute inset-x-0 bottom-0 overflow-hidden transition-[height,box-shadow] duration-150 ${scrub ? 'h-[3px] shadow-[0_0_10px_var(--color-accent,#22d3ee)]' : 'h-px'}`}>
+          <div ref={barRef} className="h-full origin-left bg-accent" style={{ transform: 'scaleX(0)' }} />
+        </div>
+        <span
+          ref={thumbRef}
+          className={`pointer-events-none absolute bottom-[-3px] h-2 w-2 -translate-x-1/2 rounded-full bg-accent transition-opacity duration-150 ${scrub ? 'opacity-100' : 'opacity-0 group-hover:opacity-90'}`}
+          style={{ left: '0%' }}
+        />
       </div>
 
       {open && (
@@ -207,6 +260,11 @@ export default function SiteNav() {
                 })}
               </ul>
             </nav>
+            <div data-nav-item className="mt-4">
+              <Link href="/admin" prefetch={false} onClick={() => setOpen(false)} className="touch-target flex items-center justify-center rounded border border-zinc-700 font-mono text-xs text-zinc-300">
+                <Icon name="lock" size={13} className="mr-1.5 align-[-2px]" />ADMIN PANEL
+              </Link>
+            </div>
             <div data-nav-item className="mt-4 flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <ThemeDots className="flex" />

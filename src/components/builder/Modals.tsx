@@ -7,6 +7,7 @@ import { CURRENCIES, FALLBACK_RATES, effectiveUGX, formatMoney, type Rates } fro
 import type { TemplateDef } from '@/lib/builder/templates';
 import { post } from './lib';
 
+import { CategoryIcon, IconCart, IconCheck, IconCheckCircle, IconClose, IconCode, IconCopy, IconDesktop, IconEye, IconEyeOff, IconImage, IconLayers, IconLock, IconPalette, IconPaperclip, IconPencil, IconPhone, IconPlus, IconSettings, IconSparkle, IconTablet, IconTrash, IconWarn, IconBulb, IconFolder } from './icons';
 export function BuyModal({ priceUGX, templateName, warnings, projectId, keyStr, onClose, onDone }: {
   priceUGX: number | null; templateName: string; warnings: string[]; projectId: string; keyStr: string; onClose: () => void; onDone: (ticket: string, contact: string) => void;
 }) {
@@ -26,8 +27,8 @@ export function BuyModal({ priceUGX, templateName, warnings, projectId, keyStr, 
 
   return (
     <div className="fixed inset-0 z-[70] bg-black/70 flex items-end sm:items-center justify-center p-0 sm:p-4" role="dialog" aria-modal="true" aria-label="Confirm and buy">
-      <form onSubmit={submit} className="w-full max-w-md max-h-[94vh] overflow-y-auto bg-zinc-950 border border-zinc-700 rounded-t-2xl sm:rounded-xl p-5 space-y-4">
-        <div className="flex justify-between items-start"><h2 className="text-lg font-bold">Is your website ready?</h2><button type="button" onClick={onClose} aria-label="Close" className="text-zinc-400 hover:text-white cursor-pointer text-lg">✕</button></div>
+      <form onSubmit={submit} className="w-full max-w-md max-h-[94vh] overflow-y-auto sb-slim bg-zinc-950 border border-zinc-700 rounded-t-2xl sm:rounded-xl p-5 space-y-4">
+        <div className="flex justify-between items-start"><h2 className="text-lg font-bold">Is your website ready?</h2><button type="button" onClick={onClose} aria-label="Close" className="text-zinc-400 hover:text-white cursor-pointer text-lg"><IconClose size={18} /></button></div>
         <div className="rounded-lg bg-zinc-900 border border-zinc-800 p-3 text-sm">
           <div className="text-zinc-400 text-xs font-mono">{templateName}</div>
           <div className="text-xl font-bold text-cyan-300">{formatMoney(priceUGX, 'UGX', rates)}</div>
@@ -61,15 +62,15 @@ export function NewProjectModal({ onClose, onPick, busy }: { onClose: () => void
   return (
     <div className="fixed inset-0 z-[70] bg-black/70 flex items-end sm:items-center justify-center sm:p-4" role="dialog" aria-modal="true" aria-label="New project">
       <div className="w-full max-w-3xl max-h-[92vh] flex flex-col bg-zinc-950 border border-zinc-700 rounded-t-2xl sm:rounded-xl">
-        <div className="flex items-center justify-between p-4 border-b border-zinc-800"><h2 className="font-bold">Start a new project</h2><button onClick={onClose} aria-label="Close" className="text-zinc-400 hover:text-white cursor-pointer text-lg">✕</button></div>
-        <div className="flex gap-2 overflow-x-auto p-3 border-b border-zinc-800">
-          {[{ id: 'all', label: 'All', icon: '✨' }, ...CATEGORIES].map((c) => <button key={c.id} onClick={() => setCat(c.id)} className={`shrink-0 px-3 py-1 rounded-full border text-xs font-mono cursor-pointer ${cat === c.id ? 'bg-cyan-500 border-cyan-500 text-black' : 'border-zinc-700 text-zinc-300'}`}>{c.icon} {c.label}</button>)}
+        <div className="flex items-center justify-between p-4 border-b border-zinc-800"><h2 className="font-bold">Start a new project</h2><button onClick={onClose} aria-label="Close" className="text-zinc-400 hover:text-white cursor-pointer text-lg"><IconClose size={18} /></button></div>
+        <div className="flex gap-2 overflow-x-auto sb-slim p-3 border-b border-zinc-800">
+          {[{ id: 'all', label: 'All' }, ...CATEGORIES].map((c) => <button key={c.id} onClick={() => setCat(c.id)} className={`shrink-0 px-3 py-1 rounded-full border text-xs font-mono cursor-pointer ${cat === c.id ? 'bg-cyan-500 border-cyan-500 text-black' : 'border-zinc-700 text-zinc-300'}`}>{c.id === 'all' ? null : <CategoryIcon id={c.id} size={13} className="mr-1 inline" />}{c.label}</button>)}
         </div>
-        <div className="flex-1 overflow-y-auto p-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div className="flex-1 overflow-y-auto sb-slim p-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
           {list === null && <p className="col-span-full text-sm text-zinc-500">Loading…</p>}
           {shown.map((t) => (
             <button key={t.id} disabled={busy} onClick={() => onPick(t)} className="text-left rounded-lg border border-zinc-800 hover:border-cyan-500 bg-zinc-900/50 p-3 cursor-pointer disabled:opacity-50">
-              <div className="text-2xl">{categoryOf(t.category).icon}</div>
+              <CategoryIcon id={t.category} size={26} className="text-cyan-400" />
               <div className="text-sm font-semibold mt-1">{t.name}</div>
               <div className="text-[11px] text-zinc-400 line-clamp-2">{t.description}</div>
               <div className="text-[11px] font-mono text-cyan-300 mt-1">{formatMoney(effectiveUGX(t, rates.rates.UGX), 'UGX', rates)}</div>

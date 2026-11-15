@@ -145,6 +145,7 @@ const SEND_BARE = /^(please )?(send|forward|share) (this|it|that|them|these|thos
 export function handoffIntent(raw: string, hasFiles: boolean): boolean {
   const q = raw.toLowerCase().replace(/[^\w\s'-]/g, ' ').replace(/\s+/g, ' ').trim();
   if (!q) return false;
+  if (/\b(tell|teach|inform|talk to) me\b.{0,14}\babout\b/.test(q)) return false; // asking ABOUT the owner is a question, not a request to message them
   if (HANDOFF_PATTERNS.some((r) => r.test(q))) return true;
   return hasFiles && SEND_BARE.test(q);
 }

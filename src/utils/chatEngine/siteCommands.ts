@@ -244,6 +244,14 @@ export function detectSiteCommand(input: string, ctx: DetectContext = {}): Detec
     }
   }
 
+  // ---- 5-admin. owner panel ------------------------------------------------------------------
+  if (/^(?:please )?(?:(?:open|go to|take me to|show me|show|where(?:'s| is)|find|launch|bring me to) )?(?:the |my |your )?(?:admin|admin panel|admin page|admin dashboard|dashboard|owner(?: panel| login| area)?|owner sign ?in|admin log ?in|backend|cms|control panel)(?: please)?\??$/.test(q)) {
+    return done({ type: 'navigate', path: '/admin', label: 'ADMIN' }, {
+      human: 'Opening the owner panel. 🔐 It asks for the admin password, so only you can get in.',
+      expert: 'NAV // Opening /admin (sign-in required).',
+    }, ['Show me your projects', 'Open services']);
+  }
+
   // ---- 5a. games -----------------------------------------------------------------------------
   {
     // Only a request that is JUST "play <game>" (or the bare game name) navigates. Questions that merely

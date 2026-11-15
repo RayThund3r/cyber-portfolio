@@ -38,6 +38,8 @@ interface Backend {
   delTree(dir: string): Promise<void>;
   /** Names (without the directory) of the records directly inside `dir`. */
   list(dir: string): Promise<string[]>;
+  /** Creates the record only if it does not exist (atomic). Resolves false when it already existed. */
+  putNew(name: string, text: string): Promise<boolean>;
 }
 
 /* ───────────────────────── file back-end ───────────────────────── */
@@ -72,6 +74,25 @@ export const fileBackend: Backend = {
     await fs.writeFile(tmp, text);
     try { await fs.rename(file, `${file}.bak`); } catch { /* first write: nothing to back up */ }
     await fs.rename(tmp, file);
+  },
+  async putNew(name, text) {
+    const file = fileFor(name);
+    await fs.mkdir(path.dirname(file), { recursive: true });
+    const tmp = `${file}.${process.pid}.${crypto.randomBytes(4).toString('hex')}.tmp`;
+    await fs.writeFile(tmp, text);
+    try {
+      await fs.link(tmp, file); // hard link = atomic "create if absent"; a reader never sees a half-written file
+      return true;
+    } catch (e: any) {
+      const code = e?.code;
+      if (code === 'EEXIST') return false;
+      if (code === 'EPERM' || code === 'ENOTSUP' || code === 'EXDEV') { // file system without hard links: fall back to O_EXCL
+        try { await fs.writeFile(file, text, { flag: 'wx' }); return true; } catch (e2: any) { if (e2?.code === 'EEXIST') return false; throw e2; }
+      }
+      throw e;
+    } finally {
+      await fs.rm(tmp, { force: true });
+    }
   },
   async del(name) {
     const f = fileFor(name);
@@ -148,6 +169,13 @@ export function redisBackend(s: Store): Backend {
       const { dir, leaf } = split(name);
       if (dir) await s.cmd('HSET', dirKey(dir), leaf, 1);
     },
+    async putNew(name, text) {
+      checkName(name);
+      if (text.length > CHUNK) throw new Error('putNew: record too large');
+      const ok = (await s.cmd<string | null>('SET', rk(name), text, 'NX')) === 'OK';
+      if (ok) { const { dir, leaf } = split(name); if (dir) await s.cmd('HSET', dirKey(dir), leaf, 1); }
+      return ok;
+    },
     async del(name) {
       checkName(name);
       const head = await s.cmd<string | null>('GET', rk(name));
@@ -197,6 +225,9 @@ export async function readJson<T>(name: string, fallback: T): Promise<T> {
 /** Writes a whole record (no read-modify-write). Use for write-once records such as pictures. */
 export const putJson = (name: string, data: unknown): Promise<void> => backend().put(name, JSON.stringify(data));
 export const writeJson = putJson;
+
+/** Creates a record ONLY if it does not exist yet (atomic). Used to claim a booking slot: two visitors can never get the same one. */
+export const createExclusive = (name: string, data: unknown): Promise<boolean> => backend().putNew(name, JSON.stringify(data));
 
 const locks = new Map<string, Promise<unknown>>();
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -254,11 +285,80 @@ export function newTicketId(): string {
   return 'SYS-' + Array.from(b, (x) => ALPHABET[x % ALPHABET.length]).join('');
 }
 
-export const listTickets = () => readJson<Ticket[]>('tickets', []);
+/*
+ * Tickets are stored ONE RECORD PER TICKET (tickets/<ID>) instead of one big "tickets" list.
+ * Why: with a single record every create/update re-read, re-serialised and re-wrote ALL tickets (up to 5,000) under one
+ * global lock — 100 simultaneous orders queued behind each other (p95 ≈ 5.6 s in the load test). Now each operation touches
+ * only its own small record and takes a per-ticket lock (plus a short Redis lock across serverless instances).
+ * An older single "tickets" list is migrated automatically on first use and kept as "tickets-legacy".
+ */
+const TID_RE = /^[A-Za-z0-9-]{4,30}$/;
+const MAX_TICKETS = 5000;
+const tlocks = new Map<string, Promise<unknown>>();
+
+function withTicketLock<T>(id: string, fn: () => Promise<T>): Promise<T> {
+  const prev = tlocks.get(id) || Promise.resolve();
+  const run = prev.catch(() => undefined).then(() => withRemoteLock(`tickets/${id}`, fn));
+  const tail = run.catch(() => undefined);
+  tlocks.set(id, tail);
+  void tail.then(() => { if (tlocks.get(id) === tail) tlocks.delete(id); }); // no unbounded growth
+  return run;
+}
+
+let migration: Promise<void> | null = null;
+function migrateLegacyTickets(): Promise<void> {
+  return (migration ||= (async () => {
+    try {
+      const legacy = await readJson<Ticket[] | null>('tickets', null);
+      if (!Array.isArray(legacy)) return;
+      const have = new Set(await listNames('tickets'));
+      const todo = legacy.filter((t) => t && typeof t.id === 'string' && TID_RE.test(t.id) && !have.has(t.id));
+      for (let i = 0; i < todo.length; i += 50) await Promise.all(todo.slice(i, i + 50).map((t) => putJson(`tickets/${t.id}`, t)));
+      await putJson('tickets-legacy', legacy); // keep the original list as a backup, then retire it
+      await removeJson('tickets');
+    } catch (e) {
+      migration = null; // try again next time; never block the site
+      console.error('ticket migration failed (any existing per-ticket records keep working):', e);
+    }
+  })());
+}
+
+const readTicket = (id: string) => readJson<Ticket | null>(`tickets/${id}`, null);
+
+let listCache: { at: number; list: Ticket[] } | null = null;
+let listInflight: Promise<Ticket[]> | null = null;
+/** Newest first. Cached for 1.5 s (admin list + booking-slot lookups); treat the returned tickets as read-only. */
+export async function listTickets(): Promise<Ticket[]> {
+  await migrateLegacyTickets();
+  if (listCache && Date.now() - listCache.at < 1500) return listCache.list.slice();
+  if (!listInflight) {
+    listInflight = (async () => {
+      const names = await listNames('tickets');
+      const out: Ticket[] = [];
+      for (let i = 0; i < names.length; i += 100) {
+        const batch = await Promise.all(names.slice(i, i + 100).map((n) => readTicket(n)));
+        for (const t of batch) if (t && t.id) out.push(t);
+      }
+      out.sort((a, b) => (a.createdAt < b.createdAt ? 1 : a.createdAt > b.createdAt ? -1 : 0));
+      listCache = { at: Date.now(), list: out };
+      return out;
+    })().finally(() => { listInflight = null; });
+  }
+  return (await listInflight).slice();
+}
+
+let createsSincePrune = 0;
+async function pruneOldTickets() {
+  const all = await listTickets();
+  if (all.length <= MAX_TICKETS) return;
+  await Promise.all(all.slice(MAX_TICKETS).map((t) => removeJson(`tickets/${t.id}`)));
+  listCache = null;
+}
 
 export async function createTicket(
   input: Pick<Ticket, 'kind' | 'name' | 'email' | 'phone' | 'details' | 'slot'> & Partial<Pick<Ticket, 'id' | 'projectId' | 'quoteUGX' | 'depositUGX'>>
 ): Promise<Ticket> {
+  await migrateLegacyTickets();
   const now = new Date().toISOString();
   const ticket: Ticket = {
     ...input,
@@ -269,74 +369,77 @@ export async function createTicket(
     createdAt: now,
     updatedAt: now,
   };
-  await update<Ticket[]>('tickets', [], (all) => {
-    all.unshift(ticket);
-    if (all.length > 5000) all.length = 5000;
-  });
+  if (!TID_RE.test(ticket.id)) throw new Error('Invalid ticket id');
+  await putJson(`tickets/${ticket.id}`, ticket);
+  listCache = null;
+  if (++createsSincePrune >= 100) { createsSincePrune = 0; void pruneOldTickets().catch(() => undefined); }
   return ticket;
 }
 
 export async function findTicket(id: string): Promise<Ticket | undefined> {
-  return (await listTickets()).find((t) => t.id === id.toUpperCase().trim());
+  await migrateLegacyTickets();
+  const clean = String(id || '').toUpperCase().trim();
+  if (!TID_RE.test(clean)) return undefined; // also guarantees user input can never form a storage path
+  return (await readTicket(clean)) || undefined;
 }
 
-/** Applies fn to a ticket atomically; returns the updated ticket (or undefined if not found). */
+/** Applies fn to a ticket atomically; returns the updated ticket (or undefined if not found). Only this ticket is locked. */
 export async function mutateTicket(id: string, fn: (t: Ticket) => void): Promise<Ticket | undefined> {
-  let out: Ticket | undefined;
-  await update<Ticket[]>('tickets', [], (all) => {
-    const t = all.find((x) => x.id === id);
-    if (!t) return;
-    fn(t);
+  await migrateLegacyTickets();
+  const clean = String(id || '').trim();
+  if (!TID_RE.test(clean)) return undefined;
+  return withTicketLock(clean, async () => {
+    const t = await readTicket(clean);
+    if (!t) return undefined;
+    fn(t); // if fn throws, nothing is written
     t.updatedAt = new Date().toISOString();
-    out = t;
+    await putJson(`tickets/${clean}`, t);
+    listCache = null;
+    return t;
   });
-  return out;
 }
 
-/** Sets the same status on many tickets in one atomic write. Returns how many changed. */
+/** Sets the same status on many tickets. Returns how many changed. */
 export async function bulkSetStatus(ids: string[], status: TicketStatus, note?: string): Promise<number> {
-  const wanted = new Set(ids);
   let changed = 0;
-  await update<Ticket[]>('tickets', [], (all) => {
-    const now = new Date().toISOString();
-    for (const t of all) {
-      if (!wanted.has(t.id) || t.status === status) continue;
+  for (const id of Array.from(new Set(ids))) {
+    let did = false;
+    await mutateTicket(id, (t) => {
+      if (t.status === status) return;
       t.status = status;
-      t.updatedAt = now;
-      t.history.push({ at: now, status, note: note || undefined });
-      changed++;
-    }
-  });
+      t.history.push({ at: new Date().toISOString(), status, note: note || undefined });
+      did = true;
+    });
+    if (did) changed++;
+  }
   return changed;
 }
 
 /** Permanently removes tickets (spam clean-up). Returns how many were removed. */
 export async function deleteTickets(ids: string[]): Promise<number> {
-  const doomed = new Set(ids);
+  await migrateLegacyTickets();
   let removed = 0;
-  await update<Ticket[]>('tickets', [], (all) => {
-    const keep = all.filter((t) => !doomed.has(t.id));
-    removed = all.length - keep.length;
-    return keep;
-  });
+  for (const id of Array.from(new Set(ids))) {
+    const clean = String(id || '').trim();
+    if (!TID_RE.test(clean)) continue;
+    await withTicketLock(clean, async () => {
+      if (await readTicket(clean)) { await removeJson(`tickets/${clean}`); removed++; }
+    });
+  }
+  listCache = null;
   return removed;
 }
 
 /** Adds tickets whose id does not exist yet (never overwrites). Returns { added, skipped }. */
 export async function importTickets(incoming: Ticket[]): Promise<{ added: number; skipped: number }> {
+  await migrateLegacyTickets();
   let added = 0;
   let skipped = 0;
-  await update<Ticket[]>('tickets', [], (all) => {
-    const have = new Set(all.map((t) => t.id));
-    for (const t of incoming) {
-      if (have.has(t.id)) { skipped++; continue; }
-      all.push(t);
-      have.add(t.id);
-      added++;
-    }
-    all.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-    if (all.length > 5000) all.length = 5000;
-  });
+  for (const t of incoming) {
+    if (!t || typeof t.id !== 'string' || !TID_RE.test(t.id)) { skipped++; continue; }
+    if (await createExclusive(`tickets/${t.id}`, t)) added++; else skipped++;
+  }
+  listCache = null;
   return { added, skipped };
 }
 

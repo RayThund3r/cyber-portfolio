@@ -10,7 +10,11 @@ import path from 'path';
 import { createTicket, findTicket, listNames, mutateTicket, readJson, removeJson, update, type Ticket } from './store';
 import { getTemplates, putJson, removeTree } from './builderUtil';
 import { makeZip, type ZipFile } from './zip';
-import { buildSite, readmeText } from '@/lib/builder/generate';
+import { buildSite } from '@/lib/builder/generate';
+import { ownerPasscode, readmePro } from '@/lib/builder/pro';
+import { cloudToken, cloudVerifier, hashPass } from '@/lib/builder/sha256';
+import { cloudEnabled, registerSite } from './cloud';
+import { SITE_URL } from './mail';
 import { referencedAssets, sanitizeConfig } from '@/lib/builder/sanitize';
 import type { SiteConfig } from '@/lib/builder/schema';
 import { effectiveUGX } from '@/lib/builder/pricing';
@@ -270,25 +274,43 @@ async function vendorBootstrap(): Promise<{ css: Buffer; js: Buffer } | null> {
   } catch { return null; }
 }
 
+const serverSecret = () => process.env.ADMIN_SESSION_SECRET || process.env.ADMIN_PASSWORD || 'dev-secret';
+
 export async function buildProjectZip(cfg: SiteConfig, p: Project): Promise<Buffer> {
   const used = [...referencedAssets(cfg)].filter((id) => p.assets[id]);
   const assets = await readAssets(p, used);
   const fileOf = (id: string) => `assets/img-${id}.${MIME_EXT[assets[id].mime]}`;
-  const vendor = await vendorBootstrap();
+  const isPro = cfg.kind === 'pro' && !!cfg.pro;
+  const vendor = isPro ? null : await vendorBootstrap(); // Pro sites are fully self-contained (no Bootstrap)
+
+  // Pro: if the customer never set an owner passcode, generate a stable one (same on every download) and ship it in the zip.
+  let passcode: string | undefined, adminHash: string | undefined;
+  if (isPro && !cfg.pro!.owner.adminHash) { passcode = ownerPasscode(serverSecret(), p.id); adminHash = hashPass(cfg.pro!.key, passcode); }
+
+  // Cloud inbox: register the site with this server (idempotent) and tell the site where to send its orders.
+  // Needs a passcode verifier: derived from the generated passcode, or the one the builder stored when the customer set theirs.
+  let cloudUrl: string | undefined;
+  if (isPro && cfg.pro!.features.cloud && cloudEnabled() && /^https?:\/\//.test(SITE_URL)) {
+    const verifier = passcode ? cloudVerifier(cloudToken(cfg.pro!.key, passcode)) : cfg.pro!.owner.cloudVerifier;
+    if (verifier) {
+      const reg = await registerSite({ id: cfg.pro!.key, projectId: p.id, name: cfg.pro!.business.name, ownerEmail: cfg.pro!.business.email, verifier });
+      if (reg.ok) cloudUrl = SITE_URL;
+    }
+  }
+
   const site = buildSite(cfg, {
     mode: 'export',
     assetSrc: (id) => (assets[id] ? fileOf(id) : ''),
     bootstrap: vendor ? { css: 'vendor/bootstrap/bootstrap.min.css', js: 'vendor/bootstrap/bootstrap.bundle.min.js' } : undefined,
+    adminHash,
+    cloudUrl,
   });
-  const files: ZipFile[] = [
-    { name: 'index.html', data: Buffer.from(site.html) },
-    { name: 'css/style.css', data: Buffer.from(site.css) },
-    ...(site.customCss ? [{ name: 'css/custom.css', data: Buffer.from(site.customCss) }] : []),
-    { name: 'js/script.js', data: Buffer.from(site.js) },
-    ...(site.customJs ? [{ name: 'js/custom.js', data: Buffer.from(site.customJs) }] : []),
-    { name: 'README.txt', data: Buffer.from(readmeText(cfg, !!vendor)) },
-    ...used.filter((id) => assets[id]).map((id) => ({ name: fileOf(id), data: Buffer.from(assets[id].data, 'base64'), store: true })),
-  ];
+  const files: ZipFile[] = (site.files ?? []).map((f) => ({ name: f.name, data: Buffer.from(f.text) }));
+  if (isPro) {
+    files.push({ name: 'README.txt', data: Buffer.from(readmePro(cfg, passcode, !!cloudUrl)) });
+    if (passcode) files.push({ name: 'ADMIN-PASSCODE.txt', data: Buffer.from(`Your owner admin passcode: ${passcode}\n\nOpen yoursite.com/#admin and sign in. Change it under Admin → Backup & security.\nKeep this file private — delete it after you have saved the passcode somewhere safe.\n`) });
+  }
+  for (const id of used) if (assets[id]) files.push({ name: fileOf(id), data: Buffer.from(assets[id].data, 'base64'), store: true });
   if (vendor) files.push({ name: 'vendor/bootstrap/bootstrap.min.css', data: vendor.css }, { name: 'vendor/bootstrap/bootstrap.bundle.min.js', data: vendor.js });
   return makeZip(files);
 }

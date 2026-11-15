@@ -5,6 +5,7 @@
 // Every user-supplied string goes through e() (HTML-escaped) or safeUrl()/asset resolution — nothing is trusted.
 import { FONT_PAIRS, SECTION_DEFS, type SectionInstance, type SiteConfig } from './schema';
 import { ASSET_RE, safeUrl } from './sanitize';
+import { buildPro } from './pro';
 
 export const BS_VERSION = '5.3.3';
 export const BS_CDN = {
@@ -19,8 +20,12 @@ export interface BuildOptions {
   assetSrc: (id: string) => string;
   /** Local Bootstrap paths (when vendored into the zip). Defaults to the CDN. */
   bootstrap?: { css: string; js: string };
+  /** Pro sites: owner passcode hash to bake in (export). */
+  adminHash?: string;
+  /** Pro sites: address of the cloud inbox (export; only when the server registered the site). */
+  cloudUrl?: string;
 }
-export interface BuiltSite { html: string; css: string; js: string; customCss: string; customJs: string }
+export interface BuiltSite { html: string; css: string; js: string; customCss: string; customJs: string; /** export mode only: every file of the finished site (the zip adds pictures separately) */ files?: { name: string; text: string }[] }
 
 const ESC: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
 const e = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, (c) => ESC[c]);
@@ -58,7 +63,8 @@ export function buildCss(cfg: SiteConfig): string {
   const r = { none: '0', sm: '.35rem', md: '.75rem', lg: '1.25rem', pill: '1rem' }[t.radius] ?? '.75rem';
   const rb = t.radius === 'pill' ? '999px' : r;
   return `:root{--c-primary:${t.primary};--c-primary-h:${mix(t.primary, lum(t.primary) > 0.45 ? '#000000' : '#ffffff', 0.18)};--c-on-primary:${onColor(t.primary)};--c-secondary:${t.secondary};--c-bg:${t.bg};--c-alt:${t.alt};--c-text:${t.text};--c-muted:color-mix(in srgb,var(--c-text) 68%,transparent);--c-line:color-mix(in srgb,var(--c-text) 13%,transparent);--c-card:color-mix(in srgb,var(--c-text) 4%,var(--c-bg));--r:${r};--rb:${rb};--f-head:${fp.head};--f-body:${fp.body}}
-html{${t.smooth ? 'scroll-behavior:smooth;' : ''}scroll-padding-top:4.5rem}
+html{${t.smooth ? 'scroll-behavior:smooth;' : ''}scroll-padding-top:4.5rem;scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--c-primary) 55%,var(--c-bg)) transparent;color-scheme:${lum(t.bg) < 0.4 ? 'dark' : 'light'}}
+::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--c-primary) 45%,var(--c-bg));border-radius:999px;border:3px solid transparent;background-clip:content-box;min-height:48px}::-webkit-scrollbar-thumb:hover{background:var(--c-primary);background-clip:content-box;border:3px solid transparent}::-webkit-scrollbar-corner{background:transparent}
 body{background:var(--c-bg);color:var(--c-text);font-family:var(--f-body);line-height:1.65;-webkit-font-smoothing:antialiased}
 h1,h2,h3,h4,h5,h6{font-family:var(--f-head);line-height:1.2}
 a{color:var(--c-primary)}
@@ -185,7 +191,7 @@ function upd(){
 }
 function buildBar(){bar.textContent='';var b=d.createElement('b');b.textContent=cur.getAttribute('data-label')||'Section';bar.appendChild(b);
  if(cur.hasAttribute('data-fixed'))return;
- [['up','↑','Move up'],['down','↓','Move down'],['dup','⧉','Duplicate'],['del','🗑','Delete']].forEach(function(x){var bt=d.createElement('button');bt.setAttribute('data-a',x[0]);bt.title=x[2];bt.textContent=x[1];bar.appendChild(bt)})}
+ [['up','↑','Move up'],['down','↓','Move down'],['dup','+','Duplicate'],['del','×','Delete']].forEach(function(x){var bt=d.createElement('button');bt.setAttribute('data-a',x[0]);bt.title=x[2];bt.textContent=x[1];bar.appendChild(bt)})}
 function select(s,notify){cur=s;if(s)buildBar();upd();if(notify&&s)P({t:'sel',id:s.getAttribute('data-sec')})}
 function startEdit(el){if(editing)return;editing=el;el.__o=el.innerText;el.contentEditable='true';el.classList.add('__ed');el.focus();try{var r=d.createRange();r.selectNodeContents(el);var sl=w.getSelection();sl.removeAllRanges();sl.addRange(r)}catch(e){}}
 function endEdit(save){var el=editing;if(!el)return;editing=null;el.contentEditable='false';el.classList.remove('__ed');var v=el.innerText.replace(/\\u00a0/g,' ').replace(/\\n+$/,'');if(!save){el.innerText=el.__o}else if(v!==el.__o){P({t:'edit',f:el.getAttribute('data-f'),v:v})}}
@@ -222,6 +228,7 @@ window.addEventListener('error',function(e){P({t:'err',m:String(e.message||e),l:
 
 /* ───────── HTML ───────── */
 export function buildSite(cfg: SiteConfig, opts: BuildOptions): BuiltSite {
+  if (cfg.kind === 'pro' && cfg.pro) return buildPro(cfg, opts);
   const prev = opts.mode === 'preview';
   const inline = opts.mode !== 'export';
   const t = cfg.theme;
@@ -319,12 +326,17 @@ export function buildSite(cfg: SiteConfig, opts: BuildOptions): BuiltSite {
         return wrap(s, String(d.html || ''), 'sec-html'); // the owner's own markup, deliberately NOT escaped (runs only in their site / our sandbox)
       case 'contact': {
         const wa = String(d.whatsapp || '').replace(/\D/g, '');
+        const sv = (path: string) => `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;margin-right:.45rem">${path}</svg>`;
+        const I_MAIL = sv('<path d="M4 6h16v12H4zM4 7l8 6 8-6"/>');
+        const I_PHONE = sv('<path d="M8 3h8a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Zm3 15h2"/>');
+        const I_PIN = sv('<path d="M12 21s6.5-5.7 6.5-11a6.5 6.5 0 0 0-13 0C5.5 15.3 12 21 12 21Zm0-8.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z"/>');
+        const I_CHAT = sv('<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12Z"/>');
         const info = [
-          d.email && `<li>✉️ <a href="mailto:${e(d.email)}">${e(d.email)}</a></li>`,
-          d.phone && `<li>📞 <a href="tel:${e(String(d.phone).replace(/[^\d+]/g, ''))}">${e(d.phone)}</a></li>`,
-          d.address && `<li>📍 ${nl2br(d.address)}</li>`,
+          d.email && `<li>${I_MAIL}<a href="mailto:${e(d.email)}">${e(d.email)}</a></li>`,
+          d.phone && `<li>${I_PHONE}<a href="tel:${e(String(d.phone).replace(/[^\d+]/g, ''))}">${e(d.phone)}</a></li>`,
+          d.address && `<li>${I_PIN}${nl2br(d.address)}</li>`,
         ].filter(Boolean).join('');
-        const waBtn = wa ? `<a class="btn btn-brand mt-2" href="https://wa.me/${wa}" target="_blank" rel="noopener">💬 ${e(L.call)}</a>` : '';
+        const waBtn = wa ? `<a class="btn btn-brand mt-2" href="https://wa.me/${wa}" target="_blank" rel="noopener">${I_CHAT}${e(L.call)}</a>` : '';
         const mapOk = /^https:\/\/(www\.google\.com\/maps\/embed|maps\.google\.com\/maps|www\.openstreetmap\.org\/export\/embed)/.test(d.mapUrl || '');
         const map = mapOk ? `<iframe class="map mt-4" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="${e(d.mapUrl)}" title="Map"></iframe>` : '';
         const canForm = d.formEnabled && (d.formAction || d.email || inline);
@@ -375,7 +387,11 @@ ${inline ? `<script>${SITE_JS}</script>\n<script>${prev ? PREVIEW_JS : VIEW_JS}<
 ${code.js ? (inline ? `<script>${inJs(code.js)}</script>` : '<script src="js/custom.js"></script>') : ''}
 </body>
 </html>`;
-  return { html, css, js: SITE_JS, customCss: code.css, customJs: code.js };
+  const files = opts.mode === 'export' ? [
+    { name: 'index.html', text: html }, { name: 'css/style.css', text: css }, ...(code.css ? [{ name: 'css/custom.css', text: code.css }] : []),
+    { name: 'js/script.js', text: SITE_JS }, ...(code.js ? [{ name: 'js/custom.js', text: code.js }] : []), { name: 'README.txt', text: readmeText(cfg, !!opts.bootstrap) },
+  ] : undefined;
+  return { html, css, js: SITE_JS, customCss: code.css, customJs: code.js, files };
 }
 
 export function readmeText(cfg: SiteConfig, localBootstrap: boolean): string {
