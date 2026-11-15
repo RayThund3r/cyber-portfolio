@@ -8,6 +8,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { emojiToNodes } from '@/components/ui/EmojiText';
 
 function renderInline(text: string) {
   return text.split(/(\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\(https:\/\/[^)\s]+\))/g).map((p, i) => {
@@ -33,7 +34,7 @@ function renderInline(text: string) {
         </code>
       );
     }
-    return <span key={i}>{p}</span>;
+    return <span key={i}>{emojiToNodes(p)}</span>;
   });
 }
 

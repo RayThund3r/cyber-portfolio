@@ -18,6 +18,7 @@ import type { EditorApi } from './editorApi';
 import { AddPanel, DesignPanel, Inspector, LayersPanel, MediaPanel, SettingsPanel } from './Panels';
 import AIPanel from './AIPanel';
 import CodePanel from './CodePanel';
+import GuidedTour, { type TourStep } from './GuidedTour';
 import { BuyModal, NewProjectModal } from './Modals';
 import { compressImage, lsDel, lsGet, lsSet, post, setPath } from './lib';
 import { rememberProject } from '@/utils/useProjectRef';
@@ -75,6 +76,7 @@ export default function Editor({ mode, id, keyStr }: { mode: 'project' | 'templa
   const [loadErr, setLoadErr] = useState<string | null>(null);
   const [tool, setTool] = useState<Tool | null>(null);
   const [viewMode, setViewMode] = useState(false);
+  const [tour, setTour] = useState(false);
   const [device, setDevice] = useState<Device>('desktop');
   const [zoom, setZoom] = useState(1);
   const [fit, setFit] = useState(true);
@@ -367,6 +369,13 @@ export default function Editor({ mode, id, keyStr }: { mode: 'project' | 'templa
   };
 
   /* ───────── render ───────── */
+  // First visit: offer the quick tour once the project has loaded.
+  useEffect(() => {
+    if (!isProject || !cfg || locked || lsGet('sys_builder_tour_done')) return;
+    const t = setTimeout(() => setTour(true), 1200);
+    return () => clearTimeout(t);
+  }, [isProject, !!cfg, locked]); // eslint-disable-line react-hooks/exhaustive-deps
+
   if (loadErr) return <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col items-center justify-center gap-4 px-6 text-center"><p role="alert" className="text-sm text-red-300 max-w-md">{loadErr}</p><Link href="/builder" className="text-cyan-400 text-sm underline">← Back to designs</Link></div>;
   if (!cfg || !meta) return <div className="min-h-screen bg-zinc-950 text-zinc-400 flex flex-col items-center justify-center gap-3 text-sm font-mono"><div className="load-bar" role="progressbar" aria-label="Loading" />Opening your project…</div>;
 
@@ -398,23 +407,34 @@ export default function Editor({ mode, id, keyStr }: { mode: 'project' | 'templa
   })();
   const panelW = tool === 'code' ? 'lg:w-[520px]' : tool === 'ai' ? 'lg:w-[400px]' : 'lg:w-80';
 
+  // Quick tour: shown once on a visitor's first project, and any time from the "?" button.
+  const tourSteps: TourStep[] = [
+    { target: '[data-tour=name]', title: 'Name your website', text: 'Give it any name you like. It is only for you, so you can find it again.' },
+    { target: '[data-tour=mode]', title: 'Design or View', text: 'Design mode lets you click things to edit them. View mode shows the site exactly as visitors see it, with working links and menus.' },
+    { target: '[data-tour=tools]', title: 'Your toolbox', text: 'Sections, design, images, settings and more live here. Pick a tool and its panel opens next to your page.' },
+    { target: '[data-tour=canvas]', title: 'Your live page', text: 'This is your real website, updating as you type. Click any text or image on it to change it.' },
+    { target: '[data-tour=undo]', title: 'Made a mistake?', text: 'Undo and redo are always here (Ctrl+Z and Ctrl+Y on a keyboard). Your work also saves automatically.' },
+    { target: '[data-tour=fullpreview]', title: 'See it full screen', text: 'Open your site in a new tab to check it the way visitors will, and try it on your phone too.' },
+    ...(isProject && !locked ? [{ target: '[data-tour=buy]', title: 'Happy with it?', text: 'When you are ready, press Confirm to place your order and get your finished website files.' }] : []),
+  ];
   return (
     <div className="h-dvh flex flex-col bg-[#101013] text-zinc-100 font-sans">
       {/* ── top bar ── */}
       <header className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-2 border-b border-zinc-800 bg-zinc-950">
         <Link href={isProject ? '/builder' : '/admin'} className={tb} aria-label="Back to designs">←</Link>
         {isProject
-          ? <input aria-label="Project name" disabled={locked} value={projName} maxLength={60} onChange={(e) => { setProjName(e.target.value); setNameV((x) => x + 1); }} className="bg-transparent border-b border-transparent hover:border-zinc-700 focus:border-cyan-500 outline-none text-sm px-1 py-1 w-28 sm:w-52 truncate" />
+          ? <input data-tour="name" aria-label="Project name" disabled={locked} value={projName} maxLength={60} onChange={(e) => { setProjName(e.target.value); setNameV((x) => x + 1); }} className="bg-transparent border-b border-transparent hover:border-zinc-700 focus:border-cyan-500 outline-none text-sm px-1 py-1 w-28 sm:w-52 truncate" />
           : <span className="text-xs sm:text-sm text-amber-300 font-mono truncate">Template: {meta.name}</span>}
         {isProject && isLg && <button className={tb} onClick={() => setNewProj(true)}>＋ New</button>}
 
-        <div className="mx-auto flex rounded-lg border border-zinc-700 overflow-hidden" role="group" aria-label="Mode">
+        <div data-tour="mode" className="mx-auto flex rounded-lg border border-zinc-700 overflow-hidden" role="group" aria-label="Mode">
           <button onClick={() => setViewMode(false)} aria-pressed={!viewMode} aria-label="Design mode" className={`px-2.5 sm:px-3 h-9 min-w-9 text-xs font-mono cursor-pointer inline-flex items-center justify-center gap-1 ${!viewMode ? 'bg-cyan-500 text-black font-semibold' : 'hover:bg-zinc-800'}`}><IconPencil size={14} /><span className="hidden sm:inline">Design</span></button>
           <button onClick={() => { setViewMode(true); setInspOpen(false); }} aria-pressed={viewMode} aria-label="View mode" className={`px-2.5 sm:px-3 h-9 min-w-9 text-xs font-mono cursor-pointer inline-flex items-center justify-center gap-1 ${viewMode ? 'bg-cyan-500 text-black font-semibold' : 'hover:bg-zinc-800'}`}><IconEye size={14} /><span className="hidden sm:inline">View</span></button>
         </div>
 
-        <button className={tb} onClick={undo} disabled={locked || !hist!.past.length} aria-label="Undo" title="Undo (Ctrl+Z)">↶</button>
+        <button data-tour="undo" className={tb} onClick={undo} disabled={locked || !hist!.past.length} aria-label="Undo" title="Undo (Ctrl+Z)">↶</button>
         <button className={tb} onClick={redo} disabled={locked || !hist!.future.length} aria-label="Redo" title="Redo (Ctrl+Y)">↷</button>
+        <button className={tb} onClick={() => setTour(true)} aria-label="Take the quick tour" title="Quick tour">?</button>
 
         {isLg && (
           <>
@@ -426,10 +446,10 @@ export default function Editor({ mode, id, keyStr }: { mode: 'project' | 'templa
             <div className="flex gap-1" role="group" aria-label="Device">
               {(['desktop', 'tablet', 'mobile'] as const).map((d) => <button key={d} className={`${tb} ${device === d ? 'border-cyan-500 text-cyan-300' : ''}`} aria-pressed={device === d} onClick={() => { setDevice(d); setFit(true); setZoom(1); }} title={d}>{d === 'desktop' ? <IconDesktop size={16} /> : d === 'tablet' ? <IconTablet size={16} /> : <IconPhone size={16} />}</button>)}
             </div>
-            <button className={tb} onClick={fullPreview}>↗ Preview</button>
+            <button data-tour="fullpreview" className={tb} onClick={fullPreview}>↗ Preview</button>
           </>
         )}
-        {isProject && !locked && <button className="h-9 px-3 rounded-lg bg-cyan-500 text-black text-xs font-mono font-semibold hover:bg-cyan-400 cursor-pointer whitespace-nowrap" onClick={() => setBuy(true)}><IconCheck size={15} /> <span className="hidden sm:inline">Confirm & buy</span><span className="sm:hidden">Buy</span></button>}
+        {isProject && !locked && <button data-tour="buy" className="h-9 px-3 rounded-lg bg-cyan-500 text-black text-xs font-mono font-semibold hover:bg-cyan-400 cursor-pointer whitespace-nowrap" onClick={() => setBuy(true)}><IconCheck size={15} /> <span className="hidden sm:inline">Confirm & buy</span><span className="sm:hidden">Buy</span></button>}
       </header>
 
       {/* ── status banners ── */}
@@ -451,7 +471,7 @@ export default function Editor({ mode, id, keyStr }: { mode: 'project' | 'templa
       {/* ── workspace ── */}
       <div className="flex-1 min-h-0 flex">
         {isLg && !viewMode && (
-          <nav className="w-16 shrink-0 border-r border-zinc-800 bg-zinc-950 flex flex-col items-center py-2 gap-1" aria-label="Tools">
+          <nav data-tour="tools" className="w-16 shrink-0 border-r border-zinc-800 bg-zinc-950 flex flex-col items-center py-2 gap-1" aria-label="Tools">
             {tools.map((t) => (
               <button key={t.k} onClick={() => setTool(t.k)} aria-pressed={tool === t.k} className={`w-14 py-2 rounded-lg flex flex-col items-center gap-0.5 cursor-pointer ${tool === t.k ? 'bg-cyan-500/15 text-cyan-300' : 'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100'}`}>
                 <span className="leading-none"><t.icon size={20} /></span><span className="text-[10px] font-mono">{t.label}</span>
@@ -467,7 +487,7 @@ export default function Editor({ mode, id, keyStr }: { mode: 'project' | 'templa
         )}
 
         {/* canvas */}
-        <main ref={canvasRef} className="flex-1 min-w-0 overflow-hidden relative bg-[#18181b]" style={{ padding: pad }} onClick={() => { if (hint) { setHint(false); lsSet('sys_builder_hint', '1'); } }}>
+        <main data-tour="canvas" ref={canvasRef} className="flex-1 min-w-0 overflow-hidden relative bg-[#18181b]" style={{ padding: pad }} onClick={() => { if (hint) { setHint(false); lsSet('sys_builder_hint', '1'); } }}>
           <div className="mx-auto bg-white shadow-2xl overflow-hidden transition-[width] duration-200" style={{ width: frameW * scale, height: ah, borderRadius: isLg ? (device === 'mobile' ? 28 : 10) : 0 }}>
             <div style={{ position: 'relative', width: frameW, height: frameH, transform: `scale(${scale})`, transformOrigin: 'top left' }}>
               {/* sandbox WITHOUT allow-same-origin: the site being edited (incl. its custom code) can never touch this app, cookies or storage */}
@@ -519,6 +539,7 @@ export default function Editor({ mode, id, keyStr }: { mode: 'project' | 'templa
         try { sessionStorage.setItem('sys_track_prefill', JSON.stringify({ id: ticket, contact })); } catch { /* ignore */ }
         window.location.assign(`/track?id=${ticket}`);
       }} />}
+      <GuidedTour steps={tourSteps} open={tour} onClose={() => setTour(false)} doneKey="sys_builder_tour_done" />
       {newProj && <NewProjectModal busy={busy} onClose={() => setNewProj(false)} onPick={newProject} />}
     </div>
   );

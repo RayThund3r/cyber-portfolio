@@ -112,3 +112,8 @@ Only v8-only files: `.gitignore.additions` (already in .gitignore) and the old t
 - Admin → Chat Lab → Insights: **Cloud AI** card (`components/admin/CloudAiCard.tsx`, `/api/admin/llm`): configured/online badge, host, model, ping, limits, and a test prompt that reports first-word time, total time and words/s. The key is never sent to the browser.
 - **Admin easter eggs** (`components/admin/AdminEggs.tsx`, cosmetic only): type coffee / matrix / party / uptime / root / hello / 42 anywhere outside a text box; the cheat code (↑↑↓↓←→←→ B A) = "root mode" glow; `gg` scrolls to the top.
 - **Assistant eggs** (11 more in `worldTalk.ts`): programmer joke, the cake is a lie, favourite colour, are-you-ChatGPT, error 418 coffee, Star Trek/DBZ/Star Wars lines, xyzzy/iddqd, undo. Whole-message matches only; normal questions are never hijacked.
+
+## Round 9 — merge check: checkpoint-wip.zip
+- The zip is an OLDER, smaller snapshot (146 files vs 361); its chat, admin, builder, server and pages are already in this tree in newer form, so nothing from them was taken (taking them would have been a downgrade).
+- Taken (the only pieces not already here): **builder guided tour** (`components/builder/GuidedTour.tsx`, wired into our Editor with `data-tour` marks, a "?" button and a one-time first-visit offer; hook placed above the early returns), **icon set + emoji→icon map** (`lib/icons.ts`, new `components/ui/EmojiText.tsx`, used by chat bubbles: mapped emojis such as 👋 ✅ 📬 become line icons, unmapped ones stay as written, code spans untouched), **SVG favicon** (`app/icon.svg`).
+- Not taken: v9 `components/ui/Icon.tsx` (ours has a different, typed API used across the site).
