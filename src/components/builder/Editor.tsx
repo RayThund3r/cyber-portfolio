@@ -19,6 +19,7 @@ import { AddPanel, DesignPanel, Inspector, LayersPanel, MediaPanel, SettingsPane
 import AIPanel from './AIPanel';
 import CodePanel from './CodePanel';
 import GuidedTour, { type TourStep } from './GuidedTour';
+import Portal from '@/components/ui/Portal';
 import { BuyModal, NewProjectModal } from './Modals';
 import { compressImage, lsDel, lsGet, lsSet, post, setPath } from './lib';
 import { rememberProject } from '@/utils/useProjectRef';
@@ -535,12 +536,14 @@ export default function Editor({ mode, id, keyStr }: { mode: 'project' | 'templa
         </>
       )}
 
+      <Portal>
       {buy && isProject && <BuyModal priceUGX={meta.priceUGX} templateName={meta.templateName} warnings={warnings} projectId={id} keyStr={keyStr!} onClose={() => setBuy(false)} onDone={(ticket, contact) => {
         try { sessionStorage.setItem('sys_track_prefill', JSON.stringify({ id: ticket, contact })); } catch { /* ignore */ }
         window.location.assign(`/track?id=${ticket}`);
       }} />}
       <GuidedTour steps={tourSteps} open={tour} onClose={() => setTour(false)} doneKey="sys_builder_tour_done" />
       {newProj && <NewProjectModal busy={busy} onClose={() => setNewProj(false)} onPick={newProject} />}
+      </Portal>
     </div>
   );
 }

@@ -270,6 +270,12 @@ html {
   animation: cyberGlow 4s ease-in-out infinite;
 }
 
+/* IMPORTANT: this wrapper surrounds every page. With `forwards` fill and a final `transform: translateY(0)` the browser keeps a
+   transform on it for good, and an element with a transform becomes the containing block of every `position: fixed` child. That
+   made each full-screen overlay (template preview, purchase sheet, dialogs) size itself to the whole PAGE instead of the screen:
+   it slid under the sticky header, ran thousands of pixels tall and its close/buy buttons could not be reached.
+   So: `backwards` fill (the "from" state applies before the animation starts, nothing is kept afterwards) and a final
+   keyframe of `transform: none`. Never put `forwards` + a transform on a page-level wrapper. */
 @keyframes pageFadeIn {
   from {
     opacity: 0;
@@ -277,12 +283,12 @@ html {
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: none;
   }
 }
 
 .animate-page-in {
-  animation: pageFadeIn 0.45s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+  animation: pageFadeIn 0.45s cubic-bezier(0.32, 0.72, 0, 1) backwards;
 }
 
 /* Staggered entrance that needs no JavaScript (so there is never a flash before GSAP loads).

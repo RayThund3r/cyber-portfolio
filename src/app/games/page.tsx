@@ -5,6 +5,7 @@
 // `?g=chess` opens a game directly (the chat and terminal use that).
 'use client';
 
+import Portal from '@/components/ui/Portal';
 import { Component, lazy, ReactNode, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Icon from '@/components/ui/Icon';
@@ -190,7 +191,7 @@ function GamesInner() {
         </section>
       )}
 
-      {guide && game && <GuideModal id={game.id} title={game.title} onClose={() => setGuide(false)} />}
+      {guide && game && <Portal><GuideModal id={game.id} title={game.title} onClose={() => setGuide(false)} /></Portal>}
 
       {/* Catalogue */}
       <section aria-label="Game catalogue">

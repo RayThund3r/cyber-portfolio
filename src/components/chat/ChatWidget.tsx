@@ -26,6 +26,9 @@ import AttachmentTray from './AttachmentTray';
 import ChatHeader from './ChatHeader';
 import ChatLauncher from './ChatLauncher';
 import Composer from './Composer';
+import VoicePanel from './VoicePanel';
+import { useVoiceChat } from './useVoiceChat';
+import { VoiceUiContext } from './VoiceContext';
 import MessageList from './MessageList';
 import { loadBrain } from '@/utils/chatEngine/brain';
 
@@ -93,6 +96,18 @@ export default function ChatWidget() {
   const ctl = useChatController({ pathname, isOpen, isMobile, runCommand, requestClose });
   const ctlRef = useRef(ctl);
   ctlRef.current = ctl;
+
+  const vc = useVoiceChat({
+    draft,
+    setDraft,
+    send: (t) => void ctlRef.current.send(t),
+    max: ctl.maxInput,
+    messages: ctl.messages,
+    isThinking: ctl.isThinking,
+    revealingId: ctl.revealingId,
+    toast: ctl.showToast,
+    open: isOpen,
+  });
 
   const openChat = useCallback(() => {
     cancelClose();
@@ -222,6 +237,7 @@ export default function ChatWidget() {
   const expert = ctl.mode === 'EXPERT';
 
   return (
+    <VoiceUiContext.Provider value={vc.ui}>
     <div
       ref={dialogRef}
       tabIndex={-1}
@@ -350,9 +366,13 @@ export default function ChatWidget() {
         pending={ctl.att.pending}
         error={ctl.att.error}
         busy={ctl.att.busy}
+        status={ctl.att.status}
+        onAsk={(t) => onSend(t)}
         onRemove={ctl.att.removePending}
         onDismissError={ctl.att.clearError}
       />
+
+      <VoicePanel vc={vc} />
 
       <Composer
         value={draft}
@@ -370,7 +390,9 @@ export default function ChatWidget() {
         expert={expert}
         max={ctl.maxInput}
         inputRef={inputRef}
+        vc={vc}
       />
     </div>
+    </VoiceUiContext.Provider>
   );
 }

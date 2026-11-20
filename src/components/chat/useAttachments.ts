@@ -8,7 +8,8 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ATTACH, formatBytes } from '@/lib/attachmentRules';
+import { ATTACH, formatBytes, kindOfName } from '@/lib/attachmentRules';
+import { SHRINK, shrinkImage } from '@/lib/imageTools';
 import { analyzeFile } from '@/utils/chatEngine/fileInsights';
 import type { FileInsight } from '@/utils/chatEngine/types';
 
@@ -24,6 +25,7 @@ export function useAttachments() {
   const [shared, setShared] = useState<SharedFile[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
   const urls = useRef<Set<string>>(new Set());
   const queue = useRef<Promise<void>>(Promise.resolve());
   const epoch = useRef(0);
@@ -56,7 +58,20 @@ export function useAttachments() {
     const problems: string[] = [];
     const added: SharedFile[] = [];
     try {
-      for (const file of incoming) {
+      for (const original of incoming) {
+        let file = original;
+        let note: string | undefined;
+        if (kindOfName(original.name) === 'image' && original.size > SHRINK.maxInputBytes) {
+          problems.push(`"${original.name}" is too large (max ${formatBytes(SHRINK.maxInputBytes)}).`);
+          continue;
+        }
+        if (kindOfName(original.name) === 'image') {
+          setStatus('Optimising photo…');
+          const sh = await shrinkImage(original);
+          file = sh.file;
+          note = sh.note;
+          setStatus(null);
+        }
         const { pending: p, shared: s } = latest.current;
         const count = p.length + s.length + added.length;
         if (count >= ATTACH.maxFiles) {
@@ -69,7 +84,9 @@ export function useAttachments() {
           continue;
         }
         try {
+          setStatus('Reading file…');
           const insight = await analyzeFile(file);
+          if (note) insight.note = note;
           let previewUrl: string | undefined;
           if (insight.kind === 'image') {
             previewUrl = URL.createObjectURL(file);
@@ -96,6 +113,7 @@ export function useAttachments() {
       }
       if (problems.length) setError(Array.from(new Set(problems)).join(' '));
     } finally {
+      setStatus(null);
       if (myEpoch === epoch.current) setBusy(false);
     }
   };
@@ -131,5 +149,5 @@ export function useAttachments() {
     setError(null);
   }, []);
 
-  return { pending, shared, error, busy, add, removePending, commit, clearAll, clearError: () => setError(null) };
+  return { pending, shared, error, busy, status, add, removePending, commit, clearAll, clearError: () => setError(null) };
 }

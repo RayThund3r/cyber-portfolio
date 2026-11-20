@@ -23,6 +23,7 @@ export const NAV: Array<{ href: string; label: string; icon: IconName; key: stri
   { href: '/admin/overview', label: 'Overview', icon: 'spark', key: 'o', hint: 'The big picture' },
   { href: '/admin/analytics', label: 'Analytics', icon: 'grid', key: 'a', hint: 'Traffic, pages, devices' },
   { href: '/admin/chat', label: 'Chat Lab', icon: 'brain', key: 'c', hint: 'Questions, gaps, playground' },
+  { href: '/admin/ai-access', label: 'AI Access', icon: 'key', key: 'i', hint: 'Daily limits, plans, access codes' },
   { href: '/admin/games', label: 'Games', icon: 'gamepad', key: 'm', hint: 'Embed your own web games' },
   { href: '/admin/events', label: 'Events', icon: 'bell', key: 'v', hint: 'Holidays, national days, surprise banners' },
   { href: '/admin/site', label: 'Site', icon: 'wrench', key: 's', hint: 'Banner, availability, content' },

@@ -113,12 +113,14 @@ export function normalizeSpoken(input: string): { text: string; corrected: boole
 }
 
 /** Voice commands that control the microphone box itself, not the assistant. Matched on the WHOLE transcript tail. */
-export type VoiceMeta = 'send' | 'clear' | 'stop' | null;
+export type VoiceMeta = 'send' | 'clear' | 'stop' | 'quiet' | 'repeat' | null;
 export function voiceMeta(transcript: string): { meta: VoiceMeta; text: string } {
   const t = transcript.trim();
   const tail = /^(.*?)[,.\s]*\b(?:send (?:it|that|this|message)|send now|go ahead and send|that'?s all,? send|over and out)\W*$/i.exec(t);
   if (tail && tail[1].trim().length > 1) return { meta: 'send', text: tail[1].trim() };
   if (/^(?:cancel|clear|clear (?:that|it|this|everything)|start over|delete (?:that|it|this|everything)|scratch that|never ?mind)\W*$/i.test(t)) return { meta: 'clear', text: '' };
+  if (/^(?:stop talking|stop reading|be quiet|quiet please|shut up|silence|stop speaking|that'?ll do)\W*$/i.test(t)) return { meta: 'quiet', text: '' };
+  if (/^(?:say that again|read that again|repeat that|say it again|read it again|what did you say|come again|repeat)\W*$/i.test(t)) return { meta: 'repeat', text: '' };
   if (/^(?:stop listening|stop recording|that'?s it|i'?m done|done talking)\W*$/i.test(t)) return { meta: 'stop', text: '' };
   return { meta: null, text: t };
 }

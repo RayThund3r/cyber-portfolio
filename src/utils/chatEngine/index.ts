@@ -51,10 +51,11 @@ import { tryCompare } from './compare';
 import { termReply, tryGlossary } from './glossary';
 import { buildMessages } from './promptBuilder';
 import { generateLocal, isLocalLLMReady, labelForModel, getLLMState } from './localLLM';
+import { browserDeps as siteBuildDeps, trySiteBuild } from './siteBuild';
 import { cloudLabel, generateCloud, generateRemote, isCloudReady, isRemoteLLMConfigured, markCloudDown } from './remoteLLM';
 import { FALLBACK_SUGGESTIONS } from './siteConfig';
 import { normalize, tokens, truncate } from './text';
-import { buildFileReply, fileQuestion, handoffIntent, handoffReply } from './fileInsights';
+import { buildFileReply, dataAnswer, fileQuestion, handoffIntent, handoffReply } from './fileInsights';
 import {
   DialogueOutput,
   answerChip,
@@ -221,6 +222,19 @@ async function route(
     });
   }
 
+  // 1a2. "Build me a website": a short conversation that ends in a saved draft site and a link to its editor.
+  //      Rule-based end to end (the AI only adds optional wording), so it works with the model off or its limit used up.
+  const built = await trySiteBuild(raw, mode, memory, options.siteBuildDeps || siteBuildDeps, options.signal);
+  if (built) {
+    const res = finish(memory, raw, built.reply, 'system', {
+      topic: 'WEB_DEV',
+      suggestions: built.suggestions,
+      guided: !!built.state,
+      learn: { sb: built.state || undefined },
+    });
+    return built.nav ? { ...res, nav: built.nav } : res; // a button, not an automatic page change: the visitor keeps the reply and their private link
+  }
+
   // 1b. "Send this to the owner": opens the hand-off card in the widget. Nothing is sent from here;
   //     the visitor reviews and confirms in the card. Decided only from what the visitor typed.
   const files = options.files || [];
@@ -314,6 +328,10 @@ async function route(
 
   // 2b. Questions about shared files. Without an AI model the answer is built from the local analysis;
   //     with one, the normal LLM step below receives the file text as (untrusted) context.
+  const exact = hasFiles ? dataAnswer(files, raw) : null;
+  if (exact) {
+    return finish(memory, raw, mode === 'EXPERT' ? exact.replace(/\*\*/g, '') : exact, 'system', { topic: 'SYSTEM', suggestions: ['Send this to the owner', 'What else is in it?'], fileHandled: true });
+  }
   const fileTurn = hasFiles && (fileQuestion(raw) || (!!options.filesAreNew && wordCount <= 6));
   // File text is only ever given to the ON-DEVICE model; a self-hosted remote endpoint never receives it.
   if (fileTurn && !isLocalLLMReady()) {
@@ -511,6 +529,7 @@ async function route(
           text = await generateCloud(messages, onToken, options.signal);
         } catch (e) {
           if (options.signal?.aborted) throw e;
+          if (e instanceof Error && (e.message === 'cloud limit' || e.message === 'cloud busy')) throw e; // out of free answers: rules take over, server is fine
           markCloudDown(); // wake-up too slow or server down: skip it for a while, answer from rules now
           throw e;
         }

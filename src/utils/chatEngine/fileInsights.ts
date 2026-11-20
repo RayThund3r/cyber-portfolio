@@ -10,6 +10,8 @@
 //   - buildFileReply(): the answer for visitors WITHOUT an AI model enabled
 //   - fileContextForPrompt(): the (clearly fenced, untrusted) block given to a language model
 
+import { answerLog, answerTable, isDataQuestion, parseDelimited, profileColumns, profileLog, tableOverview } from './dataQA';
+import { describePixels, sampleImage } from '@/lib/imageTools';
 import { ATTACH, extOf, formatBytes, kindOfName, matchesSignature, validateFile } from '@/lib/attachmentRules';
 import type { FileInsight, PersonaMode } from './types';
 
@@ -29,9 +31,10 @@ export function summarizeText(
   const more = truncated ? '+' : '';
   const parts: string[] = [];
 
-  if (ext === 'csv') {
-    const header = (nonEmpty[0] || '').split(',').map((c) => c.trim().replace(/^"|"$/g, '')).filter(Boolean);
-    parts.push('CSV', `${Math.max(0, nonEmpty.length - 1)}${more} rows`, `${header.length} columns`);
+  if (ext === 'csv' || ext === 'tsv') {
+    const sep = ext === 'tsv' ? '\t' : ',';
+    const header = (nonEmpty[0] || '').split(sep).map((c) => c.trim().replace(/^"|"$/g, '')).filter(Boolean);
+    parts.push(ext.toUpperCase(), `${Math.max(0, nonEmpty.length - 1)}${more} rows`, `${header.length} columns`);
     if (header.length) parts.push(`columns: ${header.slice(0, 6).join(', ')}${header.length > 6 ? '…' : ''}`);
   } else if (ext === 'json') {
     parts.push('JSON');
@@ -107,15 +110,17 @@ export async function analyzeFile(file: File): Promise<FileInsight> {
   if (kind === 'text') {
     const text = await file.slice(0, ATTACH.maxTextChars).text();
     const { summary, excerpt } = summarizeText(ext, text, file.size);
-    return { ...base, summary: `${summary} · ${formatBytes(file.size)}`, excerpt };
+    return { ...base, summary: `${summary} · ${formatBytes(file.size)}`, excerpt, text };
   }
 
   if (kind === 'image') {
     const dim = await imageSize(file);
+    const px = await sampleImage(file);
     return {
       ...base,
       summary: `${ext.toUpperCase()} image${dim ? ` · ${dim.width}×${dim.height}px` : ''} · ${formatBytes(file.size)}`,
       ...(dim || {}),
+      ...(px ? { palette: px.palette, imageNotes: describePixels(px) } : {}),
     };
   }
 
@@ -158,6 +163,53 @@ export function fileQuestion(raw: string): boolean {
   return verb && noun;
 }
 
+/* ------------------------------------------------------------------ data questions */
+
+const FILEISH = /\b(file|csv|tsv|data|sheet|spreadsheet|table|rows?|columns?|records?|entries|log|it|this|these|that|them)\b/i;
+
+/** An exact, computed answer about a shared CSV/TSV/log, or null when the question isn't about the data. */
+export function dataAnswer(files: FileInsight[], raw: string): string | null {
+  for (const f of [...files].reverse()) {
+    if (f.kind !== 'text' || !f.text) continue;
+    const ext = extOf(f.name);
+    const partial = f.text.length >= ATTACH.maxTextChars && f.size > f.text.length;
+    if (ext === 'csv' || ext === 'tsv') {
+      const t = parseDelimited(f.text, ext, partial);
+      if (!t || !isDataQuestion(raw, t)) continue;
+      const mentionsColumn = t.header.some((h) => h.length > 1 && new RegExp(`\\b${h.toLowerCase().replace(/[^a-z0-9]+/g, '.?')}`, 'i').test(raw));
+      if (!mentionsColumn && !FILEISH.test(raw)) continue;
+      const a = answerTable(raw, f.name, t);
+      if (a) return a;
+    } else if (ext === 'log') {
+      const a = answerLog(raw, f.name, profileLog(f.text, partial));
+      if (a) return a;
+    }
+  }
+  return null;
+}
+
+/** Overview line shown with the first reply about a CSV/TSV. */
+export function dataOverview(f: FileInsight): string {
+  const ext = extOf(f.name);
+  if (f.kind !== 'text' || !f.text || (ext !== 'csv' && ext !== 'tsv')) return '';
+  const t = parseDelimited(f.text, ext, f.text.length >= ATTACH.maxTextChars && f.size > f.text.length);
+  return t ? tableOverview(t) : '';
+}
+
+/** One-tap questions worth asking about this particular file. */
+export function quickAsks(f: FileInsight): string[] {
+  const ext = extOf(f.name);
+  if (f.kind === 'image') return ['What’s in this image?', 'Send this to the owner'];
+  if (f.kind === 'pdf') return ['Summarize this', 'Send this to the owner'];
+  if (ext === 'log') return ['Any errors?', 'Most common error', 'When did it start?'];
+  if ((ext === 'csv' || ext === 'tsv') && f.text) {
+    const t = parseDelimited(f.text, ext);
+    const num = t ? profileColumns(t).find((c) => c.numeric) : null;
+    return ['How many rows?', num ? `Average ${num.name}` : 'What are the columns?', 'Any duplicates?'];
+  }
+  return ['Summarize this', 'What’s in this file?'];
+}
+
 /* ------------------------------------------------------------------ replies */
 
 const KIND_LABEL: Record<FileInsight['kind'], string> = { image: 'image', pdf: 'PDF', text: 'text file' };
@@ -185,6 +237,13 @@ export function buildFileReply(files: FileInsight[], raw: string, mode: PersonaM
   out.push(isNew ? 'Got it! 📎 I looked at your file right here in your browser — nothing has been uploaded.' : 'Here is what I know about your file:');
   for (const f of list) {
     out.push(`\n**${f.name}** — ${f.summary}`);
+    if (f.note) out.push(f.note + '.');
+    if (f.kind === 'image' && (f.palette?.length || f.imageNotes?.length)) {
+      if (f.palette?.length) out.push(`Main colours: ${f.palette.slice(0, 4).join(', ')}.`);
+      if (f.imageNotes?.length) out.push(`It looks ${f.imageNotes.join(', ')}${/blurry|dark/.test(f.imageNotes.join()) ? ' — a clearer, well-lit photo helps the owner a lot' : ''}.`);
+    }
+    const ov = dataOverview(f);
+    if (ov) out.push(ov + ' Ask me things like “average price” or “how many rows”.');
     if (f.kind === 'text' && f.excerpt) {
       const q = quote(f.excerpt, wantsDetail ? 800 : 320);
       if (q) out.push(`Starts with: “${q}”`);

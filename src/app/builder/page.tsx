@@ -10,6 +10,7 @@ import { CATEGORIES, categoryOf } from '@/lib/builder/schema';
 import type { TemplateDef } from '@/lib/builder/templates';
 import { CURRENCIES, FALLBACK_RATES, effectiveUGX, formatMoney, type Rates } from '@/lib/builder/pricing';
 import SiteViewer from '@/components/builder/SiteViewer';
+import Portal from '@/components/ui/Portal';
 import { post, lsGet, lsSet, fetchStatus, downloadProject, type OrderStatus } from '@/components/builder/lib';
 import PurchasePanel from '@/components/builder/PurchaseFlow';
 import { CategoryIcon, IconCart, IconCheckCircle, IconClock, IconClose, IconDownload, IconEye, IconPencil, IconSearch, IconSparkle, IconWhatsApp } from '@/components/builder/icons';
@@ -257,7 +258,8 @@ export default function Showcase() {
       </main>
 
       {preview && (
-        <div className="fixed inset-0 z-50 bg-zinc-950" role="dialog" aria-modal="true" aria-label={`${preview.name} preview`}>
+        <Portal>
+        <div className="fixed inset-0 z-[65] bg-zinc-950" role="dialog" aria-modal="true" aria-label={`${preview.name} preview`}>
           <SiteViewer
             config={preview.config}
             title={preview.name}
@@ -278,9 +280,11 @@ export default function Showcase() {
             }
           />
         </div>
+        </Portal>
       )}
 
       {buying && (
+        <Portal>
         <PurchasePanel
           templateId={buying.tpl?.id}
           templateName={buying.tpl?.name ?? buying.project?.name ?? 'Your website'}
@@ -292,6 +296,7 @@ export default function Showcase() {
           onChanged={() => { const l = readSaved(); setSaved(l); loadOrders(l); }}
           onEdit={(id, key) => router.push(`/builder/edit?id=${encodeURIComponent(id)}&key=${encodeURIComponent(key)}`)}
         />
+        </Portal>
       )}
     </div>
   );

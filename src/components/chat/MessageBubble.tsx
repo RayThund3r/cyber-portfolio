@@ -8,6 +8,7 @@
 import { memo, useState } from 'react';
 import type { Message } from '@/utils/chatEngine/types';
 import RichText from './RichText';
+import { useVoiceUi } from './VoiceContext';
 import { FileChip } from './AttachmentTray';
 import { SOURCE_BADGE } from './chatContent';
 import { balanceMarkdown, copyText, plainText } from './chatUtils';
@@ -37,6 +38,7 @@ function Bubble({ msg, first, last, showActions, onRevealDone, onTick, onRate, o
   const isUser = msg.sender === 'user';
   const [why, setWhy] = useState(false);
   const [zoom, setZoom] = useState(false);
+  const vui = useVoiceUi();
 
   const reveal = !isUser && !!msg.reveal && !msg.streaming;
   const tw = useTypewriter(msg.text, reveal, () => onRevealDone(msg.id), onTick);
@@ -162,6 +164,21 @@ function Bubble({ msg, first, last, showActions, onRevealDone, onTick, onRate, o
                 {msg.id !== 'welcome' && (
                   <button type="button" onClick={copy} aria-label="Copy reply" className="flex min-h-8 cursor-pointer items-center rounded-lg px-2 hover:bg-white/5 hover:text-zinc-200">
                     Copy
+                  </button>
+                )}
+                {msg.id !== 'welcome' && vui.canSpeak && (
+                  <button
+                    type="button"
+                    onClick={() => (vui.speakingId === msg.id ? vui.stopSpeaking() : vui.speak(msg.id, msg.text))}
+                    aria-pressed={vui.speakingId === msg.id}
+                    aria-label={vui.speakingId === msg.id ? 'Stop reading aloud' : 'Read reply aloud'}
+                    title={vui.speakingId === msg.id ? 'Stop reading' : 'Read aloud'}
+                    className={`flex min-h-8 min-w-8 cursor-pointer items-center justify-center rounded-lg hover:bg-white/5 hover:text-zinc-200 ${vui.speakingId === msg.id ? 'text-accent' : ''}`}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M11 5 6 9H3v6h3l5 4V5z" />
+                      {vui.speakingId === msg.id ? <rect x="15" y="9" width="6" height="6" rx="1" /> : <><path d="M15.5 8.5a5 5 0 0 1 0 7" /><path d="M18.5 5.5a9 9 0 0 1 0 13" /></>}
+                    </svg>
                   </button>
                 )}
                 {msg.trace && msg.trace.length > 0 && (

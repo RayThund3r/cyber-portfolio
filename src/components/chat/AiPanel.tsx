@@ -4,7 +4,9 @@
 // conversation keeps the room.
 'use client';
 
-import { setCloudUserOff } from '@/utils/chatEngine/remoteLLM';
+import { useState } from 'react';
+import { setCloudUserOff, type CloudQuota } from '@/utils/chatEngine/remoteLLM';
+import AccessPanel from './AccessPanel';
 import {
   LLMState,
   MODEL_OPTIONS,
@@ -18,11 +20,14 @@ interface Props {
   modelId: string;
   setModelId: (id: string) => void;
   remote: boolean;
-  cloud?: { ready: boolean; off: boolean; label: string };
+  cloud?: { ready: boolean; off: boolean; label: string; limited?: boolean; quota?: CloudQuota | null };
   compact: boolean;
 }
 
+const hoursLeft = (t: number) => { const m = Math.max(1, Math.round((t - Date.now()) / 60000)); return m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}m`; };
+
 export default function AiPanel({ llm, modelId, setModelId, remote, cloud, compact }: Props) {
+  const [showMore, setShowMore] = useState(false);
   const base = 'border-b border-zinc-800 bg-zinc-900/60 px-4 py-2 font-mono text-[10px]';
   const selected = MODEL_OPTIONS.find((m) => m.id === modelId) || MODEL_OPTIONS[1];
 
@@ -56,22 +61,34 @@ export default function AiPanel({ llm, modelId, setModelId, remote, cloud, compa
   // Server-hosted model: nothing to download, works on any browser.
   if (cloud?.ready) {
     return (
-      <div className={`${base} flex items-center justify-between gap-3`}>
-        <span className="truncate text-emerald-400">● AI ON · {cloud.label} · runs on our server, nothing to download</span>
-        <button type="button" onClick={() => setCloudUserOff(true)} className="hit shrink-0 cursor-pointer py-1 text-zinc-500 hover:text-zinc-200">
-          TURN OFF
-        </button>
+      <div className={`${base} flex flex-wrap items-center justify-between gap-x-3`}>
+        <span className="truncate text-emerald-400">● AI ON · {cloud.label}{cloud.quota?.enabled ? ` · ${cloud.quota.left < 0 ? 'unlimited' : `${cloud.quota.left} left today`}` : ' · nothing to download'}</span>
+        <span className="flex shrink-0 items-center gap-2">
+          {cloud.quota?.enabled && cloud.quota.plan === 'free' && (
+            <button type="button" onClick={() => setShowMore((v) => !v)} className="hit cursor-pointer py-1 text-accent hover:underline">GET MORE</button>
+          )}
+          <button type="button" onClick={() => setCloudUserOff(true)} className="hit cursor-pointer py-1 text-zinc-500 hover:text-zinc-200">TURN OFF</button>
+        </span>
+        {showMore && <div className="basis-full"><AccessPanel onClose={() => setShowMore(false)} /></div>}
       </div>
     );
   }
-  const cloudOffRow = cloud?.off ? (
+  // The free daily answers are used up: the chat keeps working on the built-in rules; offer a pass or the on-device model.
+  const limitedRow = cloud?.limited ? (
+    <div className="mb-1">
+      <div className="text-amber-400">● Daily AI limit reached · using smart rules{cloud.quota ? ` · resets in ${hoursLeft(cloud.quota.resetAt)}` : ''}</div>
+      <button type="button" onClick={() => setShowMore((v) => !v)} className="hit cursor-pointer text-accent hover:underline">{showMore ? 'HIDE' : 'GET MORE ANSWERS'}</button>
+      {showMore && <AccessPanel onClose={() => setShowMore(false)} />}
+    </div>
+  ) : null;
+  const cloudOffRow = cloud?.off && !limitedRow ? (
     <button type="button" onClick={() => setCloudUserOff(false)} className="hit mb-1 block cursor-pointer text-left text-accent">
       Cloud AI is off · TURN ON (no download)
     </button>
   ) : null;
 
   if (llm.status === 'unsupported') {
-    if (cloudOffRow) return <div className={base}>{cloudOffRow}<span className="text-zinc-500">Or use smart rules + search.</span></div>;
+    if (limitedRow || cloudOffRow) return <div className={base}>{limitedRow}{cloudOffRow}<span className="text-zinc-500">Or use smart rules + search.</span></div>;
     return (
       <div className={`${base} text-zinc-500`}>
         {remote ? '● Using server AI' : 'AI needs a WebGPU browser (Chrome / Edge). Using smart rules + search for now.'}
@@ -112,7 +129,9 @@ export default function AiPanel({ llm, modelId, setModelId, remote, cloud, compa
 
   if (compact) {
     return (
-      <details className={base}>
+      <div className={limitedRow ? base : undefined}>
+      {limitedRow}
+      <details className={limitedRow ? 'mt-1' : base}>
         <summary className="flex cursor-pointer list-none items-center justify-between py-1 text-zinc-400">
           <span>AI: OFF · smart rules + search</span>
           <span className="text-accent">ENABLE ▾</span>
@@ -120,11 +139,13 @@ export default function AiPanel({ llm, modelId, setModelId, remote, cloud, compa
         <div className="mt-2">{cloudOffRow}{controls}</div>
         <div className="mt-1 text-zinc-600">{note}</div>
       </details>
+      </div>
     );
   }
 
   return (
     <div className={base}>
+      {limitedRow}
       {cloudOffRow}
       {controls}
       <div className="mt-1 text-zinc-600">{note}</div>

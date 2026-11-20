@@ -70,7 +70,11 @@ export async function generateRemote(
 // site's own /api/llm route; nothing is downloaded and no endpoint or key is exposed.
 // ---------------------------------------------------------------------------------------------
 const CLOUD_PREF = 'cloud-ai-off';
-let cloud: { up: boolean; label: string; checkedAt: number } = { up: false, label: 'CLOUD', checkedAt: 0 };
+export interface CloudQuota {
+  enabled: boolean; plan: 'free' | 'pass' | 'unlimited'; planName: string;
+  left: number; limit: number; freeLeft: number; passLeft: number; resetAt: number; expires: number; // left / passLeft: -1 = unlimited
+}
+let cloud: { up: boolean; label: string; checkedAt: number; quota: CloudQuota | null } = { up: false, label: 'CLOUD', checkedAt: 0, quota: null };
 let cloudInflight: Promise<void> | null = null;
 const cloudSubs = new Set<() => void>();
 const emitCloud = () => cloudSubs.forEach((f) => f());
@@ -100,10 +104,48 @@ export function setCloudUserOff(off: boolean): void {
   emitCloud();
 }
 
-/** True when the server model answered its last probe and the visitor hasn't switched it off. */
-export function isCloudReady(): boolean {
-  return cloud.up && !cloudUserOff();
+export const cloudQuota = (): CloudQuota | null => cloud.quota;
+
+/** Today's free answers (and any pass) are used up: the chat runs on the built-in rules until the reset or a pass. */
+export function cloudExhausted(): boolean {
+  const q = cloud.quota;
+  return !!q && q.enabled && q.left === 0 && Date.now() < q.resetAt;
 }
+
+/** True when the server model answered its last probe, the visitor hasn't switched it off, and they still have answers left. */
+export function isCloudReady(): boolean {
+  return cloud.up && !cloudUserOff() && !cloudExhausted();
+}
+
+/** The model server is up but this visitor has hit their limit (used to show the "get more" panel). */
+export function isCloudLimited(): boolean {
+  return cloud.up && cloudExhausted();
+}
+
+function setQuota(q: CloudQuota | null | undefined) {
+  if (q && typeof q === 'object') { cloud = { ...cloud, quota: q }; emitCloud(); }
+}
+
+export async function loadAccess(): Promise<{ plans: Array<{ id: string; name: string; price: string; note: string }>; payInfo: string; quota: CloudQuota } | null> {
+  try {
+    const r = await fetch('/api/ai-pass', { cache: 'no-store' });
+    if (!r.ok) return null;
+    const j = await r.json();
+    setQuota(j.quota);
+    return j;
+  } catch { return null; }
+}
+
+async function postPass(body: Record<string, unknown>): Promise<{ ok: boolean; error?: string; message?: string }> {
+  try {
+    const r = await fetch('/api/ai-pass', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const j = await r.json().catch(() => ({}));
+    if (r.ok && j.quota) { setQuota(j.quota); void checkCloud(true); }
+    return r.ok ? { ok: true, message: j.message } : { ok: false, error: j.error || 'Something went wrong. Please try again.' };
+  } catch { return { ok: false, error: 'No connection. Please try again.' }; }
+}
+export const redeemPass = (code: string) => postPass({ action: 'redeem', code });
+export const requestPass = (r: { plan: string; name: string; contact: string; txId: string }) => postPass({ action: 'request', ...r });
 
 export function cloudLabel(): string {
   return cloud.label;
@@ -121,7 +163,7 @@ export function checkCloud(force = false): Promise<void> {
       const res = await fetch('/api/llm', { cache: 'no-store', signal: ctl.signal });
       clearTimeout(timer);
       const j = res.ok ? await res.json() : null;
-      cloud = { up: !!j?.available, label: String(j?.label || 'CLOUD').slice(0, 30), checkedAt: Date.now() };
+      cloud = { up: !!j?.available, label: String(j?.label || 'CLOUD').slice(0, 30), checkedAt: Date.now(), quota: j?.quota || cloud.quota };
     } catch {
       cloud = { ...cloud, up: false, checkedAt: Date.now() };
     }
@@ -152,7 +194,14 @@ export async function generateCloud(messages: ChatMsg[], onToken?: (text: string
       body: JSON.stringify({ messages }),
       signal: ctl.signal,
     });
+    if (res.status === 429) {
+      const j = await res.json().catch(() => null);
+      if (j?.error === 'limit') { setQuota(j.quota); throw new Error('cloud limit'); }
+      throw new Error('cloud busy');
+    }
     if (!res.ok || !res.body) throw new Error(`cloud ${res.status}`);
+    const left = parseInt(res.headers.get('X-AI-Left') || '', 10);
+    if (Number.isFinite(left) && cloud.quota) setQuota({ ...cloud.quota, left });
     const reader = res.body.getReader();
     const dec = new TextDecoder();
     let buf = '';

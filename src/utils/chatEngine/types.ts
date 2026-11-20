@@ -85,6 +85,13 @@ export interface FileInsight {
   excerpt?: string;
   width?: number;
   height?: number;
+  /** Text files: what was read (up to the reading limit) so questions about the data can be answered. Stays in this tab. */
+  text?: string;
+  /** Images: main colours (#rrggbb) and plain-English observations. */
+  palette?: string[];
+  imageNotes?: string[];
+  /** Photos that were shrunk to fit: "Optimised 4.1 MB → 380 KB". */
+  note?: string;
 }
 
 /** Small, storable description of a file shown on a chat message. */
@@ -153,6 +160,8 @@ export interface EngineOptions {
   filesAreNew?: boolean;
   /** Portfolio projects (id/title/category), including ones added in /admin, so "open the logo project" resolves. */
   projects?: { id: string; title: string; category: string }[];
+  /** Test hook: replaces how "build me a website" saves the draft and fetches optional wording. */
+  siteBuildDeps?: import('./siteBuild').SbDeps;
 }
 
 export interface ProcessingResult {

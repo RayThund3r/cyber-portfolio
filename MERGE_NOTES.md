@@ -117,3 +117,29 @@ Only v8-only files: `.gitignore.additions` (already in .gitignore) and the old t
 - The zip is an OLDER, smaller snapshot (146 files vs 361); its chat, admin, builder, server and pages are already in this tree in newer form, so nothing from them was taken (taking them would have been a downgrade).
 - Taken (the only pieces not already here): **builder guided tour** (`components/builder/GuidedTour.tsx`, wired into our Editor with `data-tour` marks, a "?" button and a one-time first-visit offer; hook placed above the early returns), **icon set + emoji→icon map** (`lib/icons.ts`, new `components/ui/EmojiText.tsx`, used by chat bubbles: mapped emojis such as 👋 ✅ 📬 become line icons, unmapped ones stay as written, code spans untouched), **SVG favicon** (`app/icon.svg`).
 - Not taken: v9 `components/ui/Icon.tsx` (ours has a different, typed API used across the site).
+
+## Round 10 — voice and attachments rebuilt
+**Voice** (`components/chat/{useVoice,useSpeech,useVoiceChat,VoicePanel,VoiceContext}`, `lib/voice/{prefs,speechText}`; the old `useVoiceInput` is gone)
+- Continuous listening that survives pauses and restarts itself, live interim text, "hearing you" pulse, stops after two silent sessions, specific messages for blocked/missing mic, offline and unsupported language. Auto-send after ~1.6 s of silence (switchable).
+- Spoken controls: "send it", "cancel / start over", "stop listening", "stop talking", "say that again". A continuous session never re-sends words already sent.
+- Read-aloud (browser speech synthesis, free): per-reply speaker button, optional "read every reply", speed and voice choice, text cleaned for speech (markdown, icons, links, tickets, currency), sentence chunking (Chrome cuts long utterances), barge-in (talking stops the reading).
+- Hands-free conversation: listen → send → read the answer → listen again. Language picker (13 languages for the mic; replies stay English). Settings remembered per device.
+**Attachments** (`lib/imageTools.ts`, `utils/chatEngine/dataQA.ts`, `AttachmentTray`, `useAttachments`, `Composer`)
+- Phone photos up to 25 MB are re-encoded (≤1600 px WebP/JPEG) instead of being refused at 2 MB; the chat says what it did ("Optimised 8.5 MB → 395 KB"). GIFs are not touched.
+- Paste a screenshot/file into the box; camera button on touch devices; more text formats (TSV, YAML, INI, SQL, XML).
+- Image look: main colours, dark/bright/low-contrast/blurry/transparent notes. CSV/TSV/log answers computed in the browser: rows, columns, average/total/median/highest/lowest of a column (with the matching row), most common, unique, duplicates, missing, error counts, most repeated error, time range. Overview line after sharing a CSV.
+- Tray: tap a chip to preview (text or picture), one-tap questions built from the file ("Average price", "Any errors?").
+**Tested:** unit suites (speechText, prefs, voice commands, dataQA, imageTools, engine file answers) + a Playwright run with a faked microphone/speaker/clipboard/8.9 MB photo (all green). NOT tested on real devices: Chrome's real recogniser, iOS Safari voice (continuous mode is flaky there), real HEIC photos (unsupported by most browsers).
+
+## Round 11 — free hosted model, daily limits, passes, build-a-website
+- `server/aiAccess.ts`: signed device cookie, per-device + per-IP daily limit (EAT day), passes (N answers or unlimited, N days), payment requests approved manually, refunds on upstream failure. `/api/llm` enforces it (429 `limit`), `/api/ai-pass` redeems/requests. Rules engine takes over when exhausted (`remoteLLM.cloudExhausted`).
+- Chat: remaining count, "limit reached" row, `AccessPanel` (code / buy pass). Admin: `/admin/ai-access` (g+i).
+- `lib/builder/draft.ts` + `utils/chatEngine/siteBuild.ts`: "build me a website" conversation → deterministic draft from our templates (placeholder reviews/stats hidden) saved via `/api/builder` → button to the private editor link. Optional AI wording is validated (`mergeCopy`).
+- `inference/Dockerfile` MODEL=7b / MODEL_URL. Not tested against a real server; model file URL unverified.
+
+## Round 12 — builder "I see nothing" + "Storage is full" fix
+Root causes (reproduced in a real browser against the real gallery, viewer and editor code):
+1. `.animate-page-in` (globals.css) used `animation-fill-mode: forwards` with a final `transform: translateY(0)`. The browser keeps that transform on the wrapper that surrounds EVERY page, and a transformed ancestor becomes the containing block of `position: fixed` children, so each full-screen overlay (template preview, purchase sheet, editor dialogs, games guide) sized itself to the whole PAGE (thousands of px tall), slid under the sticky nav, and its Close / Buy buttons were unreachable. Fix: `backwards` fill + final `transform: none`, and overlays now render through `components/ui/Portal.tsx` (directly under <body>) so no page wrapper can ever do this again.
+2. Template previews run in a sandboxed frame (no storage, on purpose). The shop-style engine treated "storage blocked" as "storage full" and showed "Storage is full or blocked — export a backup soon." in every shop template preview, and some thumbnails stayed blank. `engine/app.js` now stays silent in preview mode (and warns at most once on the real site). Engine regenerated into `lib/builder/engine.generated.ts` and `lib/studio/engineData.ts`.
+3. `/builder/view` was not in ChromeGate's hidden list, so the full site nav + footer were stacked around the full-height viewer. Added.
+Verified in Chromium at 1905x932 and 390x844: all 20 templates open, overlay == screen size, Close and Buy reachable, content present, no storage toast, Esc closes, no page errors.

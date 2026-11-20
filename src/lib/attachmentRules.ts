@@ -20,12 +20,12 @@ export const ATTACH = {
 export type FileKind = 'image' | 'pdf' | 'text';
 
 const IMAGE_EXT = ['png', 'jpg', 'jpeg', 'webp', 'gif'];
-const TEXT_EXT = ['txt', 'md', 'csv', 'json', 'log'];
+const TEXT_EXT = ['txt', 'md', 'csv', 'tsv', 'json', 'log', 'yaml', 'yml', 'ini', 'sql', 'xml'];
 
 /** Value for <input type="file" accept="...">. */
 export const ACCEPT = [...IMAGE_EXT, 'pdf', ...TEXT_EXT].map((e) => '.' + e).join(',');
 
-export const ALLOWED_LABEL = 'PNG, JPG, WEBP, GIF, PDF, TXT, MD, CSV, JSON, LOG';
+export const ALLOWED_LABEL = 'PNG, JPG, WEBP, GIF, PDF, TXT, MD, CSV, TSV, JSON, LOG, YAML, INI, SQL, XML';
 
 export function extOf(name: string): string {
   const m = /\.([a-z0-9]{1,8})$/i.exec(name.trim());

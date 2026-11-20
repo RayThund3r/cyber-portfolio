@@ -216,7 +216,7 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
       "Yes, we build **complete business websites** to order. 🌐\n\nA typical site has:\n- a hero slideshow, about, services and a **product catalogue** with search\n- a **cart that sends orders to your WhatsApp**\n- **appointment booking** or **quote requests**\n- reviews, gallery, FAQ, light & dark mode and **English / Swahili / Luganda**\n- an **owner admin page** to manage products and orders\n\nIt looks great on phones, tablets and computers. Open the **portfolio** to try live demos, then send a request and we will quote you before any work starts.",
     expert:
       'CUSTOM_SITES // Made-to-order responsive business sites: slideshow, catalogue, cart->WhatsApp, booking or quote flow, reviews, gallery, FAQ, light/dark, EN/SW/LG, owner admin. Live demos in portfolio. Quote before work.',
-    suggestions: ['Show me your websites', 'Request a custom website', 'How much does it cost?', 'Open the template builder'],
+    suggestions: ['Build me a website', 'Show me your websites', 'Request a custom website', 'How much does it cost?', 'Open the template builder'],
   },
   {
     id: 'template-builder',

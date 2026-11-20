@@ -21,7 +21,10 @@
   if (!DB.visits || typeof DB.visits !== 'object') DB.visits = {};
   var OWN = ls.g('own', null), CART = ls.g('cart', []), FAV = ls.g('fav', []), LG = ls.g('lg', 'en'), TH = ls.g('th', null);
   if (!Array.isArray(CART)) CART = []; if (!Array.isArray(FAV)) FAV = [];
-  var saveDB = function () { if (!ls.s('db', DB)) toast(t('Storage is full or blocked — export a backup soon.')); };
+  // Warn once, and never inside a preview: previews (the gallery, the editor, "View") run in a sandboxed frame on purpose, where the
+  // browser blocks storage; that is expected there, so data just stays in memory and the visitor is not told their storage is "full".
+  var warnedStore = false;
+  var saveDB = function () { if (!ls.s('db', DB) && !BASE.preview && !warnedStore) { warnedStore = true; toast(t('Storage is full or blocked — export a backup soon.')); } };
 
   /* ---------- effective content ---------- */
   var SITE, PRODUCTS = [], PROMOS = {}, DEP = {};

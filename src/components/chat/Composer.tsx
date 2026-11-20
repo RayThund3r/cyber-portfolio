@@ -7,15 +7,14 @@
 import { KeyboardEvent, RefObject, useEffect, useMemo, useRef, useState } from 'react';
 import { ACCEPT } from '@/lib/attachmentRules';
 import { SLASH_COMMANDS, SlashCommand } from './chatContent';
-import { useVoiceInput } from './useVoiceInput';
-import { voiceMeta } from '@/utils/chatEngine/voiceText';
+import type { useVoiceChat } from './useVoiceChat';
 
 interface Props {
   value: string;
   onChange: (v: string) => void;
   onSend: (text: string) => void;
   onStop: () => void;
-  onAttach: (files: FileList | null) => void;
+  onAttach: (files: FileList | File[] | null) => void;
   onSlash: (cmd: SlashCommand) => void;
   onToast: (msg: string) => void;
   onActivity: () => void;
@@ -26,45 +25,15 @@ interface Props {
   expert: boolean;
   max: number;
   inputRef: RefObject<HTMLTextAreaElement | null>;
+  vc: ReturnType<typeof useVoiceChat>;
 }
 
 export default function Composer(p: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
+  const camRef = useRef<HTMLInputElement>(null);
   const [sel, setSel] = useState(0);
   const [paletteOff, setPaletteOff] = useState(false);
-  const baseText = useRef('');
-  const stopRef = useRef<() => void>(() => {});
-
-  const voice = useVoiceInput(
-    (text, final) => {
-      // Spoken controls for the box itself: "send it" sends, "cancel" / "start over" clears, "stop listening" stops.
-      if (final) {
-        const vm = voiceMeta(text);
-        if (vm.meta === 'clear') {
-          baseText.current = '';
-          p.onChange('');
-          return;
-        }
-        if (vm.meta === 'stop') {
-          stopRef.current();
-          return;
-        }
-        if (vm.meta === 'send') {
-          const full = ((baseText.current ? baseText.current.trimEnd() + ' ' : '') + vm.text).slice(0, p.max);
-          baseText.current = '';
-          stopRef.current();
-          p.onSend(full);
-          return;
-        }
-      }
-      const joined = (baseText.current ? baseText.current.trimEnd() + ' ' : '') + text;
-      p.onChange(joined.slice(0, p.max));
-      if (final) baseText.current = joined;
-    },
-    p.onToast
-  );
-
-  stopRef.current = voice.stop;
+  const voice = p.vc.voice;
 
   // Grow with the content (up to ~5 lines), shrink back when cleared.
   useEffect(() => {
@@ -94,8 +63,7 @@ export default function Composer(p: Props) {
       const cmd = SLASH_COMMANDS.find((c) => c.name === m[1].toLowerCase());
       if (cmd) return p.onSlash(cmd);
     }
-    voice.stop();
-    baseText.current = '';
+    p.vc.onUserSend();
     p.onSend(p.value);
   };
 
@@ -170,6 +138,27 @@ export default function Composer(p: Props) {
             e.target.value = '';
           }}
         />
+        <input
+          ref={camRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          hidden
+          aria-label="Take a photo"
+          onChange={(e) => {
+            p.onAttach(e.target.files);
+            e.target.value = '';
+          }}
+        />
+        <button
+          type="button"
+          onClick={() => camRef.current?.click()}
+          aria-label="Take a photo"
+          title="Take a photo"
+          className="hidden h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl text-zinc-400 transition-colors hover:bg-white/5 hover:text-accent [@media(pointer:coarse)]:flex"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z" /><circle cx="12" cy="13" r="3.5" /></svg>
+        </button>
         <button
           type="button"
           onClick={() => fileRef.current?.click()}
@@ -192,6 +181,14 @@ export default function Composer(p: Props) {
           autoCorrect="on"
           enterKeyHint="send"
           onKeyDown={onKeyDown}
+          onPaste={(e) => {
+            // Pasting a screenshot or copied file attaches it instead of typing nothing.
+            const files = Array.from(e.clipboardData?.files || []);
+            if (files.length) {
+              e.preventDefault();
+              p.onAttach(files as unknown as FileList);
+            }
+          }}
           onChange={(e) => {
             p.onActivity();
             p.onChange(e.target.value);
@@ -201,21 +198,33 @@ export default function Composer(p: Props) {
         />
 
         {voice.supported && (
-          <button
-            type="button"
-            onClick={() => {
-              baseText.current = p.value;
-              voice.toggle();
-            }}
-            aria-pressed={voice.listening}
-            aria-label={voice.listening ? 'Stop voice input' : 'Speak your message'}
-            title={voice.listening ? 'Stop listening' : 'Speak your message'}
-            className={`flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl text-base transition-colors ${
-              voice.listening ? 'animate-ring bg-red-500/20 text-red-300' : 'text-zinc-400 hover:bg-white/5 hover:text-accent'
-            }`}
-          >
-            🎤
-          </button>
+          <>
+            <button
+              type="button"
+              onClick={() => p.vc.setPanelOpen(!p.vc.panelOpen)}
+              aria-label="Voice settings"
+              aria-expanded={p.vc.panelOpen}
+              title="Voice settings"
+              className="flex h-10 w-6 shrink-0 cursor-pointer items-center justify-center rounded-lg text-zinc-600 transition-colors hover:text-accent sm:w-7"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 15l6-6 6 6" /></svg>
+            </button>
+            <button
+              type="button"
+              onClick={p.vc.toggleMic}
+              aria-pressed={voice.listening}
+              aria-label={voice.listening ? 'Stop voice input' : 'Speak your message'}
+              title={voice.listening ? 'Stop listening' : 'Speak your message'}
+              className={`flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl text-base transition-colors ${
+                voice.listening ? 'animate-ring bg-red-500/20 text-red-300' : 'text-zinc-400 hover:bg-white/5 hover:text-accent'
+              }`}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <rect x="9" y="3" width="6" height="11" rx="3" />
+                <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
+              </svg>
+            </button>
+          </>
         )}
 
         {p.isThinking && p.canStop ? (
