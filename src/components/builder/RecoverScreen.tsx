@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import ImportBackup from './ImportBackup';
 import { listProjects, parseEditLink, type SavedProject } from '@/lib/builder/access';
 
 export default function RecoverScreen({ id, target = 'edit' }: { id: string; target?: 'edit' | 'view' }) {
@@ -47,6 +48,10 @@ export default function RecoverScreen({ id, target = 'edit' }: { id: string; tar
           </ul>
         </div>
       )}
+      <div className="rounded border border-zinc-800 bg-zinc-900/40 p-4 text-center">
+        <p className="mb-3 text-xs text-zinc-400">Saved a backup file from the editor? Open it here and carry on where you stopped.</p>
+        <ImportBackup />
+      </div>
       <Link href="/builder" className="text-sm text-accent underline">Start a new site or choose a design</Link>
     </div>
   );

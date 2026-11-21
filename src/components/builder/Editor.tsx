@@ -23,6 +23,8 @@ import Portal from '@/components/ui/Portal';
 import { BuyModal, NewProjectModal } from './Modals';
 import { compressImage, lsDel, lsGet, lsSet, post, setPath } from './lib';
 import { rememberProject } from '@/utils/useProjectRef';
+import ImportBackup from './ImportBackup';
+import { readAssets as readLocalAssets, readCopy, restoreToServer, writeAssets, writeCopy } from '@/lib/builder/localCopy';
 import type { TemplateDef } from '@/lib/builder/templates';
 
 import { IconCart, IconCheck, IconCheckCircle, IconClose, IconCode, IconCopy, IconDesktop, IconEye, IconEyeOff, IconImage, IconLayers, IconLock, IconPalette, IconPaperclip, IconPencil, IconPhone, IconPlus, IconSettings, IconSparkle, IconTablet, IconTrash, IconWarn, IconBulb, IconFolder } from './icons';
@@ -41,7 +43,7 @@ type Device = keyof typeof DEVICE_W;
 /** Undo history is stored as JSON strings with a byte budget — an 80-step history of a large site would otherwise hold ~80 full copies in memory. */
 interface Hist { past: string[]; present: SiteConfig; future: string[]; tag: string; t: number; v: number; bytes: number }
 const MAX_HIST_CHARS = 12_000_000;
-interface Meta { name: string; templateName: string; priceUGX: number | null; order: { ticket: string; paid: boolean; price: number } | null; updatedAt: string }
+interface Meta { templateId?: string; name: string; templateName: string; priceUGX: number | null; order: { ticket: string; paid: boolean; price: number } | null; updatedAt: string }
 
 function useMedia(q: string) {
   const [m, setM] = useState(false);
@@ -75,6 +77,7 @@ export default function Editor({ mode, id, keyStr }: { mode: 'project' | 'templa
   const [meta, setMeta] = useState<Meta | null>(null);
   const [projName, setProjName] = useState('');
   const [loadErr, setLoadErr] = useState<string | null>(null);
+  const [notice, setNotice] = useState('');
   const [tool, setTool] = useState<Tool | null>(null);
   const [viewMode, setViewMode] = useState(false);
   const [tour, setTour] = useState(false);
@@ -105,6 +108,7 @@ export default function Editor({ mode, id, keyStr }: { mode: 'project' | 'templa
   const frontRef = useRef<0 | 1>(0); frontRef.current = front;
   const canvasRef = useRef<HTMLDivElement>(null);
   const yRef = useRef(0);
+  const metaRef = useRef<Meta | null>(null); metaRef.current = meta;
   const savedRef = useRef('');                      // content signature at load (only for draft recovery)
   const savedV = useRef({ v: 0, n: 0 });           // version of what the server has — O(1) dirty checks instead of re-serialising the site
   const revRef = useRef(0);
@@ -123,13 +127,24 @@ export default function Editor({ mode, id, keyStr }: { mode: 'project' | 'templa
       let loadedKind: string | undefined;
       try {
         if (isProject) {
-          const d = await post('/api/builder', { action: 'load', id, key: keyStr });
+          let d: any;
+          try { d = await post('/api/builder', { action: 'load', id, key: keyStr }); }
+          catch (e: any) {
+            // The server may have forgotten this site (host without a database). If THIS browser holds its copy under the same key, put it back.
+            const copy = e?.status === 404 ? readCopy(id) : null;
+            if (!copy || copy.key !== keyStr) throw e;
+            await restoreToServer(post, copy, await readLocalAssets(id));
+            d = await post('/api/builder', { action: 'load', id, key: keyStr });
+            setNotice('Your site had been cleared from our server, so we restored it from this device. Nothing was lost.');
+          }
           loadedKind = d.config?.kind;
           setHist({ past: [], present: d.config, future: [], tag: '', t: 0, v: 0, bytes: 0 });
           setAssets(d.assets || {}); setProjName(d.name); revRef.current = d.rev || 0;
-          setMeta({ name: d.name, templateName: d.templateName, priceUGX: d.priceUGX, order: d.order, updatedAt: d.updatedAt || '' });
+          setMeta({ templateId: d.templateId, name: d.name, templateName: d.templateName, priceUGX: d.priceUGX, order: d.order, updatedAt: d.updatedAt || '' });
           savedRef.current = JSON.stringify([d.config, d.name]);
           rememberProject({ id: d.id, key: keyStr!, name: d.name, template: d.templateName });
+          writeCopy({ id: d.id, key: keyStr!, name: d.name, templateId: d.templateId || 'blank', templateName: d.templateName || '', config: d.config, rev: d.rev || 0 });
+          void writeAssets(d.id, d.assets || {});
           try { // recover unsaved edits from this device (e.g. the connection dropped or the tab crashed)
             const raw = lsGet(draftKey); const dr = raw ? JSON.parse(raw) : null;
             if (dr && dr.at > Date.parse(d.updatedAt || 0) && JSON.stringify([dr.cfg, dr.name]) !== savedRef.current) setDraft({ cfg: dr.cfg, name: dr.name });
@@ -186,6 +201,7 @@ export default function Editor({ mode, id, keyStr }: { mode: 'project' | 'templa
         if (isProject) { const d = await post('/api/builder', { action: 'save', id, key: keyStr, config: c, name, baseRev: revRef.current, force }); revRef.current = d.rev; }
         else await post('/api/admin', { action: 'template.saveConfig', id, config: c });
         savedV.current = { v, n }; retries.current = 0; setConflict(false); setSave('saved');
+        if (isProject) { const m = metaRef.current; writeCopy({ id, key: keyStr!, name, templateId: m?.templateId || 'blank', templateName: m?.templateName || '', config: c, rev: revRef.current }); }
       } catch (e: any) {
         setSave('error');
         if (e.data?.conflict) { setConflict(true); setSaveErr('Changed in another tab or device.'); return; }
@@ -277,11 +293,11 @@ export default function Editor({ mode, id, keyStr }: { mode: 'project' | 'templa
   const upload = useCallback(async (file: File) => {
     const c = await compressImage(file);
     const r = await post('/api/builder', { action: 'upload', id, key: keyStr, mime: c.mime, data: c.data });
-    setAssets((a) => ({ ...a, [r.id]: c.dataUrl }));
+    setAssets((a) => { const n = { ...a, [r.id]: c.dataUrl }; void writeAssets(id, n); return n; });
     return { id: r.id as string, dataUrl: c.dataUrl, mime: c.mime, data: c.data };
   }, [id, keyStr]);
   const removeAsset = useCallback(async (aid: string) => {
-    try { await post('/api/builder', { action: 'deleteAsset', id, key: keyStr, assetId: aid }); setAssets((a) => { const n = { ...a }; delete n[aid]; return n; }); } catch (e: any) { alert(e.message); }
+    try { await post('/api/builder', { action: 'deleteAsset', id, key: keyStr, assetId: aid }); setAssets((a) => { const n = { ...a }; delete n[aid]; void writeAssets(id, n); return n; }); } catch (e: any) { alert(e.message); }
   }, [id, keyStr]);
 
   const ctx: FormCtx = useMemo(() => ({
@@ -344,7 +360,7 @@ export default function Editor({ mode, id, keyStr }: { mode: 'project' | 'templa
     window.open(URL.createObjectURL(new Blob([page], { type: 'text/html' })), '_blank');
   };
   const backup = () => {
-    const blob = new Blob([JSON.stringify({ kind: 'sys-builder-backup', v: 1, name: projName, config: cfg, assets }, null, 1)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify({ kind: 'sys-builder-backup', v: 1, name: projName, templateId: meta?.templateId, templateName: meta?.templateName, config: cfg, assets }, null, 1)], { type: 'application/json' });
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${(projName || 'site').replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-backup.json`; a.click();
   };
   const goProject = (pid: string, key: string) => window.location.assign(`/builder/edit?id=${encodeURIComponent(pid)}&key=${encodeURIComponent(key)}`);
@@ -377,7 +393,7 @@ export default function Editor({ mode, id, keyStr }: { mode: 'project' | 'templa
     return () => clearTimeout(t);
   }, [isProject, !!cfg, locked]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (loadErr) return <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col items-center justify-center gap-4 px-6 text-center"><p role="alert" className="text-sm text-red-300 max-w-md">{loadErr}</p><Link href="/builder" className="text-cyan-400 text-sm underline">← Back to designs</Link></div>;
+  if (loadErr) return <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col items-center justify-center gap-4 px-6 text-center"><p role="alert" className="text-sm text-red-300 max-w-md">{loadErr}</p><ImportBackup /><Link href="/builder" className="text-cyan-400 text-sm underline">← Back to designs</Link></div>;
   if (!cfg || !meta) return <div className="min-h-screen bg-zinc-950 text-zinc-400 flex flex-col items-center justify-center gap-3 text-sm font-mono"><div className="load-bar" role="progressbar" aria-label="Loading" />Opening your project…</div>;
 
   const fixedW = DEVICE_W[device];
@@ -460,6 +476,7 @@ export default function Editor({ mode, id, keyStr }: { mode: 'project' | 'templa
       </div>
       {!online && <div className="px-3 py-1.5 text-xs bg-amber-500/10 text-amber-200 border-b border-amber-500/30">You’re offline. Keep editing — your work is stored on this device and will sync when you’re back online.</div>}
       {conflict && <div className="px-3 py-2 text-xs bg-red-500/10 text-red-200 border-b border-red-500/30 flex flex-wrap items-center gap-2">This project was changed in another tab or device. <button className="underline cursor-pointer" onClick={() => location.reload()}>Load the latest (your edits are kept as a recoverable draft)</button> <button className="underline cursor-pointer" onClick={() => flush(true)}>Keep mine and overwrite</button></div>}
+      {notice && <div role="status" className="px-3 py-2 text-xs bg-emerald-500/10 text-emerald-100 border-b border-emerald-500/30 flex flex-wrap items-center gap-2">{notice} <button className="underline cursor-pointer" onClick={() => setNotice('')}>OK</button></div>}
       {draft && !locked && <div className="px-3 py-2 text-xs bg-cyan-500/10 text-cyan-100 border-b border-cyan-500/30 flex flex-wrap items-center gap-2">We recovered unsaved edits from this device. <button className="underline font-semibold cursor-pointer" onClick={() => { edit('draft', (c) => { Object.assign(c, structuredClone(draft.cfg)); }); setProjName(draft.name); setNameV((x) => x + 1); setDraft(null); }}>Restore them</button> <button className="underline cursor-pointer" onClick={() => { lsDel(draftKey); setDraft(null); }}>Discard</button></div>}
       {locked && isProject && (
         <div className="px-3 py-2 text-xs bg-amber-500/10 border-b border-amber-500/30 text-amber-200 flex flex-wrap items-center gap-3">

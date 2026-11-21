@@ -71,9 +71,11 @@ section{padding:84px 0}@media(max-width:700px){section{padding:56px 0}}
 .mas figcaption{position:absolute;left:0;right:0;bottom:0;padding:26px 14px 10px;color:#fff;font-size:13px;background:linear-gradient(transparent,rgba(0,0,0,.7))}
 .tm{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}.tm blockquote{margin:0;background:var(--card);padding:26px;border-radius:var(--r)}.tm p{margin:0 0 14px}.tm cite{font-style:normal;font-weight:600;color:var(--ac)}
 details{border-bottom:1px solid var(--ln);padding:16px 0}summary{cursor:pointer;font-weight:600;list-style:none;display:flex;justify-content:space-between;gap:12px}summary::-webkit-details-marker{display:none}summary:after{content:"+";color:var(--ac);transition:transform .3s}details[open] summary:after{transform:rotate(45deg)}details p{color:var(--mut);margin:10px 0 0}
-.ct{display:grid;grid-template-columns:1fr 1fr;gap:40px}@media(max-width:800px){.ct{grid-template-columns:1fr}}
+.ct{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:40px}
+/* grid items default to min-width:auto, so one wide child (the booking form) stretched the whole page sideways on phones and tablets */
+.ct>*{min-width:0}@media(max-width:800px){.ct{grid-template-columns:minmax(0,1fr)}}
 .ct ul{list-style:none;padding:0;margin:20px 0}.ct li{padding:10px 0;border-bottom:1px solid var(--ln)}.ct li b{display:block;font-size:12px;color:var(--mut);text-transform:uppercase;letter-spacing:.1em}
-.fm{display:grid;gap:12px}.fm label{display:grid;gap:5px;font-size:13px;color:var(--mut)}
+.fm{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}.fm label{display:grid;gap:5px;font-size:13px;color:var(--mut)}
 .fm input,.fm textarea,.fm select{padding:12px 14px;border-radius:calc(var(--rb)*.8);border:1px solid var(--ln);background:var(--card);outline:0;width:100%}.fm input:focus,.fm textarea:focus,.fm select:focus{border-color:var(--ac)}
 .fm label.chk{display:flex;flex-direction:row;align-items:center;gap:10px;color:var(--tx);font-size:15px}.chk input{width:auto}
 .dstrip{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:4px 2px}.dstrip::-webkit-scrollbar{display:none}

@@ -87,16 +87,21 @@ export function sanitizeMessages(input: unknown): ChatMsgIn[] | null {
 }
 
 /** Streams the upstream answer as our own tiny SSE: `data: {"delta":"…"}` … `data: [DONE]`. */
-export async function streamCompletion(messages: ChatMsgIn[], signal: AbortSignal): Promise<Response> {
-  const c = llmConfig();
+export interface Target { url: string; model: string; key: string; maxTokens: number; /** llama.cpp-style servers accept repeat_penalty; hosted APIs reject unknown fields */ llamaCpp?: boolean }
+
+export async function streamCompletion(messages: ChatMsgIn[], signal: AbortSignal, target?: Target): Promise<Response> {
+  const c = target ?? { ...llmConfig(), llamaCpp: true };
   const upstream = await fetch(c.url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...(c.key ? { Authorization: `Bearer ${c.key}` } : {}) },
-    body: JSON.stringify({ model: c.model, messages, stream: true, temperature: 0.6, top_p: 0.9, max_tokens: c.maxTokens, repeat_penalty: 1.1 }),
+    body: JSON.stringify({ model: c.model, messages, stream: true, temperature: 0.6, top_p: 0.9, max_tokens: c.maxTokens, ...(c.llamaCpp ? { repeat_penalty: 1.1 } : {}) }),
     signal,
     cache: 'no-store',
   });
-  if (!upstream.ok || !upstream.body) throw new Error(`upstream ${upstream.status}`);
+  if (!upstream.ok || !upstream.body) {
+    const detail = upstream.ok ? '' : (await upstream.text().catch(() => '')).replace(/\s+/g, ' ').slice(0, 160);
+    throw Object.assign(new Error(`upstream ${upstream.status}${detail ? ': ' + detail : ''}`), { status: upstream.status });
+  }
 
   const enc = new TextEncoder();
   const dec = new TextDecoder();

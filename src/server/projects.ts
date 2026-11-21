@@ -7,7 +7,7 @@ import 'server-only';
 import crypto from 'crypto';
 import { promises as fs } from 'fs';
 import path from 'path';
-import { createTicket, findTicket, listNames, mutateTicket, readJson, removeJson, update, type Ticket } from './store';
+import { createExclusive, createTicket, findTicket, listNames, mutateTicket, readJson, removeJson, update, type Ticket } from './store';
 import { getTemplates, putJson, removeTree } from './builderUtil';
 import { makeZip, type ZipFile } from './zip';
 import { buildSite } from '@/lib/builder/generate';
@@ -132,10 +132,8 @@ export async function saveProject(
 }
 
 /* ───────── pictures ───────── */
-export async function addAsset(id: string, key: string, mime: string, base64: string): Promise<{ id: string } | { error: string; status: number }> {
-  const p = await authProject(id, key);
-  if (!p) return { error: 'Project not found.', status: 404 };
-  if (isLocked(p)) return { error: 'Site is locked.', status: 409 };
+/** Validates and stores one picture for an already-authorised project. `aid` is chosen by the caller (restore) or generated (upload). */
+async function storeAsset(p: Project, aid: string | null, mime: string, base64: string): Promise<{ id: string } | { error: string; status: number }> {
   if (!MIME_EXT[mime]) return { error: 'Only JPG, PNG, WebP or GIF images are allowed.', status: 400 };
   if (!/^[A-Za-z0-9+/]+={0,2}$/.test(base64)) return { error: 'Invalid image data.', status: 400 };
   const buf = Buffer.from(base64, 'base64');
@@ -143,10 +141,66 @@ export async function addAsset(id: string, key: string, mime: string, base64: st
   if (!magicOk(mime, buf)) return { error: 'That file is not a valid image.', status: 400 };
   const total = Object.values(p.assets).reduce((n, a) => n + a.bytes, 0);
   if (Object.keys(p.assets).length >= MAX_ASSETS || total + buf.length > MAX_TOTAL_BYTES) return { error: 'Picture storage for this project is full. Remove unused pictures first.', status: 413 };
-  const aid = rnd(8, 'abcdefghijklmnopqrstuvwxyz0123456789');
-  await putJson(aname(p.id, aid), { mime, data: base64 } satisfies Asset);
-  await update<Project | null>(pname(p.id), null, (d) => { if (d) { d.assets[aid] = { mime, bytes: buf.length }; d.updatedAt = new Date().toISOString(); } });
-  return { id: aid };
+  const id = aid ?? rnd(8, 'abcdefghijklmnopqrstuvwxyz0123456789');
+  await putJson(aname(p.id, id), { mime, data: base64 } satisfies Asset);
+  await update<Project | null>(pname(p.id), null, (d) => { if (d) { d.assets[id] = { mime, bytes: buf.length }; d.updatedAt = new Date().toISOString(); } });
+  return { id };
+}
+
+export async function addAsset(id: string, key: string, mime: string, base64: string): Promise<{ id: string } | { error: string; status: number }> {
+  const p = await authProject(id, key);
+  if (!p) return { error: 'Project not found.', status: 404 };
+  if (isLocked(p)) return { error: 'Site is locked.', status: 409 };
+  return storeAsset(p, null, mime, base64);
+}
+
+/* ───────── restore: put a site back when the server lost it ─────────
+ * On a host without persistent storage (e.g. Vercel before Upstash Redis is connected) the server forgets sites whenever an instance
+ * restarts, while the customer's browser still holds a full copy. The editor then sends that copy here. A site can only be restored
+ * under an id that is FREE, with the key the customer already holds, so it can never overwrite or take over somebody else's site. */
+const KEY_RE = /^[A-Za-z0-9_-]{16,64}$/;
+
+export async function restoreProject(
+  id: string, key: string, input: { templateId?: unknown; templateName?: unknown; name?: unknown; config: unknown; assetIds?: unknown }
+): Promise<{ ok: true; rev: number; existed: boolean } | { error: string; status: number }> {
+  id = String(id || '').toUpperCase();
+  if (!PID_RE.test(id) || !KEY_RE.test(key || '')) return { error: 'That site link is not valid.', status: 400 };
+  const existing = await loadProject(id);
+  if (existing) {
+    const mine = await authProject(id, key);
+    return mine ? { ok: true, rev: mine.rev, existed: true } : { error: 'That site address is already in use.', status: 409 };
+  }
+  if ((await listNames('projects')).length > 5000) return { error: 'The builder is temporarily full. Please contact us.', status: 503 };
+
+  const ids = Array.isArray(input.assetIds) ? input.assetIds.filter((x): x is string => typeof x === 'string' && AID_RE.test(x)).slice(0, MAX_ASSETS) : [];
+  let config: SiteConfig;
+  if (!input.config || typeof input.config !== 'object' || Array.isArray(input.config)) return { error: 'That copy is damaged.', status: 400 };
+  try { config = sanitizeConfig(input.config, { assetIds: new Set(ids) }); } catch (e: any) { return { error: e.message || 'That copy is damaged.', status: 400 }; }
+  const raw: any = input.config;
+  if (raw.kind !== 'pro' && !(Array.isArray(raw.sections) && raw.sections.some((x: any) => x && x.type && x.type !== 'navbar' && x.type !== 'footer'))) return { error: 'That copy is empty, so there is nothing to restore.', status: 400 };
+
+  const tid = typeof input.templateId === 'string' && /^[a-z0-9-]{1,30}$/.test(input.templateId) ? input.templateId : 'blank';
+  const tpl = (await getTemplates()).find((t) => t.id === tid);
+  const templateName = (tpl?.name ?? (typeof input.templateName === 'string' ? input.templateName : 'Website')).replace(/[\r\n\t]+/g, ' ').trim().slice(0, 60) || 'Website';
+  const name = (typeof input.name === 'string' ? input.name.replace(/[\r\n\t]+/g, ' ').trim().slice(0, 60) : '') || `My ${templateName} site`;
+  const now = new Date().toISOString();
+  const rec: Project = { id, keyHash: hash(key), templateId: tid, templateName, name, rev: 1, config, assets: {}, createdAt: now, updatedAt: now };
+  const created = await createExclusive(pname(id), rec);
+  if (!created) { // two restores raced: whoever got there first wins; if it is the same key this is simply a success
+    const mine = await authProject(id, key);
+    return mine ? { ok: true, rev: mine.rev, existed: true } : { error: 'That site address is already in use.', status: 409 };
+  }
+  return { ok: true, rev: 1, existed: false };
+}
+
+/** Re-attaches one picture of a restored site under its ORIGINAL id (the site's config already points at it). */
+export async function restoreAsset(id: string, key: string, aid: string, mime: string, base64: string): Promise<{ id: string } | { error: string; status: number }> {
+  const p = await authProject(id, key);
+  if (!p) return { error: 'Project not found.', status: 404 };
+  if (isLocked(p)) return { error: 'Site is locked.', status: 409 };
+  if (!AID_RE.test(aid)) return { error: 'Invalid picture id.', status: 400 };
+  if (p.assets[aid]) return { id: aid }; // already there: restoring twice is harmless
+  return storeAsset(p, aid, mime, base64);
 }
 
 export async function deleteAsset(id: string, key: string, aid: string): Promise<{ ok: true } | { error: string; status: number }> {

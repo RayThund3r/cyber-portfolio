@@ -23,6 +23,8 @@ const results = [
   run('server: storage / tickets / fuzz', ['tests/server.storage.test.cjs']),
   run('server: legacy migration', ['tests/server.migrate.test.cjs']),
   run('server: Pro order → payment → zip', ['tests/server.pro.test.cjs']),
+  run('server: ai providers', ['tests/server.providers.test.cjs']),
+  run('server: restore after wipe', ['tests/server.restore.test.cjs']),
   run('server: cloud inbox', ['tests/server.cloud.test.cjs']),
   run('server: AI route', ['tests/server.ai.test.cjs']),
 ];

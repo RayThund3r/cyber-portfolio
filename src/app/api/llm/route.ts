@@ -1,6 +1,7 @@
 // src/app/api/llm/route.ts — GET: is the cloud model reachable?  POST: stream an answer from it.
 import { NextResponse } from 'next/server';
-import { llmConfig, llmConfigured, llmHealth, sanitizeMessages, streamCompletion } from '@/server/llm';
+import { llmConfig, sanitizeMessages } from '@/server/llm';
+import { anyAvailable, streamWithFallback } from '@/server/llmProviders';
 import { clientIp, rateLimit, readJsonLimited, sameOrigin } from '@/server/util';
 import { requireAdmin } from '@/lib/admin/auth';
 import { OWNER_QUOTA, deviceOf, quotaFor, refund, spend } from '@/server/aiAccess';
@@ -14,15 +15,16 @@ const H = { 'Cache-Control': 'no-store' };
 const withCookie = (h: Record<string, string>, cookie: string) => (cookie ? { ...h, 'Set-Cookie': cookie } : h);
 
 export async function GET(req: Request) {
-  if (!llmConfigured()) return NextResponse.json({ available: false }, { headers: H });
+  const av = await anyAvailable();
+  if (!av.available) return NextResponse.json({ available: false }, { headers: H });
   const dev = deviceOf(req);
   const owner = 'session' in (await requireAdmin(req).catch(() => ({ error: true }) as never));
-  const [h, quota] = await Promise.all([llmHealth(), owner ? OWNER_QUOTA : quotaFor(req, dev, clientIp(req)).catch(() => null)]);
-  return NextResponse.json({ available: h.ok, label: llmConfig().label, quota }, { headers: withCookie(H, dev.cookie) });
+  const quota = owner ? OWNER_QUOTA : await quotaFor(req, dev, clientIp(req)).catch(() => null);
+  return NextResponse.json({ available: true, label: av.label || llmConfig().label, quota }, { headers: withCookie(H, dev.cookie) });
 }
 
 export async function POST(req: Request) {
-  if (!llmConfigured()) return NextResponse.json({ error: 'off' }, { status: 503, headers: H });
+  if (!(await anyAvailable()).available) return NextResponse.json({ error: 'off' }, { status: 503, headers: H });
   if (!sameOrigin(req)) return NextResponse.json({ error: 'origin' }, { status: 403, headers: H });
   const c = llmConfig();
   if (rateLimit(`llm:${clientIp(req)}`, c.ratePerMin, 60_000)) return NextResponse.json({ error: 'slow-down' }, { status: 429, headers: H });
@@ -44,7 +46,7 @@ export async function POST(req: Request) {
   req.signal.addEventListener('abort', () => ctl.abort());
   const timer = setTimeout(() => ctl.abort(), 55_000);
   try {
-    const res = await streamCompletion(messages, ctl.signal);
+    const { res } = await streamWithFallback(messages, ctl.signal);
     const headers = new Headers(res.headers);
     if (dev.cookie) headers.set('Set-Cookie', dev.cookie);
     if (spent && spent.ok) headers.set('X-AI-Left', String(spent.quota.left));

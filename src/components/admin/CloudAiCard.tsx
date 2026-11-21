@@ -24,7 +24,7 @@ export default function CloudAiCard() {
     <Card title="Cloud AI (server-hosted model)" icon="cpu" className="md:col-span-2"
       right={d ? <Badge tone={!d.configured ? 'default' : d.ok ? 'ok' : 'bad'}>{!d.configured ? 'NOT SET UP' : d.ok ? 'ONLINE' : 'UNREACHABLE'}</Badge> : undefined}>
       {!d ? <Skel h="h-20" /> : !d.configured ? (
-        <p className="text-sm leading-relaxed text-zinc-400">Visitors currently use the on-device model or the built-in engine. To serve a small model from a free server with nothing to download, follow <code className="text-accent">inference/README.md</code> and add <code className="text-accent">LLM_ENDPOINT</code> in Vercel, then redeploy.</p>
+        <p className="text-sm leading-relaxed text-zinc-400">No server of your own is set. Free AI services (Groq, Gemini, OpenRouter…) are managed on the <a className="text-accent underline" href="/admin/ai-providers">AI Providers</a> page: add a free key there and switch the service on, no redeploy needed.</p>
       ) : (
         <div className="space-y-3">
           <dl className="grid grid-cols-2 gap-x-4 gap-y-1 font-mono text-[11px] text-zinc-400 sm:grid-cols-4">

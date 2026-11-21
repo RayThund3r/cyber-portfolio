@@ -15,6 +15,8 @@ import { post, lsGet, lsSet, fetchStatus, downloadProject, type OrderStatus } fr
 import PurchasePanel from '@/components/builder/PurchaseFlow';
 import { CategoryIcon, IconCart, IconCheckCircle, IconClock, IconClose, IconDownload, IconEye, IconPencil, IconSearch, IconSparkle, IconWhatsApp } from '@/components/builder/icons';
 import { CardSkeleton } from '@/components/builder/ui';
+import { dropCopy } from '@/lib/builder/localCopy';
+import ImportBackup from '@/components/builder/ImportBackup';
 import { forgetProject, readSaved, type SavedProject } from '@/utils/useProjectRef';
 import { hasWhatsApp, whatsappLink } from '@/utils/chatEngine/siteConfig';
 
@@ -65,7 +67,13 @@ export default function Showcase() {
   const [dlBusy, setDlBusy] = useState('');
 
   useEffect(() => {
-    fetch('/api/builder/templates').then((r) => r.json()).then((d) => setTemplates(d.templates || [])).catch(() => setTemplates([]));
+    // If the live catalogue cannot be reached (server hiccup, bad connection, blocked request) the gallery must never be empty:
+    // fall back to the designs that ship inside the page itself.
+    const builtIn = () => import('@/lib/builder/templates').then((m) => m.PRESETS.filter((t) => t.enabled));
+    fetch('/api/builder/templates')
+      .then((r) => { if (!r.ok) throw new Error('catalogue ' + r.status); return r.json(); })
+      .then((d) => { if (Array.isArray(d.templates) && d.templates.length) setTemplates(d.templates); else throw new Error('empty'); })
+      .catch(() => builtIn().then(setTemplates).catch(() => setTemplates([])));
     fetch('/api/rates').then((r) => r.json()).then((r) => r?.rates?.UGX && setRates(r)).catch(() => {});
     setSaved(readSaved());
     const c = lsGet('sys_currency'); if (c && CURRENCIES.some((x) => x.code === c)) setCur(c);
@@ -189,7 +197,7 @@ export default function Showcase() {
                       ? <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-mono text-emerald-300"><IconCheckCircle size={12} /> PAID</span>
                       : st?.order ? <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-mono text-amber-300"><IconClock size={12} /> AWAITING PAYMENT</span>
                       : <span className="rounded-full border border-zinc-700 px-2 py-0.5 text-[10px] font-mono text-zinc-400">DRAFT</span>}
-                    <button aria-label={`Remove ${sp.name} from this device`} onClick={() => { forgetProject(sp.id); setSaved(readSaved()); }} className="text-zinc-500 hover:text-red-400 cursor-pointer min-h-11 min-w-9 flex items-center justify-center"><IconClose size={16} /></button>
+                    <button aria-label={`Remove ${sp.name} from this device`} onClick={() => { forgetProject(sp.id); dropCopy(sp.id); setSaved(readSaved()); }} className="text-zinc-500 hover:text-red-400 cursor-pointer min-h-11 min-w-9 flex items-center justify-center"><IconClose size={16} /></button>
                   </div>
                   <div className="flex gap-2 flex-wrap">
                     <Link href={`/builder/view?id=${sp.id}`} className="min-h-11 inline-flex items-center px-3 rounded border border-zinc-700 text-xs font-mono hover:border-zinc-400">View</Link>
@@ -251,6 +259,7 @@ export default function Showcase() {
           <div>
             <h2 className="font-mono text-xs text-zinc-400 mb-2">OPEN A PROJECT FROM ANOTHER DEVICE</h2>
             <div className="flex gap-2"><input value={link} onChange={(e) => setLink(e.target.value)} placeholder="Paste your edit link…" aria-label="Edit link" className="flex-1 bg-zinc-950 border border-zinc-800 rounded px-3 py-2 focus:outline-none focus:border-cyan-500" /><button onClick={openLink} className="px-3 py-2 rounded border border-zinc-700 text-xs font-mono hover:border-zinc-500 cursor-pointer">Open</button></div>
+            <div className="mt-3"><ImportBackup /></div>
             <p className="text-[11px] text-zinc-500 mt-2">Projects save automatically. Keep your edit link private — anyone with it can edit your site.</p>
             <div className="mt-3 flex flex-wrap gap-2 font-mono text-xs"><Link href="/contact?type=design" className="px-3 py-2 rounded border border-zinc-700 hover:border-zinc-500">Need a custom site? Request a design</Link>{hasWhatsApp() && <a href={whatsappLink('Hello, I have a question about the website builder. ')} target="_blank" rel="noopener noreferrer" className="px-3 py-2 rounded border border-emerald-500/50 text-emerald-400 inline-flex items-center gap-1.5"><IconWhatsApp size={14} /> WhatsApp</a>}</div>
           </div>

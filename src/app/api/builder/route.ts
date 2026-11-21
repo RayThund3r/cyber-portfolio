@@ -1,6 +1,6 @@
 // src/app/api/builder/route.ts — public template-builder API (customers). Auth = project id + secret edit key.
 import { NextResponse } from 'next/server';
-import { addAsset, assetDataUrls, authProject, cancelOrder, createProject, deleteAsset, deleteOwnProject, duplicateProject, orderState, placeOrder, priceNow, saveProject } from '@/server/projects';
+import { addAsset, assetDataUrls, authProject, cancelOrder, createProject, deleteAsset, deleteOwnProject, duplicateProject, orderState, placeOrder, priceNow, restoreAsset, restoreProject, saveProject } from '@/server/projects';
 import { clean, clientIp, EMAIL_RE, isLimited, PHONE_RE, rateLimit, readJsonLimited, sameOrigin } from '@/server/util';
 
 export const runtime = 'nodejs';
@@ -27,7 +27,7 @@ export async function POST(req: Request) {
   const key = clean(b?.key, 64);
 
   // every action that opens a site with its key goes through the same wrong-key guard
-  const keyed = ['load', 'status', 'save', 'upload', 'duplicate', 'deleteAsset', 'delete', 'order', 'unorder'].includes(action);
+  const keyed = ['load', 'status', 'save', 'upload', 'restoreAsset', 'duplicate', 'deleteAsset', 'delete', 'order', 'unorder'].includes(action);
   if (keyed && tooManyGuesses(ip, id)) return bad(GUESS_MSG, 429);
   const wrong = (error: string) => { if (error === 'Project not found.') noteWrongKey(ip, id); }; // only a wrong KEY counts
 
@@ -72,6 +72,20 @@ export async function POST(req: Request) {
     case 'upload': {
       if (rateLimit(`b-up:${ip}`, 60, 10 * 60_000)) return bad('Too many uploads. Try again shortly.', 429);
       const r = await addAsset(id, key, clean(b?.mime, 30), typeof b?.data === 'string' ? b.data : '');
+      if ('error' in r) { wrong(r.error); return bad(r.error, r.status); }
+      return ok(r);
+    }
+
+    case 'restore': {
+      // The browser still holds a full copy of a site the server has lost (e.g. a host that wipes its disk): put it back under the same id and key.
+      if (rateLimit(`b-restore:${ip}`, 20, 60 * 60_000)) return bad('Too many restore attempts. Please try again later.', 429);
+      const r = await restoreProject(id, key, { templateId: b?.templateId, templateName: b?.templateName, name: b?.name, config: b?.config, assetIds: b?.assetIds });
+      return 'error' in r ? bad(r.error, r.status) : ok(r);
+    }
+
+    case 'restoreAsset': {
+      if (rateLimit(`b-restore-asset:${ip}`, 400, 60 * 60_000)) return bad('Too many uploads. Try again shortly.', 429);
+      const r = await restoreAsset(id, key, clean(b?.assetId, 8), clean(b?.mime, 30), typeof b?.data === 'string' ? b.data : '');
       if ('error' in r) { wrong(r.error); return bad(r.error, r.status); }
       return ok(r);
     }

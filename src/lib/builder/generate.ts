@@ -13,6 +13,37 @@ export const BS_CDN = {
   js: `https://cdn.jsdelivr.net/npm/bootstrap@${BS_VERSION}/dist/js/bootstrap.bundle.min.js`,
 };
 
+/** Second source for Bootstrap, tried only when the first CDN fails (blocked, slow or offline-then-online mobile data). */
+const BS_BACKUP = {
+  css: `https://cdnjs.cloudflare.com/ajax/libs/bootstrap/${BS_VERSION}/css/bootstrap.min.css`,
+  js: `https://cdnjs.cloudflare.com/ajax/libs/bootstrap/${BS_VERSION}/js/bootstrap.bundle.min.js`,
+};
+
+/** Same-origin copy (see app/vendor/bootstrap): the first choice for the live editor/preview/view, so layout never depends on a third-party CDN. */
+const BS_LOCAL = { css: '/vendor/bootstrap/bootstrap.min.css', js: '/vendor/bootstrap/bootstrap.bundle.min.js' };
+
+/** Tiny loader for "try the next source if this one fails" — kept as plain ES5 so it runs in every browser, in the editor and in downloaded sites. */
+const BS_LOADER = `<script>(function(w,d){w.__bsCss=function(l,i){var u=w.__bsU.css;if(i>=u.length){l.onerror=null;return}l.onerror=function(){w.__bsCss(l,i+1)};l.href=u[i]};w.__bsJs=function(i){var u=w.__bsU.js;if(i>=u.length)return;d.write('<script src="'+u[i]+'" onerror="__bsJs('+(i+1)+')"><\\/script>')}})(window,document)</script>`;
+
+/** Safety net: only active while Bootstrap's own stylesheet has NOT loaded (every source blocked or offline). Keeps a classic site readable — a real menu bar,
+ *  centred content, pictures that fit — instead of a bare bullet list. Switched off the moment Bootstrap arrives (the link adds class "bs-ok" to <html>). */
+const SAFETY_CSS = `
+html:not(.bs-ok) .navbar{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem 1.25rem;padding:.75rem 1rem}
+html:not(.bs-ok) .navbar-collapse{display:flex;flex:1 1 auto;flex-wrap:wrap;align-items:center;gap:.5rem 1rem}
+html:not(.bs-ok) .navbar-nav,html:not(.bs-ok) ul.list-unstyled{display:flex;flex-wrap:wrap;gap:.25rem 1rem;list-style:none;padding:0;margin:0}
+html:not(.bs-ok) .navbar-toggler{display:none}
+html:not(.bs-ok) .container,html:not(.bs-ok) .container-fluid{width:100%;max-width:1140px;margin-left:auto;margin-right:auto;padding-left:1rem;padding-right:1rem}
+html:not(.bs-ok) .row{display:flex;flex-wrap:wrap;gap:1.5rem}
+html:not(.bs-ok) .row>*{flex:1 1 260px;min-width:0}
+html:not(.bs-ok) img,html:not(.bs-ok) video{max-width:100%;height:auto}
+html:not(.bs-ok) a{text-decoration:none}
+html:not(.bs-ok) .btn{display:inline-block;padding:.5rem 1rem;border:1px solid currentColor;border-radius:.4rem}
+html:not(.bs-ok) section{padding:3rem 0}
+html:not(.bs-ok) *,html:not(.bs-ok) *::before,html:not(.bs-ok) *::after{box-sizing:border-box}
+html:not(.bs-ok) h1,html:not(.bs-ok) h2,html:not(.bs-ok) h3,html:not(.bs-ok) p{overflow-wrap:anywhere}
+html:not(.bs-ok) body{overflow-x:hidden}
+`;
+
 export interface BuildOptions {
   /** preview = editor canvas (selection + inline editing) · view = finished interactive site · export = files for the zip */
   mode: 'preview' | 'view' | 'export';
@@ -145,6 +176,8 @@ img{max-width:100%}
 .js [data-reveal].in{opacity:1;transform:none}
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.js [data-reveal]{opacity:1;transform:none;transition:none}.btn,.feature,.gal img{transition:none}}
 @media (max-width:991px){.hero{padding:5.5rem 0 3.5rem}.sp-spacious{padding:4.5rem 0}.price.featured{transform:none}}
+/* Bootstrap's g-5 gutter (3rem) pulls a row 24px outside a container that only pads 12px, so on phones the page was 12px wider than the screen and wobbled sideways. Keep the roomy vertical gap, use the normal side gutter. */
+@media (max-width:991.98px){.row.g-5,.row.gx-5{--bs-gutter-x:1.5rem}}
 `;
 }
 
@@ -354,9 +387,11 @@ export function buildSite(cfg: SiteConfig, opts: BuildOptions): BuiltSite {
   };
 
   const body = cfg.sections.filter((s) => s.visible || s.type === 'navbar' || s.type === 'footer').map(render).join('\n');
-  const css = buildCss(cfg) + PREVIEW_CSS;
+  const css = buildCss(cfg) + SAFETY_CSS + PREVIEW_CSS;
   const fp = FONT_PAIRS.find((f) => f.id === t.fontPair) || FONT_PAIRS[0];
-  const bs = opts.bootstrap || BS_CDN;
+  // Sources tried in order. Live views: our own address first, then the two CDNs. Exports: the bundled copy, or the two CDNs.
+  const bsCss = opts.bootstrap ? [opts.bootstrap.css] : opts.mode === 'export' ? [BS_CDN.css, BS_BACKUP.css] : [BS_LOCAL.css, BS_CDN.css, BS_BACKUP.css];
+  const bsJs = opts.bootstrap ? [opts.bootstrap.js] : opts.mode === 'export' ? [BS_CDN.js, BS_BACKUP.js] : [BS_LOCAL.js, BS_CDN.js, BS_BACKUP.js];
   const fav = `data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>${cfg.meta.favicon || '🚀'}</text></svg>`)}`;
   const inJs = (x: string) => x.replace(/<\/script/gi, '<\\/script');
   const inCss = (x: string) => x.replace(/<\/style/gi, '<\\/style');
@@ -373,7 +408,7 @@ export function buildSite(cfg: SiteConfig, opts: BuildOptions): BuiltSite {
 <meta name="theme-color" content="${t.primary}">
 <link rel="icon" href="${fav}">
 ${fp.google ? `<link rel="preconnect" href="https://fonts.googleapis.com">\n<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n<link rel="stylesheet" href="https://fonts.googleapis.com/css2?${fp.google}&display=swap">` : ''}
-<link rel="stylesheet" href="${e(bs.css)}">
+${bsCss.length > 1 ? `<script>window.__bsU=${JSON.stringify({ css: bsCss, js: bsJs }).replace(/</g, '\\u003c')}</script>\n${BS_LOADER}\n` : ''}<link rel="stylesheet" href="${e(bsCss[0])}" onload="document.documentElement.classList.add('bs-ok')"${bsCss.length > 1 ? ` onerror="__bsCss(this,1)"` : ''}>
 ${inline ? `<style>${inCss(css)}</style>` : '<link rel="stylesheet" href="css/style.css">'}
 ${code.css ? (inline ? `<style id="custom-css">${inCss(code.css)}</style>` : '<link rel="stylesheet" href="css/custom.css">') : ''}
 ${code.head || ''}
@@ -382,7 +417,7 @@ ${code.head || ''}
 <body>
 ${body}
 <button id="toTop" type="button" aria-label="${e(L.top)}">↑</button>
-<script src="${e(bs.js)}"></script>
+<script src="${e(bsJs[0])}"${bsJs.length > 1 ? ` onerror="__bsJs(1)"` : ''}></script>
 ${inline ? `<script>${SITE_JS}</script>\n<script>${prev ? PREVIEW_JS : VIEW_JS}</script>` : '<script src="js/script.js"></script>'}
 ${code.js ? (inline ? `<script>${inJs(code.js)}</script>` : '<script src="js/custom.js"></script>') : ''}
 </body>
