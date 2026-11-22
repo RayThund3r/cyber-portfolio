@@ -2,6 +2,7 @@
 import Icon, { type IconName } from '@/components/ui/Icon';
 import { DEV } from '@/data/devProfile';
 import { openChatLink } from './openChatLink';
+import { SITE, hasWhatsApp, whatsappLink } from '@/utils/chatEngine/siteConfig';
 
 export default function DevSection() {
   const initials = DEV.name.split(/\s+/).map((w) => w[0]).join('').slice(0, 2).toUpperCase() || 'DV';
@@ -12,7 +13,8 @@ export default function DevSection() {
           <span className="font-mono text-[10px] uppercase tracking-wider text-accent sm:text-xs">OPERATOR_PROFILE // WHO BUILT THIS</span>
           <div className="mt-4 flex items-center gap-4">
             <div className="relative flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl border border-accent/40 bg-zinc-900 font-mono text-2xl font-bold text-accent shadow-[0_0_30px_-8px_var(--color-accent,#22d3ee)]" aria-hidden="true">
-              {initials}
+              <Icon name="bolt" size={38} className="drop-shadow-[0_0_8px_var(--color-accent,#22d3ee)]" />
+              <span className="sr-only">{initials}</span>
               <span className="absolute -bottom-1 -right-1 h-3.5 w-3.5 rounded-full border-2 border-zinc-950 bg-emerald-400" />
             </div>
             <div className="min-w-0">
@@ -24,6 +26,9 @@ export default function DevSection() {
           <div className="mt-5 flex flex-wrap gap-2 font-mono text-xs">
             <a href="/contact" className="touch-target inline-flex items-center gap-1.5 rounded bg-accent-strong px-4 py-2.5 font-semibold text-black transition-transform hover:scale-105 active:scale-95"><Icon name="mail" size={14} />WORK_WITH_ME</a>
             <button type="button" onClick={openChatLink} className="touch-target inline-flex items-center gap-1.5 rounded border border-zinc-800 bg-zinc-900 px-4 py-2.5 text-zinc-300 transition-colors hover:border-accent/50 hover:text-accent"><Icon name="chat" size={14} />ASK_ABOUT_ME</button>
+            {hasWhatsApp() && <a href={whatsappLink('Hello Ray, I found you on your website. ')} target="_blank" rel="noopener noreferrer" className="touch-target inline-flex items-center gap-1.5 rounded border border-zinc-800 bg-zinc-900 px-4 py-2.5 text-zinc-300 transition-colors hover:border-accent/50 hover:text-accent"><Icon name="chat" size={14} />WHATSAPP</a>}
+            {SITE.whatsapp && <a href={`tel:${SITE.whatsapp.replace(/[^\d+]/g, '')}`} className="touch-target inline-flex items-center gap-1.5 rounded border border-zinc-800 bg-zinc-900 px-4 py-2.5 text-zinc-300 transition-colors hover:border-accent/50 hover:text-accent"><Icon name="phone" size={14} />{SITE.whatsapp}</a>}
+            {SITE.email && <a href={`mailto:${SITE.email}`} className="touch-target inline-flex items-center gap-1.5 rounded border border-zinc-800 bg-zinc-900 px-4 py-2.5 text-zinc-300 transition-colors hover:border-accent/50 hover:text-accent"><Icon name="mail" size={14} />{SITE.email}</a>}
             {DEV.links.map((l) => (
               <a key={l.href} href={l.href} target="_blank" rel="noopener noreferrer" className="touch-target inline-flex items-center gap-1.5 rounded border border-zinc-800 bg-zinc-900 px-4 py-2.5 text-zinc-300 transition-colors hover:border-accent/50 hover:text-accent">{l.label}<Icon name="external" size={12} /></a>
             ))}

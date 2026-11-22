@@ -38,7 +38,7 @@ import { matchTaught } from './brain';
 import { tryGameKnowledge } from './gameKnowledge';
 import { tryEgg, tryWorldTalk } from './worldTalk';
 import { eventsNow, DEFAULT_EVENTS_CFG } from '../../lib/events/config';
-import { searchWeb, looksLikeLookup, needsLiveData } from './webSearch';
+import { searchWeb, looksLikeLookup, needsLiveData, STALE_NOTE } from './webSearch';
 import { tryCalculate, formatNumber } from './calc';
 import { tryMathPlus } from './mathPlus';
 import { tryUtilities } from './utilities';
@@ -49,6 +49,9 @@ import { resolveFollowUp } from './followUp';
 import { tryDates } from './dates';
 import { tryCompare } from './compare';
 import { termReply, tryGlossary } from './glossary';
+import { tryFacts } from './facts';
+import { tryWorld } from './world';
+import { diagnose } from './fileAdvice';
 import { buildMessages } from './promptBuilder';
 import { generateLocal, isLocalLLMReady, labelForModel, getLLMState } from './localLLM';
 import { browserDeps as siteBuildDeps, trySiteBuild } from './siteBuild';
@@ -298,6 +301,21 @@ async function route(
   }
 
   // 2a-. Game guides: "how do I play snake", "tips for chess", and "I'm losing" while a game is open.
+  // A bare follow-up ("tell me more", "why?") with nothing said yet has nothing to refer to.
+  if ((memory.conversationHistory?.length ?? 0) === 0 && /^(?:tell me more|more|why|why not|explain( it)?( more| simpler| again)?|simpler|go on|continue|elaborate|what do you mean)\??$/i.test(raw.trim())) {
+    return finish(memory, raw, "I'm not sure what to expand on yet. 🙂 Ask me something first, for example **\"my phone won't charge\"**, **\"what is an SSD?\"** or **\"how much for a logo?\"**, and then I can go deeper.", 'rules', { suggestions: ['My phone won\'t charge', 'What is an SSD?', 'What can you do?'] });
+  }
+  // Pasted error text (a log line, a blue-screen code, a stack trace): explain it instead of guessing what the topic is.
+  if (raw.length >= 25 && raw.length <= 6000 && !hasFiles) {
+    const pasted = diagnose(raw);
+    if (pasted.length && (/[\n:]|0x[0-9a-f]+|[A-Z]{3,}_[A-Z_]{3,}|\b(?:error|exception|failed|stop code|fatal)\b/i.test(raw))) {
+      return finish(memory, raw, `That looks like an error message. Here's what I can see:\n${pasted.map((e) => `- **${e.label}**: ${e.meaning}\n  Try: ${e.next}`).join('\n')}\n\nIf it keeps happening, tell me the device and what you were doing, or I can pass it to the owner.`, 'knowledge', { topic: 'GENERAL_QA', suggestions: ['Send this to the owner', 'Book a repair'] });
+    }
+  }
+  const earlyFact = tryFacts(raw);
+  if (earlyFact) return finish(memory, raw, mode === 'EXPERT' ? earlyFact.expert : earlyFact.human, 'knowledge', { topic: 'GENERAL_QA', suggestions: earlyFact.suggestions });
+  const earlyWorld = tryWorld(raw);
+  if (earlyWorld) return finish(memory, raw, mode === 'EXPERT' ? earlyWorld.expert : earlyWorld.human, 'knowledge', { topic: 'GENERAL_QA', suggestions: earlyWorld.suggestions });
   const gk = tryGameKnowledge(raw, { game: options.game, extGames: options.extGames });
   if (gk) {
     return finish(memory, raw, mode === 'EXPERT' ? gk.expert || gk.human : gk.human, 'system', { topic: 'SYSTEM', suggestions: gk.suggestions });
@@ -387,11 +405,14 @@ async function route(
   if (dateAns) {
     return finish(memory, raw, mode === 'EXPERT' ? dateAns.expert : dateAns.human, 'system', { topic: 'GENERAL_QA', suggestions: dateAns.suggestions });
   }
+  const fact = tryFacts(raw);
+  if (fact) return finish(memory, raw, mode === 'EXPERT' ? fact.expert : fact.human, 'knowledge', { topic: 'GENERAL_QA', suggestions: fact.suggestions });
   const cmp = tryCompare(raw);
   if (cmp) {
     return finish(memory, raw, mode === 'EXPERT' ? cmp.expert : cmp.human, 'knowledge', { topic: 'GENERAL_QA', suggestions: cmp.suggestions });
   }
-  const gloss = tryGlossary(raw);
+  // "What is X?" where X is a known term is a definition question: answer it before service/troubleshooting entries can hijack it.
+  const gloss = tryGlossary(raw, true);
   if (gloss) {
     const g = termReply(gloss);
     return finish(memory, raw, mode === 'EXPERT' ? g.expert : g.human, 'knowledge', { topic: 'GENERAL_QA', suggestions: g.suggestions });
@@ -508,7 +529,7 @@ async function route(
     let webContext: { title: string; extract: string } | null = null;
     if (!strong && looksLikeLookup(raw)) {
       const web = await withTimeout(searchWeb(raw, mode, options.signal), 2500);
-      if (web) webContext = { title: web.title, extract: web.extract };
+      if (web && !web.blockedReply && (web.confidence ?? 1) >= 0.6) webContext = { title: web.title, extract: web.extract };
     }
 
     const messages = buildMessages({ input: raw, mode, memory, hits, webContext, files: isLocalLLMReady() ? files : [] });
@@ -582,10 +603,11 @@ async function route(
     if (web) {
       const body = trimToSentences(web.extract);
       const src = web.url ? `[Wikipedia](${web.url})` : 'Wikipedia';
+      const stale = web.volatile ? `\n\n${STALE_NOTE}` : '';
       const reply =
         mode === 'EXPERT'
           ? `SYS_INTEL_FETCH // "${truncate(raw, 60)}" -> ${web.title}\n\n${body}`
-          : `**${web.title}**\n${body}\n\nSource: ${src}${web.fromCache ? ' (saved)' : ''}`;
+          : `**${web.title}**\n${body}${stale}\n\nSource: ${src}${web.fromCache ? ' (saved)' : ''}`;
       return finish(memory, raw, reply, 'web', { topic: 'GENERAL_QA', imageUrl: web.imageUrl });
     }
     lookupFailed = true;
@@ -639,7 +661,11 @@ async function route(
   }
   // Don't repeat the same apology: rephrase once, then stop guessing and offer a real person.
   const streak = Number(memory.userContext?.missStreak) || 0;
+  const needsModel = /^(?:please |pls |can you |could you |kindly )?(?:write|create|generate|draft|compose|code|explain|summari[sz]e|describe|essay|story|translate|debug|fix this code|make me (?:a |an )?(?:poem|story|essay|email|letter|speech|script|program|app))\b/i.test(raw) || raw.length > 160;
   const reply =
+    needsModel && mode !== 'EXPERT'
+      ? `${lookedUp}That one needs a full language model: open-ended writing, code and long explanations are what it's for. 🧠 They work once the owner's **cloud AI** is switched on (or you enable the **on-device AI** from the chat menu). Meanwhile I'm solid on repairs, design and web questions, maths, dates and definitions. Want me to pass this to the owner instead?`
+      :
     mode === 'EXPERT'
       ? `SYS_NO_MATCH // No module matched "${truncate(raw, 60)}"${lookupFailed ? ' (web lookup: no reliable result)' : ''}${streak ? ` (x${streak + 1})` : ''}. Specify: [HARDWARE] [DESIGN] [WEB]${streak ? ' or dispatch to owner.' : '.'}`
       : streak === 0

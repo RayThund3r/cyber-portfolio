@@ -10,7 +10,8 @@ export const oneLine = (v: unknown, max: number): string =>
 export const clean = (v: unknown, max: number): string =>
   typeof v === 'string' ? v.replace(/\u0000/g, '').trim().slice(0, max) : '';
 
-export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+/** Plain addresses only: no commas, semicolons, angle brackets or quotes, so one field can never mean "several recipients" or a display-name trick. */
+export const EMAIL_RE = /^[A-Za-z0-9._%+'-]{1,64}@[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*\.[A-Za-z]{2,24}$/;
 export const PHONE_RE = /^[\d\s\-+()]{6,30}$/;
 
 /**
@@ -49,7 +50,8 @@ export async function readJsonLimited(req: Request, maxBytes: number): Promise<L
     chunks.push(value);
   }
   try {
-    const body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+    // drop keys that would make String()/valueOf() throw on a hostile body (e.g. {"action":{"toString":1}})
+    const body = JSON.parse(Buffer.concat(chunks).toString('utf8'), (k, v) => (k === 'toString' || k === 'valueOf' || k === 'toJSON' || k === '__proto__' ? undefined : v));
     return body && typeof body === 'object' && !Array.isArray(body) ? { ok: true, body, status: 200, error: '' } : fail(400, 'Invalid request.');
   } catch {
     return fail(400, 'Invalid request.');
@@ -65,12 +67,19 @@ export function safeLink(v: unknown, max = 600): string {
 
 /** Per-instance sliding-window limiter. Add host/WAF rate limits for real protection. */
 const buckets = new Map<string, number[]>();
+const MAX_BUCKETS = 10_000, MAX_HITS = 2_000;
+export const __bucketCount = () => buckets.size;
 export function rateLimit(key: string, max: number, windowMs: number): boolean {
   const now = Date.now();
   const hits = (buckets.get(key) || []).filter((t) => now - t < windowMs);
   hits.push(now);
-  buckets.set(key, hits);
-  if (buckets.size > 8000) for (const [k, v] of buckets) if (!v.some((t) => now - t < windowMs)) buckets.delete(k);
+  if (hits.length > MAX_HITS) hits.splice(0, hits.length - MAX_HITS); // one key can never hold an unbounded list
+  buckets.delete(key); buckets.set(key, hits); // re-insert: Map order = least recently used first
+  if (buckets.size > MAX_BUCKETS) {
+    // The map is bounded no matter how many different keys an attacker invents: drop expired ones first, then the least recently used.
+    for (const [k, v] of buckets) if (buckets.size > MAX_BUCKETS * 0.8 && !v.some((t) => now - t < windowMs)) buckets.delete(k);
+    for (const k of buckets.keys()) { if (buckets.size <= MAX_BUCKETS * 0.8) break; if (k !== key) buckets.delete(k); }
+  }
   return hits.length > max;
 }
 
@@ -83,7 +92,10 @@ export function isLimited(key: string, max: number, windowMs: number): boolean {
 /** Same-origin guard for browser-initiated mutations. */
 export function sameOrigin(req: Request): boolean {
   const origin = req.headers.get('origin');
-  if (!origin) return true; // non-browser clients; auth still required where it matters
+  if (!origin) {
+    // No Origin: a script/curl client, or an old browser. A modern browser says "cross-site" via Sec-Fetch-Site, and that is refused.
+    return (req.headers.get('sec-fetch-site') || 'same-origin') !== 'cross-site';
+  }
   try {
     return new URL(origin).host === (req.headers.get('x-forwarded-host') || req.headers.get('host'));
   } catch {
@@ -107,4 +119,12 @@ export function toWaNumber(phone: string): string {
   const d = digits(phone);
   if (d.startsWith('0') && d.length === 10) return '256' + d.slice(1);
   return d;
+}
+
+/** Stops the site being used to spam a third party: at most 3 automatic emails per recipient per day, and 150 per hour in total. True = may send. */
+export function mailBudget(to: string): boolean {
+  const a = String(to || '').trim().toLowerCase();
+  if (!a) return false;
+  const over1 = rateLimit(`mail-to:${a}`, 3, 24 * 3600_000), over2 = rateLimit('mail-auto:all', 150, 3600_000);
+  return !over1 && !over2;
 }

@@ -100,6 +100,35 @@ export function isNegatedCommand(s: string): boolean {
   return NEG_CMD.test(s.trim().replace(/[’`]/g, "'"));
 }
 
+const DIGIT_WORD = '(?:zero|oh|one|two|three|four|five|six|seven|eight|nine)';
+const DIGITS: Record<string, string> = { zero: '0', oh: '0', one: '1', two: '2', three: '3', four: '4', five: '5', six: '6', seven: '7', eight: '8', nine: '9' };
+
+/** Spoken phone numbers and emails: "plus two five six seven five two ..." -> "+256752...", "ray at gmail dot com" -> "ray@gmail.com". */
+export function spokenContact(s: string): string {
+  let out = s.replace(new RegExp(`\\b(plus )?(${DIGIT_WORD})(?:[ ,-]+(?:double |triple )?${DIGIT_WORD}){6,}\\b`, 'gi'), (m) => {
+    const ws = m.toLowerCase().split(/[ ,-]+/);
+    let o = '';
+    for (let i = 0; i < ws.length; i++) {
+      const w = ws[i];
+      if (w === 'plus') { o += '+'; continue; }
+      if (w === 'double' || w === 'triple') { const d = DIGITS[ws[++i]] ?? ''; o += d.repeat(w === 'double' ? 2 : 3); continue; }
+      o += DIGITS[w] ?? '';
+    }
+    return o;
+  });
+  out = out.replace(/\b([a-z0-9][a-z0-9._-]*?)\s+at\s+([a-z0-9-]+)\s+dot\s+([a-z]{2,4}(?:\s+dot\s+[a-z]{2,4})*)\b/gi, (_m, user: string, host: string, tld: string) => `${user.replace(/\s+/g, '')}@${host}.${tld.trim().split(/\s+dot\s+/).join('.')}`);
+  return out;
+}
+
+/** "comma", "full stop", "question mark" spoken while dictating. Only when said as separate words at the end of a clause. */
+export function spokenPunctuation(s: string): string {
+  return s
+    .replace(/\s+(?:question mark)\s*$/i, '?')
+    .replace(/\s+(?:exclamation (?:mark|point))\s*$/i, '!')
+    .replace(/\s+(?:full stop|period)\s*$/i, '.')
+    .replace(/\s+comma\s+(?=\S)/gi, ', ');
+}
+
 /** Everything above in the right order. Safe to run on typed text too. */
 export function normalizeSpoken(input: string): { text: string; corrected: boolean } {
   let s = input.trim().replace(/\s+/g, ' ');
@@ -107,19 +136,24 @@ export function normalizeSpoken(input: string): { text: string; corrected: boole
   const c = unwrapCorrection(s);
   s = c.text;
   s = stripFillers(s);
+  s = spokenContact(s);
   for (const [re, to] of MISHEARS) s = s.replace(re, to);
   s = spokenNumbers(s);
+  s = spokenPunctuation(s);
   return { text: s, corrected: c.corrected };
 }
 
 /** Voice commands that control the microphone box itself, not the assistant. Matched on the WHOLE transcript tail. */
-export type VoiceMeta = 'send' | 'clear' | 'stop' | 'quiet' | 'repeat' | null;
+export type VoiceMeta = 'send' | 'clear' | 'stop' | 'quiet' | 'repeat' | 'slower' | 'faster' | null;
 export function voiceMeta(transcript: string): { meta: VoiceMeta; text: string } {
   const t = transcript.trim();
   const tail = /^(.*?)[,.\s]*\b(?:send (?:it|that|this|message)|send now|go ahead and send|that'?s all,? send|over and out)\W*$/i.exec(t);
   if (tail && tail[1].trim().length > 1) return { meta: 'send', text: tail[1].trim() };
   if (/^(?:cancel|clear|clear (?:that|it|this|everything)|start over|delete (?:that|it|this|everything)|scratch that|never ?mind)\W*$/i.test(t)) return { meta: 'clear', text: '' };
-  if (/^(?:stop talking|stop reading|be quiet|quiet please|shut up|silence|stop speaking|that'?ll do)\W*$/i.test(t)) return { meta: 'quiet', text: '' };
+  if (/^(?:please )?(?:send|send (?:it|that|this|the message)|go ahead|submit|okay send|ok send|yes send)(?: please)?\W*$/i.test(t)) return { meta: 'send', text: '' };
+  if (/^(?:stop talking|stop reading|stop|pause|hush|enough|be quiet|quiet please|shut up|silence|stop speaking|that'?ll do|okay stop|ok stop)\W*$/i.test(t)) return { meta: 'quiet', text: '' };
+  if (/^(?:speak|talk|read) (?:a bit |a little )?slower\W*$|^slow down\W*$|^too fast\W*$/i.test(t)) return { meta: 'slower', text: '' };
+  if (/^(?:speak|talk|read) (?:a bit |a little )?faster\W*$|^speed up\W*$|^too slow\W*$/i.test(t)) return { meta: 'faster', text: '' };
   if (/^(?:say that again|read that again|repeat that|say it again|read it again|what did you say|come again|repeat)\W*$/i.test(t)) return { meta: 'repeat', text: '' };
   if (/^(?:stop listening|stop recording|that'?s it|i'?m done|done talking)\W*$/i.test(t)) return { meta: 'stop', text: '' };
   return { meta: null, text: t };

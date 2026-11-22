@@ -9,9 +9,9 @@ import type { FileInsight } from '@/utils/chatEngine/types';
 import type { SharedFile } from './useAttachments';
 import ImageLightbox from './ImageLightbox';
 
-const ICON = { image: '🖼️', pdf: '📄', text: '📝' } as const;
+const ICON = { image: '🖼️', pdf: '📄', text: '📝', doc: '📑' } as const;
 
-export function FileChip({ name, size, kind, previewUrl, onRemove, onOpen }: { name: string; size: number; kind: 'image' | 'pdf' | 'text'; previewUrl?: string; onRemove?: () => void; onOpen?: () => void }) {
+export function FileChip({ name, size, kind, previewUrl, onRemove, onOpen }: { name: string; size: number; kind: 'image' | 'pdf' | 'text' | 'doc'; previewUrl?: string; onRemove?: () => void; onOpen?: () => void }) {
   const body = (
     <>
       {previewUrl ? (
@@ -65,28 +65,44 @@ function Preview({ f, onClose }: { f: SharedFile; onClose: () => void }) {
 
 export default function AttachmentTray({
   pending,
+  shared = [],
+  onRemoveShared,
   error,
   busy,
   status,
   onRemove,
   onDismissError,
   onAsk,
+  onReadText,
 }: {
   pending: SharedFile[];
+  /** Files already sent in this chat (still known to the assistant). */
+  shared?: SharedFile[];
+  onRemoveShared?: (id: string) => void;
   error: string | null;
   busy: boolean;
   status?: string | null;
   onRemove: (id: string) => void;
   onDismissError: () => void;
   onAsk?: (text: string) => void;
+  /** Read the text in a picture (on request). */
+  onReadText?: (id: string) => void;
 }) {
   const [open, setOpen] = useState<string | null>(null);
-  if (!pending.length && !error && !busy) return null;
+  if (!pending.length && !error && !busy && !shared.length) return null;
   const last = pending[pending.length - 1];
   const asks = last ? quickAsks(last.insight) : [];
   const previewing = pending.find((f) => f.insight.id === open);
   return (
     <div className="border-t border-zinc-800 bg-zinc-900/90 px-3 pt-2">
+      {shared.length > 0 && onRemoveShared && (
+        <div className="flex flex-wrap items-center gap-1.5 pb-1" aria-label="Files the assistant is using">
+          <span className="font-mono text-[10px] text-zinc-500">In this chat:</span>
+          {shared.map((f) => (
+            <FileChip key={f.insight.id} name={f.insight.name} size={f.insight.size} kind={f.insight.kind} previewUrl={f.previewUrl} onRemove={() => onRemoveShared(f.insight.id)} />
+          ))}
+        </div>
+      )}
       {busy && <p className="pb-1 font-mono text-[10px] text-zinc-500" role="status">{status || 'Reading file…'}</p>}
       {pending.length > 0 && (
         <div className="flex flex-wrap gap-1.5 pb-1" aria-label="Files ready to send">
@@ -97,6 +113,14 @@ export default function AttachmentTray({
       )}
       {pending.some((f) => f.insight.note) && (
         <p className="pb-1 font-mono text-[10px] text-emerald-400/80" role="status">{pending.filter((f) => f.insight.note).map((f) => f.insight.note).join(' · ')}</p>
+      )}
+      {onReadText && pending.some((f) => f.insight.kind === 'image' && !f.insight.text) && (
+        <div className="pb-1.5">
+          <button type="button" disabled={busy} onClick={() => onReadText(pending.filter((f) => f.insight.kind === 'image' && !f.insight.text).slice(-1)[0].insight.id)} className="min-h-8 cursor-pointer rounded-full border border-zinc-600 bg-zinc-800 px-2.5 font-sans text-[11px] text-zinc-200 hover:border-accent/60 disabled:opacity-50">
+            🔎 Read the text in this picture
+          </button>
+          <span className="ml-2 font-mono text-[10px] text-zinc-600">Runs on your device. First time may download a small reading tool.</span>
+        </div>
       )}
       {asks.length > 0 && onAsk && (
         <div className="flex flex-wrap gap-1.5 pb-1.5" aria-label="Ask about this file">

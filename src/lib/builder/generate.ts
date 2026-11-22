@@ -172,6 +172,21 @@ img{max-width:100%}
 .site-footer ul{list-style:none;padding:0;margin:0}.site-footer li{margin:.35rem 0}
 #toTop{position:fixed;right:1rem;bottom:1rem;width:44px;height:44px;border-radius:50%;border:0;background:var(--c-primary);color:var(--c-on-primary);opacity:0;pointer-events:none;transition:opacity .25s;z-index:1030;font-size:1.2rem}
 #toTop.show{opacity:1;pointer-events:auto}
+.feat-rows{display:grid;gap:1rem}.feat-row{display:flex;gap:1.1rem;align-items:flex-start;padding:1.2rem 1.3rem;background:var(--c-card);border:1px solid var(--c-line);border-radius:var(--r);transition:transform .25s,box-shadow .25s}
+.feat-row .icon{font-size:1.8rem;line-height:1;flex:none}
+.feat-steps{list-style:none;margin:0;padding:0;display:grid;gap:1.4rem;position:relative}
+.feat-steps li{display:flex;gap:1.1rem;align-items:flex-start}
+.step-n{flex:none;width:2.6rem;height:2.6rem;border-radius:50%;background:var(--c-primary);color:var(--c-on-primary);font-weight:800;display:inline-flex;align-items:center;justify-content:center;font-family:var(--f-head)}
+.feat-min .icon{font-size:2rem;margin-bottom:.6rem}
+.stat-card{padding:1.4rem 1rem;text-align:center;transition:transform .25s,box-shadow .25s}
+.team-card{padding:1.4rem 1rem;transition:transform .25s,box-shadow .25s}
+.faq-open{padding:1.2rem 1.3rem;border-left:3px solid var(--c-primary);background:var(--c-card);border-radius:0 var(--r) var(--r) 0}
+.gal-masonry{column-gap:1rem}.gal-masonry.cols-2{column-count:2}.gal-masonry.cols-3{column-count:3}.gal-masonry.cols-4{column-count:4}
+.gal-masonry .mi{break-inside:avoid;margin-bottom:1rem}.gal-masonry .gal img{aspect-ratio:auto}
+@media (max-width:767px){.gal-masonry,.gal-masonry.cols-3,.gal-masonry.cols-4{column-count:2}}
+.gal-strip{display:flex;gap:1rem;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:.8rem;-webkit-overflow-scrolling:touch}
+.gal-strip .si{flex:0 0 min(78%,340px);scroll-snap-align:start}
+@media (hover:hover) and (prefers-reduced-motion:no-preference){.feature:hover,.feat-row:hover,.stat-card:hover,.team-card:hover,.price:hover{transform:translateY(-4px);box-shadow:0 14px 34px rgba(0,0,0,.12)}.price.featured:hover{transform:scale(1.03) translateY(-4px)}}
 .js [data-reveal]{opacity:0;transform:translateY(26px);transition:opacity .7s ease,transform .7s ease}
 .js [data-reveal].in{opacity:1;transform:none}
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.js [data-reveal]{opacity:1;transform:none;transition:none}.btn,.feature,.gal img{transition:none}}
@@ -313,19 +328,34 @@ export function buildSite(cfg: SiteConfig, opts: BuildOptions): BuiltSite {
         return wrap(s, `<div class="container"><div class="row align-items-center g-5">${text}${pic}</div></div>`);
       }
       case 'features': {
-        const cards = (d.items || []).map((it: any, i: number) => `<div class="col"><div class="card h-100 feature"${R}><div class="card-body p-4"><div class="icon">${e(it.icon)}</div><h3 class="h5">${F(s, `items.${i}.title`, it.title)}</h3><p class="mb-0">${F(s, `items.${i}.text`, it.text, true)}</p></div></div></div>`).join('');
+        const its: any[] = d.items || [];
+        const ic = (it: any, i: number) => `<h3 class="h5">${F(s, `items.${i}.title`, it.title)}</h3><p class="mb-0">${F(s, `items.${i}.text`, it.text, true)}</p>`;
+        if (d.variant === 'list')
+          return wrap(s, `<div class="container" style="max-width:900px">${head(s)}<div class="feat-rows">${its.map((it, i) => `<div class="feat-row"${R}><div class="icon">${e(it.icon)}</div><div>${ic(it, i)}</div></div>`).join('')}</div></div>`);
+        if (d.variant === 'steps')
+          return wrap(s, `<div class="container" style="max-width:900px">${head(s)}<ol class="feat-steps">${its.map((it, i) => `<li${R}><span class="step-n">${i + 1}</span><div>${ic(it, i)}</div></li>`).join('')}</ol></div>`);
+        if (d.variant === 'minimal')
+          return wrap(s, `<div class="container">${head(s)}<div class="row row-cols-1 row-cols-md-2 row-cols-lg-${e(d.columns)} g-4">${its.map((it, i) => `<div class="col"><div class="feat-min"${R}><div class="icon">${e(it.icon)}</div>${ic(it, i)}</div></div>`).join('')}</div></div>`);
+        const cards = its.map((it: any, i: number) => `<div class="col"><div class="card h-100 feature"${R}><div class="card-body p-4"><div class="icon">${e(it.icon)}</div><h3 class="h5">${F(s, `items.${i}.title`, it.title)}</h3><p class="mb-0">${F(s, `items.${i}.text`, it.text, true)}</p></div></div></div>`).join('');
         return wrap(s, `<div class="container">${head(s)}<div class="row row-cols-1 row-cols-md-2 row-cols-lg-${e(d.columns)} g-4">${cards}</div></div>`);
       }
       case 'stats': {
         const items = (d.items || []).map((it: any, i: number) => {
           const n = parseFloat(String(it.value).replace(/,/g, ''));
           const num = Number.isFinite(n) ? `<span class="counter" data-to="${n}">${e(it.value)}</span>` : e(it.value);
-          return `<div class="col-6 col-md"${R}><div class="stat-num">${num}${e(it.suffix)}</div><div class="stat-label">${F(s, `items.${i}.label`, it.label)}</div></div>`;
+          const inner = `<div class="stat-num">${num}${e(it.suffix)}</div><div class="stat-label">${F(s, `items.${i}.label`, it.label)}</div>`;
+          return d.variant === 'cards' ? `<div class="col-6 col-md"${R}><div class="card stat-card">${inner}</div></div>` : `<div class="col-6 col-md"${R}>${inner}</div>`;
         }).join('');
         return wrap(s, `<div class="container"><div class="row text-center g-4 justify-content-center">${items}</div></div>`);
       }
       case 'gallery': {
-        const items = (d.images || []).map((g: any, i: number) => (g.image ? `<div class="col"${R}><figure class="gal"><img loading="lazy" src="${e(img(g.image))}" alt="${e(g.caption || d.title)}">${g.caption ? `<figcaption>${F(s, `images.${i}.caption`, g.caption)}</figcaption>` : ''}</figure></div>` : '')).join('');
+        const gi = (g: any, i: number) => `<figure class="gal"><img loading="lazy" src="${e(img(g.image))}" alt="${e(g.caption || d.title)}">${g.caption ? `<figcaption>${F(s, `images.${i}.caption`, g.caption)}</figcaption>` : ''}</figure>`;
+        const imgs: any[] = d.images || [];
+        if (d.variant === 'masonry')
+          return wrap(s, `<div class="container">${head(s)}<div class="gal-masonry cols-${e(d.columns)}">${imgs.map((g, i) => (g.image ? `<div class="mi"${R}>${gi(g, i)}</div>` : '')).join('')}</div></div>`);
+        if (d.variant === 'strip')
+          return wrap(s, `<div class="container">${head(s)}<div class="gal-strip">${imgs.map((g, i) => (g.image ? `<div class="si">${gi(g, i)}</div>` : '')).join('')}</div></div>`);
+        const items = imgs.map((g: any, i: number) => (g.image ? `<div class="col"${R}>${gi(g, i)}</div>` : '')).join('');
         return wrap(s, `<div class="container">${head(s)}<div class="row row-cols-1 row-cols-sm-2 row-cols-lg-${e(d.columns)} g-3">${items}</div></div>`);
       }
       case 'testimonials': {
@@ -343,11 +373,14 @@ export function buildSite(cfg: SiteConfig, opts: BuildOptions): BuiltSite {
         return wrap(s, `<div class="container">${head(s)}<div class="row row-cols-1 row-cols-lg-${Math.min(3, Math.max(1, plans.length))} g-4 justify-content-center">${cards}</div></div>`);
       }
       case 'team': {
-        const m = (d.members || []).map((p: any, i: number) => `<div class="col"${R}>${p.photo ? `<img class="team-photo" loading="lazy" src="${e(img(p.photo))}" alt="${e(p.name)}">` : `<span class="team-photo ph">${initial(p.name)}</span>`}<h3 class="h6 mb-0">${F(s, `members.${i}.name`, p.name)}</h3><div class="small" style="color:var(--c-muted)">${F(s, `members.${i}.role`, p.role)}</div></div>`).join('');
+        const card = d.variant === 'cards';
+        const m = (d.members || []).map((p: any, i: number) => `<div class="col"><div class="${card ? 'card team-card ' : ''}h-100"${R}>${p.photo ? `<img class="team-photo" loading="lazy" src="${e(img(p.photo))}" alt="${e(p.name)}">` : `<span class="team-photo ph">${initial(p.name)}</span>`}<h3 class="h6 mb-0">${F(s, `members.${i}.name`, p.name)}</h3><div class="small" style="color:var(--c-muted)">${F(s, `members.${i}.role`, p.role)}</div></div></div>`).join('');
         return wrap(s, `<div class="container">${head(s)}<div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-4 text-center">${m}</div></div>`);
       }
       case 'faq': {
         const aid = `acc-${s.id}`;
+        if (d.variant === 'open')
+          return wrap(s, `<div class="container">${head(s)}<div class="row row-cols-1 row-cols-md-2 g-4">${(d.items || []).map((it: any, i: number) => `<div class="col"><div class="faq-open"${R}><h3 class="h6">${F(s, `items.${i}.q`, it.q)}</h3><p class="mb-0">${F(s, `items.${i}.a`, it.a, true)}</p></div></div>`).join('')}</div></div>`);
         const items = (d.items || []).map((it: any, i: number) => `<div class="accordion-item"><h3 class="accordion-header"><button class="accordion-button${i ? ' collapsed' : ''}" type="button" data-bs-toggle="collapse" data-bs-target="#${aid}-${i}" aria-expanded="${i === 0}">${F(s, `items.${i}.q`, it.q)}</button></h3><div id="${aid}-${i}" class="accordion-collapse collapse${i === 0 ? ' show' : ''}" data-bs-parent="#${aid}"><div class="accordion-body">${F(s, `items.${i}.a`, it.a, true)}</div></div></div>`).join('');
         return wrap(s, `<div class="container" style="max-width:820px">${head(s)}<div class="accordion"${R} id="${aid}">${items}</div></div>`);
       }

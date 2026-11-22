@@ -1,6 +1,6 @@
 // src/app/api/contact/route.ts
 import { NextResponse } from 'next/server';
-import { esc, oneLine, clean, EMAIL_RE, PHONE_RE, clientIp, rateLimit, sameOrigin } from '@/server/util';
+import { esc, oneLine, clean, EMAIL_RE, PHONE_RE, clientIp, mailBudget, rateLimit, sameOrigin } from '@/server/util';
 import { resend, FROM, TO, BACKUP_TO, CAN_EMAIL_CUSTOMERS, trackLink, reportServerError } from '@/server/mail';
 import { createTicket, newTicketId } from '@/server/store';
 import { validateSlot } from '@/server/booking';
@@ -85,6 +85,7 @@ export async function POST(request: Request) {
 
   // Honeypot — pretend success so bots move on.
   if (typeof body?.website === 'string' && body.website.trim()) return NextResponse.json({ success: true, ticket: newTicketId() });
+  if (rateLimit('contact:all', 300, 3600_000)) return failure(429, 'We are receiving a lot of messages right now. Please message us on WhatsApp.');
   if (rateLimit(`contact:${ip}`, 5, 10 * 60_000)) return failure(429, 'Too many requests. Please wait a few minutes, or message us on WhatsApp.');
 
   const name = clean(body?.name, LIMITS.name);
@@ -169,7 +170,7 @@ export async function POST(request: Request) {
       return failure(502, 'We could not deliver your message. Please message us on WhatsApp or try again.', { ticket: ticketId });
     }
 
-    if (email && CAN_EMAIL_CUSTOMERS && !isChat) {
+    if (email && CAN_EMAIL_CUSTOMERS && !isChat && mailBudget(email)) {
       await r.emails.send({
         from: FROM, to: [email], subject: `We received your request (${ticketId})`,
         html: `<p>Hi ${esc(name)},</p><p>Thanks for getting in touch — we received your request${slot ? ` and noted your visit for <strong>${esc(slot.date)} at ${esc(slot.time)}</strong>` : ''}.</p><p>Reference: <strong>${esc(ticketId)}</strong><br/><a href="${esc(trackLink(ticketId))}">Track your request</a> (you'll need the phone/email you used).</p>`,

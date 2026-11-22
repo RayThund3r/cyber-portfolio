@@ -364,6 +364,9 @@ export default function ChatWidget() {
 
       <AttachmentTray
         pending={ctl.att.pending}
+        shared={ctl.att.shared}
+        onRemoveShared={ctl.att.removeShared}
+        onReadText={(id) => void ctl.att.readText(id)}
         error={ctl.att.error}
         busy={ctl.att.busy}
         status={ctl.att.status}

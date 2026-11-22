@@ -268,8 +268,10 @@ export async function createRequest(dev: Device, r: { plan: string; name: string
     const tx = r.txId.toLowerCase();
     if (d.requests.some((q) => q.txId.toLowerCase() === tx)) { dup = true; return; }
     if (d.requests.filter((q) => q.device === dev.id && q.status === 'pending').length >= 3) { tooMany = true; return; }
+    // A flood of fake requests must never push a real, unapproved payment out of the list: pending ones are capped and kept, resolved ones are dropped first.
+    if (d.requests.filter((q) => q.status === 'pending').length >= 150) { tooMany = true; return; }
     d.requests.unshift({ id, plan: plan.id, name: r.name, contact: r.contact, txId: r.txId, at: Date.now(), status: 'pending', device: dev.id });
-    d.requests = d.requests.slice(0, 300);
+    if (d.requests.length > 300) { const pend = d.requests.filter((q) => q.status === 'pending'); const done = d.requests.filter((q) => q.status !== 'pending').slice(0, Math.max(0, 300 - pend.length)); d.requests = [...pend, ...done].sort((a, b) => b.at - a.at); }
   });
   if (dup) return { ok: false, error: 'That transaction id was already submitted.' };
   if (tooMany) return { ok: false, error: 'You already have pending requests. Please wait for approval.' };

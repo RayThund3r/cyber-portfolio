@@ -394,7 +394,7 @@ function tryConvert(s: string): MathAnswer | null {
 export function tryMathPlus(input: string, lastNum?: number): MathAnswer | null {
   let s = input.toLowerCase().trim().replace(/[?!.]+$/, '').trim();
   if (!s || s.length > 120) return null;
-  s = s.replace(/^(what(?:'s| is)|whats|calculate|calc|compute|solve|work out|how much is|evaluate|convert)\s+/, (m) => (m.trim() === 'convert' ? 'convert ' : ''));
+  s = s.replace(/^(what(?:'s| is)|whats|calculate|calc|compute|solve|work out|how much is|evaluate|convert)\s+(?:the\s+)?/, (m) => (m.trim().startsWith('convert') ? 'convert ' : ''));
   s = s.replace(/\s+/g, ' ').trim();
 
   const conv = tryConvert(s);

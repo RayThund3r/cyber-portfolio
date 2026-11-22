@@ -299,6 +299,22 @@ export function detectSiteCommand(input: string, ctx: DetectContext = {}): Detec
     }
   }
 
+  // ---- 5b. light / dark mode ------------------------------------------------------------------
+  {
+    const m = /^(?:please |pls )?(?:(?:turn|switch|change|set|go|put|make)(?: it| the (?:site|page|website))?(?: on| to| into)? )?(?:the )?(dark|light|night|day|bright)(?: mode| theme)?(?: on| please)?$/.exec(q) || /^(?:please )?(?:turn|switch|put)(?: on)? (?:the )?(dark|light) mode(?: on)?$/.exec(q) || /^(?:i )?(?:want|prefer|need|like) (?:the )?(dark|light) (?:mode|theme)$/.exec(q);
+    const lights = /^(?:please )?turn (on|off) (?:the )?lights?$/.exec(q);
+    if (lights) { const mode = lights[1] === 'on' ? 'light' : 'dark'; return done({ type: 'mode', mode, label: `MODE · ${mode.toUpperCase()}` }, { human: `Switching to **${mode} mode**. ${mode === 'dark' ? '🌙' : '☀️'}`, expert: `UI // Mode: ${mode.toUpperCase()}.` }); }
+    const toggle = /^(?:please )?(?:toggle|flip|swap|switch)(?: the)? (?:light|dark)(?:\/| and | or )?(?:dark|light)?(?: mode)?$|^(?:toggle|switch|change) (?:the )?(?:mode|brightness)$/.test(q);
+    if (m || toggle) {
+      const w = m?.[1];
+      const mode = w ? (w === 'dark' || w === 'night' ? 'dark' : 'light') : undefined;
+      return done({ type: 'mode', mode, label: mode ? `MODE · ${mode.toUpperCase()}` : 'MODE' }, {
+        human: mode ? `Switching to **${mode} mode**. ${mode === 'dark' ? '🌙' : '☀️'}` : 'Flipping between light and dark mode. 🌗',
+        expert: mode ? `UI // Mode: ${mode.toUpperCase()}.` : 'UI // Mode toggled.',
+      });
+    }
+  }
+
   // ---- 6. theme ------------------------------------------------------------------------------
   {
     const color = q.match(/\b(cyan|blue|teal|aqua|amber|orange|yellow|gold|emerald|green)\b/)?.[1];

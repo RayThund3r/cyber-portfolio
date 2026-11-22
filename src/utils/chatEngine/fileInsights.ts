@@ -13,6 +13,9 @@
 import { answerLog, answerTable, isDataQuestion, parseDelimited, profileColumns, profileLog, tableOverview } from './dataQA';
 import { describePixels, sampleImage } from '@/lib/imageTools';
 import { ATTACH, extOf, formatBytes, kindOfName, matchesSignature, validateFile } from '@/lib/attachmentRules';
+import { extractDocText } from '@/lib/docText';
+import { fileTextAnswer } from './fileQA';
+import { adviceAnswer, adviseFile } from './fileAdvice';
 import type { FileInsight, PersonaMode } from './types';
 
 const uid = () => `f-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
@@ -124,17 +127,14 @@ export async function analyzeFile(file: File): Promise<FileInsight> {
     };
   }
 
-  // pdf: count pages from the file structure (best effort)
-  let pages = 0;
-  try {
-    const bytes = new Uint8Array(await file.arrayBuffer());
-    let s = '';
-    for (let i = 0; i < bytes.length; i += 8192) s += String.fromCharCode(...bytes.subarray(i, i + 8192));
-    pages = (s.match(/\/Type\s*\/Page(?![s\w])/g) || []).length;
-  } catch {
-    /* ignore */
-  }
-  return { ...base, summary: `PDF${pages ? ` · ${pages} page${pages === 1 ? '' : 's'}` : ''} · ${formatBytes(file.size)}` };
+  // pdf / Word / Excel / PowerPoint: read the text in the browser (best effort)
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const doc = await extractDocText(bytes, ext);
+  const label = kind === 'pdf' ? 'PDF' : ext === 'docx' ? 'Word document' : ext === 'xlsx' ? 'Excel workbook' : 'PowerPoint';
+  const unit = ext === 'xlsx' ? 'sheet' : ext === 'pptx' ? 'slide' : 'page';
+  const words = (doc.text.match(/\S+/g) || []).length;
+  const bits = [label, doc.pages ? `${doc.pages} ${unit}${doc.pages === 1 ? '' : 's'}` : '', words ? `~${words.toLocaleString('en')} words` : '', formatBytes(file.size)].filter(Boolean);
+  return { ...base, summary: bits.join(' · '), ...(doc.text ? { excerpt: doc.text.slice(0, 3000), text: doc.text } : {}), ...(doc.note ? { note: doc.note } : {}) };
 }
 
 /* ------------------------------------------------------------------ intent helpers */
@@ -169,19 +169,32 @@ const FILEISH = /\b(file|csv|tsv|data|sheet|spreadsheet|table|rows?|columns?|rec
 
 /** An exact, computed answer about a shared CSV/TSV/log, or null when the question isn't about the data. */
 export function dataAnswer(files: FileInsight[], raw: string): string | null {
+  return listAnswer(files, raw) || tableAnswer(files, raw) || adviceAnswer(files, raw) || fileTextAnswer(files, raw);
+}
+
+function listAnswer(files: FileInsight[], raw: string): string | null {
+  const q = raw.toLowerCase().replace(/[^\w\s]/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!/^(?:what|which|list|show|how many)(?: me)?(?: are| is)?(?: the| my| all| of)*(?: files?| attachments?| documents?)(?: do i have| have i shared| did i (?:share|send|upload)| are (?:here|shared|there)| i (?:shared|sent|uploaded)| in (?:this )?chat)?$|^(?:what do you have|what have i (?:shared|sent|uploaded)|list files?|my files?)$/.test(q)) return null;
+  if (!files.length) return 'No files have been shared yet. Use the 📎 button, drag a file in, or paste an image.';
+  return `Files I can see in this chat (${files.length}):\n${files.map((f) => `- **${f.name}**: ${f.summary}`).join('\n')}\n\nRemove one with the ✕ on its chip under the message box.`;
+}
+
+function tableAnswer(files: FileInsight[], raw: string): string | null {
   for (const f of [...files].reverse()) {
-    if (f.kind !== 'text' || !f.text) continue;
-    const ext = extOf(f.name);
-    const partial = f.text.length >= ATTACH.maxTextChars && f.size > f.text.length;
+    if (!f.text || (f.kind !== 'text' && !/\.xlsx$/i.test(f.name))) continue;
+    let ext = extOf(f.name);
+    let body = f.text;
+    if (ext === 'xlsx') { const first = body.split(/\n\n(?=Sheet: )/)[0]; body = first.replace(/^Sheet: .*\n/, ''); ext = 'tsv'; }
+    const partial = f.kind === 'text' && f.text.length >= ATTACH.maxTextChars && f.size > f.text.length;
     if (ext === 'csv' || ext === 'tsv') {
-      const t = parseDelimited(f.text, ext, partial);
+      const t = parseDelimited(body, ext, partial);
       if (!t || !isDataQuestion(raw, t)) continue;
       const mentionsColumn = t.header.some((h) => h.length > 1 && new RegExp(`\\b${h.toLowerCase().replace(/[^a-z0-9]+/g, '.?')}`, 'i').test(raw));
       if (!mentionsColumn && !FILEISH.test(raw)) continue;
       const a = answerTable(raw, f.name, t);
       if (a) return a;
     } else if (ext === 'log') {
-      const a = answerLog(raw, f.name, profileLog(f.text, partial));
+      const a = answerLog(raw, f.name, profileLog(body, partial));
       if (a) return a;
     }
   }
@@ -199,8 +212,11 @@ export function dataOverview(f: FileInsight): string {
 /** One-tap questions worth asking about this particular file. */
 export function quickAsks(f: FileInsight): string[] {
   const ext = extOf(f.name);
-  if (f.kind === 'image') return ['What’s in this image?', 'Send this to the owner'];
-  if (f.kind === 'pdf') return ['Summarize this', 'Send this to the owner'];
+  const adv = adviseFile(f);
+  if (adv && adv.kind !== 'image') return adv.asks;
+  if (f.kind === 'image' && !f.text) return ['What’s in this image?', 'Send this to the owner'];
+  if (f.kind === 'image') return ['Summarize this', 'Send this to the owner'];
+  if (f.kind === 'pdf' || f.kind === 'doc') return f.excerpt ? ['Summarize this', 'What are the key points?', 'Send this to the owner'] : ['Send this to the owner'];
   if (ext === 'log') return ['Any errors?', 'Most common error', 'When did it start?'];
   if ((ext === 'csv' || ext === 'tsv') && f.text) {
     const t = parseDelimited(f.text, ext);
@@ -212,7 +228,6 @@ export function quickAsks(f: FileInsight): string[] {
 
 /* ------------------------------------------------------------------ replies */
 
-const KIND_LABEL: Record<FileInsight['kind'], string> = { image: 'image', pdf: 'PDF', text: 'text file' };
 
 /** Make a snippet safe to quote inside a chat bubble (no markup, one paragraph). */
 function quote(s: string, max: number): string {
@@ -223,7 +238,7 @@ function quote(s: string, max: number): string {
 export function buildFileReply(files: FileInsight[], raw: string, mode: PersonaMode, isNew: boolean): { reply: string; suggestions: string[] } {
   const list = files.slice(-ATTACH.maxFiles);
   const wantsDetail = fileQuestion(raw);
-  const hasMedia = list.some((f) => f.kind !== 'text');
+  const hasMedia = list.some((f) => f.kind === 'image');
 
   if (mode === 'EXPERT') {
     const lines = list.map((f) => `- ${f.name} // ${f.summary}`);
@@ -244,7 +259,7 @@ export function buildFileReply(files: FileInsight[], raw: string, mode: PersonaM
     }
     const ov = dataOverview(f);
     if (ov) out.push(ov + ' Ask me things like “average price” or “how many rows”.');
-    if (f.kind === 'text' && f.excerpt) {
+    if ((f.kind !== 'image' || f.text) && f.excerpt) {
       const q = quote(f.excerpt, wantsDetail ? 800 : 320);
       if (q) out.push(`Starts with: “${q}”`);
       if (/\.log$/i.test(f.name)) {
@@ -253,7 +268,14 @@ export function buildFileReply(files: FileInsight[], raw: string, mode: PersonaM
       }
     }
   }
-  if (hasMedia) out.push("\nI can't look inside images or PDFs myself, but the owner can open them — I'm happy to pass them on.");
+  for (const f of list.slice(-1)) {
+    const adv = adviseFile(f);
+    if (adv) out.push(`\n**${adv.title}**\n${adv.lines.map((l) => `- ${l}`).join('\n')}\n\nWhat I'd do next:\n${adv.next.map((l) => `- ${l}`).join('\n')}`);
+  }
+  const unread = list.filter((f) => f.kind !== 'image' && f.kind !== 'text' && !f.excerpt);
+  if (hasMedia) out.push("\nI can describe an image's size and colours, but I can't read what's in a picture. The owner can open it, and I'm happy to pass it on.");
+  if (unread.length) out.push(`\nI couldn't pull readable text out of ${unread.map((f) => f.name).join(', ')}. The owner can open it, and I'm happy to pass it on.`);
+  else if (list.some((f) => f.excerpt && f.kind !== 'text')) out.push('\nAsk me to **summarize** it or ask about something specific in it, for example “what does it say about the deadline?”');
   out.push('\nWant me to send this to the owner so they can help while you wait?');
   return { reply: out.join('\n'), suggestions: ['Send this to the owner', 'Book a repair', 'Show me your services'] };
 }

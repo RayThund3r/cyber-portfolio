@@ -9,6 +9,7 @@
 import { tokens, tokenMatch } from './text';
 import { cacheAnswer, getCachedAnswer } from './learningEngine';
 import { evaluateSearchResultQuality } from './evaluator';
+import { Candidate, WebAnswer, answerFromCandidates, parseQuestion, STALE_NOTE } from './webAnswer';
 
 export interface WebResult {
   title: string;
@@ -16,6 +17,10 @@ export interface WebResult {
   imageUrl?: string;
   url?: string;
   fromCache?: boolean;
+  /** 0..1: how sure we are the page is about what was asked. */
+  confidence?: number;
+  /** The fact can go stale (office holders, records, prices): show a note. */
+  volatile?: boolean;
   /** Set when a page was found but failed the safety check; show this text instead of the page. */
   blockedReply?: string;
 }
@@ -71,6 +76,38 @@ async function fetchJson(url: string, outer?: AbortSignal, ms = 4500): Promise<a
   }
 }
 
+const WIKI = 'https://en.wikipedia.org/w/api.php';
+
+/** One request returns several candidate pages with their openings, ranks, links and thumbnails. */
+async function candidatesFor(query: string, signal?: AbortSignal): Promise<Candidate[]> {
+  const url =
+    `${WIKI}?action=query&generator=search&gsrsearch=${encodeURIComponent(query)}&gsrlimit=8&gsrnamespace=0` +
+    `&prop=extracts|pageimages|info&exintro=1&explaintext=1&exlimit=max&exsentences=6&piprop=thumbnail&pithumbsize=300&inprop=url&redirects=1&format=json&origin=*`;
+  const data = await fetchJson(url, signal);
+  const pages = data?.query?.pages;
+  if (pages && typeof pages === 'object') {
+    return Object.values<any>(pages)
+      .map((p) => ({ title: String(p.title || ''), extract: String(p.extract || ''), index: typeof p.index === 'number' ? p.index : undefined, url: p.fullurl, image: p.thumbnail?.source } as Candidate))
+      .filter((c) => c.title && c.extract);
+  }
+  // Fallback when the combined call is unavailable: classic title search, then one summary per title.
+  const search = await fetchJson(`${WIKI}?action=query&list=search&srsearch=${encodeURIComponent(query)}&srlimit=5&srprop=&format=json&origin=*`, signal);
+  const titles: string[] = (search?.query?.search || []).map((r: any) => r.title);
+  const out: Candidate[] = [];
+  for (let i = 0; i < Math.min(4, titles.length); i++) {
+    const sum = await fetchJson(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(titles[i].replace(/ /g, '_'))}`, signal);
+    if (sum?.extract && sum.type !== 'disambiguation') out.push({ title: sum.title, extract: sum.extract, index: i + 1, url: sum.content_urls?.desktop?.page, image: sum.thumbnail?.source });
+  }
+  return out;
+}
+
+function toResult(a: WebAnswer, mode: string, raw: string): WebResult {
+  const quality = evaluateSearchResultQuality(a.text, raw, mode, a.title);
+  if (!quality.isSafe) return { title: a.title, extract: '', blockedReply: quality.redirectReply };
+  return { title: a.title, extract: a.text, imageUrl: a.image, url: a.url, confidence: a.confidence, volatile: a.volatile };
+}
+
+/** Look the question up and return a page ONLY if it is really about what was asked. */
 export async function searchWeb(
   rawQuery: string,
   mode: string,
@@ -78,46 +115,42 @@ export async function searchWeb(
 ): Promise<WebResult | null> {
   const cached = getCachedAnswer(rawQuery);
   if (cached) {
-    return { title: cached.title, extract: cached.extract, imageUrl: cached.imageUrl, fromCache: true };
+    return { title: cached.title, extract: cached.extract, imageUrl: cached.imageUrl, fromCache: true, confidence: 0.8 };
   }
-
-  const q = sanitizeQueryForSearch(rawQuery);
-  if (q.length < 2) return null;
+  const pq = parseQuestion(rawQuery);
+  if (pq.must.length === 0 || pq.topic.length < 2) return null;
   if (typeof navigator !== 'undefined' && navigator.onLine === false) return null;
 
-  const search = await fetchJson(
-    `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(q)}&srlimit=3&srprop=&format=json&origin=*`,
-    signal
-  );
-  const titles: string[] = (search?.query?.search || []).map((r: any) => r.title);
-  if (titles.length === 0) return null;
-
-  const qTokens = tokens(q);
-  for (const title of titles) {
-    // Cheap pre-filter: title must share at least one meaningful word with the query.
-    const tTokens = tokens(title);
-    if (qTokens.length > 0 && !qTokens.some((qt) => tTokens.some((tt) => tokenMatch(qt, tt)))) continue;
-
-    const summary = await fetchJson(
-      `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title.replace(/ /g, '_'))}`,
-      signal
-    );
-    if (!summary?.extract || summary.type === 'disambiguation') continue;
-
-    const quality = evaluateSearchResultQuality(summary.extract, rawQuery, mode, summary.title);
-    if (!quality.isSafe) {
-      return { title: summary.title, extract: '', blockedReply: quality.redirectReply };
+  // "X vs Y": look both up and show them side by side.
+  if (pq.kind === 'compare' && pq.pair) {
+    const [a, b] = await Promise.all(pq.pair.map(async (side) => {
+      const sp = parseQuestion(`what is ${side}`);
+      return answerFromCandidates(sp, await candidatesFor(sp.topic, signal));
+    }));
+    if (a && b && a.title !== b.title) {
+      const first = (t: string) => t.split(/(?<=[.!?])\s+/)[0];
+      const res: WebResult = { title: `${a.title} vs ${b.title}`, extract: `**${a.title}:** ${first(a.text)}\n\n**${b.title}:** ${first(b.text)}`, url: a.url, confidence: Math.min(a.confidence, b.confidence) };
+      return res;
     }
-    if (!quality.isRelevant) continue;
-
-    const result: WebResult = {
-      title: summary.title,
-      extract: summary.extract,
-      imageUrl: summary.thumbnail?.source,
-      url: summary.content_urls?.desktop?.page,
-    };
-    cacheAnswer(rawQuery, result.title, result.extract, result.imageUrl);
-    return result;
+    // fall through: treat as a single-topic lookup on the first side
   }
-  return null;
+
+  const queries = [pq.topic];
+  const m = /^(.+?) of (?:the )?(.+)$/.exec(pq.topic);
+  if (m && pq.kind === 'attribute') queries.push(m[2]);
+  const seen = new Set<string>();
+  const cands: Candidate[] = [];
+  for (const q of queries) {
+    for (const c of await candidatesFor(q, signal)) if (!seen.has(c.title)) { seen.add(c.title); cands.push(c); }
+    const early = answerFromCandidates(pq, cands);
+    if (early && early.confidence >= 0.8) break; // an exact page was found: no need for more requests
+  }
+  const ans = answerFromCandidates(pq, cands);
+  if (!ans) return null;
+  const res = toResult(ans, mode, rawQuery);
+  if (res.blockedReply) return res;
+  if (res.confidence !== undefined && res.confidence >= 0.55) cacheAnswer(rawQuery, res.title, res.extract, res.imageUrl);
+  return res;
 }
+
+export { STALE_NOTE };

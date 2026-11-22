@@ -19,7 +19,13 @@ export function cleanForSpeech(md: string): string {
   s = s.replace(/\*\*([^*]+)\*\*/g, '$1').replace(/__([^_]+)__/g, '$1');
   s = s.replace(EMOJI, '');
   s = s.replace(/[→←↗↘▶►›»]/g, ' ');
-  s = s.replace(/\b(UGX|KSH|USD)\s?(\d[\d,]*)/g, '$2 $1');
+  // emails and phone numbers are read so they can be written down
+  s = s.replace(/\b([\w.+-]+)@([\w-]+(?:\.[\w-]+)+)\b/g, (_m, a: string, b: string) => `${a.replace(/\./g, ' dot ')} at ${b.replace(/\./g, ' dot ')}`);
+  s = s.replace(/(\+?\d[\d\s-]{7,}\d)/g, (m: string) => { const d = m.replace(/[^\d+]/g, ''); return d.length >= 9 && d.length <= 15 ? d.replace(/^\+/, 'plus ').split('').join(' ').replace(/p l u s/, 'plus') : m; });
+  s = s.replace(/\b(UGX|KSH|USD)\s?(\d[\d,]*)/g, (_m, c: string, n: string) => `${n} ${c === 'UGX' ? 'Ugandan shillings' : c === 'KSH' ? 'Kenyan shillings' : 'US dollars'}`);
+  s = s.replace(/(\d)\s?%/g, '$1 percent').replace(/(\d)\s?°\s?C\b/g, '$1 degrees Celsius').replace(/(\d)\s?°\s?F\b/g, '$1 degrees Fahrenheit');
+  s = s.replace(/\be\.g\./gi, 'for example').replace(/\bi\.e\./gi, 'that is').replace(/\betc\./gi, 'and so on');
+  s = s.replace(/(\d)\s?(KB|MB|GB|TB)\b/g, (_m, n: string, u: string) => `${n} ${{ KB: 'kilobytes', MB: 'megabytes', GB: 'gigabytes', TB: 'terabytes' }[u]}`);
   s = s.replace(/\bSYS-([A-Z0-9]{6})\b/g, (_, id: string) => 'reference ' + id.split('').join(' '));
   s = s.replace(/&/g, ' and ');
   s = s.replace(/[ \t]+/g, ' ').replace(/\n{2,}/g, '\n').trim();

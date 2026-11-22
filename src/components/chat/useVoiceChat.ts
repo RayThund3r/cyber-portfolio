@@ -59,6 +59,10 @@ export function useVoiceChat(a: Args) {
     if (vm.meta === 'clear') { base.current = ''; A.current.setDraft(''); voiceRef.current?.reset(); }
     else if (vm.meta === 'stop') { loop.current = false; voiceRef.current?.stop(); }
     else if (vm.meta === 'quiet') { loop.current = false; speechRef.current.stop(); }
+    else if (vm.meta === 'slower' || vm.meta === 'faster') {
+      const r = Math.round((prefsRef.current.rate + (vm.meta === 'faster' ? 0.15 : -0.15)) * 100) / 100;
+      setPref('rate', Math.min(1.4, Math.max(0.7, r)));
+    }
     else if (vm.meta === 'repeat') { const r = lastReply.current; if (r) speakNow(r.id, r.text); }
     else if (vm.meta === 'send') {
       const full = join(vm.text);

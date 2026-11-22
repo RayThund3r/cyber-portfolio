@@ -26,6 +26,9 @@ const GENERIC = new Set(['ask', 'use', 'tool', 'someth', 'anyth', 'interest', 's
 /** Matches found only in an entry's body text (not its title/keywords) count for much less. */
 const BODY_ONLY_WEIGHT = 0.35;
 
+/** Typo-tolerant matches count for this fraction of an exact match. */
+const FUZZY_WEIGHT = 0.6;
+
 const K1 = 1.4;
 const B = 0.75;
 
@@ -78,13 +81,13 @@ function idf(term: string, n: number): number {
 }
 
 /** Frequency of query term in doc, allowing typos (exact match wins). */
-function fuzzyTf(doc: IndexedDoc, qTerm: string): { tf: number; term: string } | null {
+function fuzzyTf(doc: IndexedDoc, qTerm: string): { tf: number; term: string; fuzzy?: boolean } | null {
   const exact = doc.tf.get(qTerm);
   if (exact) return { tf: exact, term: qTerm };
   if (qTerm.length < 4) return null;
-  let best: { tf: number; term: string } | null = null;
+  let best: { tf: number; term: string; fuzzy?: boolean } | null = null;
   doc.tf.forEach((v, term) => {
-    if (tokenMatch(qTerm, term) && (!best || v > best.tf)) best = { tf: v, term };
+    if (tokenMatch(qTerm, term) && (!best || v > best.tf)) best = { tf: v, term, fuzzy: true };
   });
   return best;
 }
@@ -134,8 +137,10 @@ export function searchKnowledge(query: string, limit = 3): KnowledgeHit[] {
       if (!m) return;
       const termIdf = idf(m.term, n);
       const norm = 1 - B + B * (doc.length / avgLen);
-      score += termIdf * ((m.tf * (K1 + 1)) / (m.tf + K1 * norm));
-      matchedWeight += weights[i] * (inField(doc, q, m.term) ? 1 : BODY_ONLY_WEIGHT);
+      // A typo-match ("react"≈"reach") must never beat a real exact match elsewhere.
+      const f = m.fuzzy ? FUZZY_WEIGHT : 1;
+      score += f * termIdf * ((m.tf * (K1 + 1)) / (m.tf + K1 * norm));
+      matchedWeight += f * weights[i] * (inField(doc, q, m.term) ? 1 : BODY_ONLY_WEIGHT);
     });
 
     // Small bonus when the whole normalised query appears as a keyword phrase.

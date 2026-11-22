@@ -1,7 +1,7 @@
 // src/app/api/admin/llm-providers/route.ts — owner-only: switch free AI services on/off, set order, caps, keys; test one.
 import { admin, fail } from '@/lib/admin/api';
 import { llmConfig } from '@/server/llm';
-import { CATALOG, addCustom, getDb, ordered, removeCustom, saveProvider, setEnvEnabled, setMaster, setOrder, testProvider, unseal, usageToday, coolUntil } from '@/server/llmProviders';
+import { CATALOG, addCustom, getDb, ordered, removeCustom, saveProvider, setEnvEnabled, setMaster, setOrder, testProvider, detectProvider, unseal, usageToday, coolUntil } from '@/server/llmProviders';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -43,6 +43,16 @@ export const POST = admin(async ({ body }) => {
     case 'addCustom': return { id: await addCustom(String(body.name || ''), String(body.baseUrl || '')) };
     case 'removeCustom': await removeCustom(id); return { ok: true };
     case 'test': return testProvider(id);
+    case 'quick': {
+      // Paste any supported key: the service is recognised from its prefix, saved, switched on, and tested in one go.
+      const key = String(body.key || '').trim();
+      if (key.length < 20 || key.length > 400) fail(400, 'That does not look like an API key.');
+      const pid = detectProvider(key);
+      if (!pid) fail(400, 'I could not tell which service that key is for. Paste it into the matching card below instead.');
+      await saveProvider({ id: pid!, enabled: true, key });
+      await setMaster(true);
+      return { id: pid, test: await testProvider(pid!) };
+    }
     default: return fail(400, 'Unknown action.');
   }
 }, true);

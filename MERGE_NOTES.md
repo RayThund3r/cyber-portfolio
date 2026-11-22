@@ -162,3 +162,89 @@ Hugging Face now gates Docker Spaces, so hosting our own model is dropped as the
 - `api/admin/llm-providers` (GET status, POST save/order/master/env/addCustom/removeCustom/test), page `admin/(pro)/ai-providers`, nav entry "AI Providers" (g p), CloudAiCard points to it. `api/llm` now uses `anyAvailable()` + `streamWithFallback()`. `streamCompletion(messages, signal, target?)` is backward compatible.
 - Tests: `tests/server.providers.test.cjs` (20 checks) in run-all → green. Page rendered in Chromium with a mocked API at 1440 and 390 px (no console errors, no sideways scroll; test/order/toggle POSTs verified).
 - NOT verified: calls to the real services (no network here). Default model names and base URLs are best-known values; the admin Test button shows the provider's own error if one is wrong. Free-tier limits are NOT hard-coded; the page tells the owner to check them and set a cap.
+
+## Round 15 — security & stress pass
+
+Found and fixed (each has a regression test in `tests/server.attack.test.cjs` / `server.stress.test.cjs`):
+- **Lost updates on save** — the revision check ran outside the lock, so racing saves all "won". Re-checked inside `update()` (also re-checks the order lock).
+- **Server 500 from hostile JSON** (`{"action":{"toString":1}}`) — `readJsonLimited` now drops `toString/valueOf/toJSON/__proto__` keys.
+- Upload quota race, CSRF hole (Sec-Fetch-Site), unbounded rate-limiter memory, email reflection/auto-reply spam (`mailBudget`, stricter `EMAIL_RE`), pending access-request flood cap (150), forged X-Forwarded-For in admin analytics, microphone Permissions-Policy (voice was blocked), game iframes sandbox escape (`gameSandbox`), big-AI-body rationing.
+
+Checked, nothing found: 240-page XSS fuzz of the builder, admin mutating routes (need x-admin + origin), pass-code strength, device-limit race on pass redemption (exactly 2 of 30 accepted).
+
+Not verified: real `next build`, live Upstash/Resend/Groq, Bootstrap/remote images in sandbox.
+Recommendations: connect Upstash Redis (otherwise Vercel `/tmp` data is wiped); script-src CSP not added (would risk breaking inline builder previews).
+
+## Round 16 — more layouts
+New builder layout options (all optional; existing sites unchanged because defaults match the old look):
+- Features: cards / rows with icon / numbered steps / minimal. Stats: plain / cards. Gallery: grid / masonry / scrolling strip. Team: round / cards. FAQ: collapsing / all answers visible in two columns.
+- Cards lift slightly on hover (only on devices with hover, and never with reduced-motion on). No new always-running animations.
+- Test: `tests/builder.layouts.test.cjs` (every variant renders, survives sanitizing, bogus value falls back); browser-checked at 375px and 1200px for sideways overflow.
+Not done: a full-site visual redesign — I kept the existing look so nothing you already like breaks.
+
+## Round 17 — dev identity
+- Owner name "Ray Thund3r", WhatsApp/phone +256 752 225 256 and raytbolt@gmail.com are now the built-in defaults in `siteConfig.ts` (the NEXT_PUBLIC_* env vars still override them). Used by the footer, contact page, chat assistant persona and the About-the-developer block.
+- About-the-developer block: lightning-bolt icon (replaces initials), WhatsApp / call / email buttons.
+- Favicon is now a cyan bolt on the dark rounded square.
+
+## Round 18 — Launch Pad + small-AI fixes
+- WhatsApp/phone corrected to +256 752 225 156.
+- **Admin → Launch Pad** (`/admin/launch`, key `g x`): readiness score ring, status level, expandable step-by-step per mission (storage, login strength, 2FA, free cloud AI, email, mobile money, public URL, spam shield), links, and a copy-all block of the missing env variable names. Never shows values. Logic in `lib/admin/launch.ts`, API `api/admin/launch`, test `server.launch.test.cjs`.
+- **Assistant (no-LLM mode) bugs found by probing 28 visitor questions and fixed:**
+  - "what is react" answered with the location (typo-match "react"≈"reach" outscored the exact match) → retriever now weights fuzzy matches at 0.6.
+  - "do you fix laptops" answered with factory-reset advice → added fix/repair phrases to phone/PC entries.
+  - New KB entries: Track my request (/track), Who is Ray Thund3r. Payment entry now states mobile money (MTN/Airtel) + reference on Track page (supported by the Track page itself); other methods still "owner confirms".
+  - Regression test `server.chatkb.test.cjs` (13 questions). The test build now includes `src/utils` so the engine runs in Node.
+- Honest limit: this is the rules/retrieval engine only. It cannot reason like an LLM; real LLM quality comes from Admin → AI Providers (free Groq/Gemini key).
+
+## Round 19 — assistant question battery (≈300 questions fired, simplest → silliest)
+Ran greetings, slang, Luganda/Swahili, maths, definitions, repairs, pricing/business, advice, trivia, edge cases, abuse, safety and nonsense through `processChatQuery` with no model and no internet. Fixed everything that was wrong or empty:
+- Definitions ("what is X") now answered from the glossary first (+35 terms: AI, ML, LLM, Python, database, server, Git, Figma, mobile money, bitcoin…); titles fixed (AI, Wi-Fi, UI vs UX).
+- New `facts.ts`: capitals (~90 countries), Swahili/Luganda greetings, evergreen facts (speed of light, Nile source, Uganda currency/languages/independence…), contact-details handler (no longer confused with "recover WhatsApp"). Runs before game guide, which used to answer "speed of light" with Lights Out.
+- New `moreFacts.ts` KB entries: swollen battery (safety), forgot PIN, WhatsApp recovery, install Windows, choosing a phone, WordPress, learn coding/design, freelance tips, delivery outside Kampala, hiring, discounts, data privacy, why choose / testimonials / experience (all honest: nothing invented).
+- Smalltalk: which model, age, where do you live, sing/poem, rude remarks, feelings, hungry, "that was helpful". Bare "tell me more" with no history asks for a question.
+- Slang: "hw much 4 screen", "my phn wont on". Light/dark mode commands ("dark mode", "turn off the lights"): new `mode` site command wired into the chat widget.
+- Requests that need a real LLM (write code/essay/explain at length) now say so plainly instead of "I don't have a good answer".
+- Retriever: typo matches count 0.6× (fixed "what is react" → location).
+- Tests: `server.chatkb.test.cjs` (54 questions); test build now includes `src/utils`.
+Limits: in this sandbox web lookup is offline, so open-ended trivia falls to the fallback; in production the web lookup and, above all, the cloud AI (Admin → AI Providers) handle those.
+
+## Round 20 — internet answers, offline knowledge base, file reading, voice
+
+**Internet answers (no more unrelated pulls)**
+- `utils/chatEngine/webAnswer.ts`: questions are parsed (type + subject), candidates ranked, and a result is accepted only if the page title actually matches the subject; sentences are picked for relevance. Low-confidence results are dropped, volatile facts (office-holders, prices, populations) get a "may be out of date" note, only confidence ≥ 0.55 is cached.
+- `webSearch.ts` tail rewritten around it. Tested against a mocked noisy Wikipedia (`tests/server.webanswer.test.cjs`, 24 checks). The real Wikipedia API could not be reached from the build sandbox.
+
+**Offline knowledge base** (`utils/chatEngine/world/`, resolver `tryWorld`, runs right after `tryFacts`)
+- ~100 countries (capital, currency, calling code, languages, continent), 118 elements, planets, 130+ tech acronyms, 21 programming languages, 32 companies, 43 events, 67 notable people, time zones, plus ~320 keyed facts (Uganda, first aid and health basics with no doses, business/branding/web, phones/PCs/security how-tos, nature, space, maths, inventions, arts, sport).
+- Matching is strict (key must cover most of the question) so it falls through rather than answering the wrong thing. `tests/server.world.test.cjs` (56 checks, including "must not hijack" cases).
+
+**File reading**
+- `lib/docText.ts`: in-browser text extraction for PDF (Flate streams), DOCX, XLSX (as sheets/rows), PPTX (slides) using built-in DecompressionStream; bounded against zip bombs; honest note for scanned PDFs.
+- `fileQA.ts`: no-model "summarize it" and "what does it say about X" that only quote the file. New kind `'doc'`, new extensions (docx/xlsx/pptx, srt/vtt/toml/py/js/ts/css) in the shared `attachmentRules` (server re-check uses the same rules). `tests/server.files.test.cjs` builds real fixtures on the fly.
+- Images: size/colour/lighting only. Reading text inside pictures (OCR) is not included.
+
+**Voice**
+- Dictation: "plus two five six ..." → +256…, "ray at gmail dot com" → ray@gmail.com, "question mark/comma/full stop".
+- Controls: "go ahead"/"send", bare "stop"/"pause", "speak slower/faster" (changes read-aloud rate).
+- Read-aloud: phone numbers digit by digit, emails, UGX in words, %, °C, MB/GB, e.g./i.e. `tests/server.voice.test.cjs`.
+- Not verifiable here: real microphone/recogniser behaviour on devices.
+
+Caveat unchanged: no real `next build` here; type-checked changed modules, ran the full suite.
+
+## Round 21 — file management: the assistant reads files and helps
+- `utils/chatEngine/fileAdvice.ts`: from the text of a shared file it diagnoses ~20 error/crash patterns (disk full, permissions, DNS/timeouts, 4xx/5xx, BSOD codes, SMART/bad sectors, overheating, battery wear…) with a fixed plain-language meaning and next step; pulls totals, due dates, references and amounts from invoices/quotes/receipts; recognises a design/website brief and offers the owner hand-off; gives photos honest advice (size/colour only, repair hand-off). Used for the first reply, for "any errors?/how do I fix this?/what is the total?/when is it due?", and to adapt the one-tap question chips.
+- "What files do I have?" lists them; Excel workbooks now answer table questions (row counts, averages…) like CSVs.
+- UI: files already sent now show as removable chips ("In this chat") so a visitor can drop a file the assistant is using (`removeShared` in `useAttachments`, `shared`/`onRemoveShared` on `AttachmentTray`).
+- Tests: `server.files.test.cjs` now 26 checks. Advice text is generic; only quoted/extracted values come from the file. No OCR for pictures.
+
+## Round 22 — gap sweep
+- Pasted error text (log line, stack trace, blue-screen code) is now explained in chat without needing a file (`diagnose` in `fileAdvice.ts`, hooked before the fact lookups; needs an error-like cue so ordinary sentences are untouched). +2 regression cases.
+- Fuzzed the chat engine with 21 hostile inputs (empty, 50k chars, emoji floods, template/prototype strings, NULs): no throws, none slower than 1.5 s.
+
+## Round 23 — closing the four open items
+1. **Real services (can't be verified from the build sandbox):** Launch Pad → "Run live checks" (`lib/admin/liveChecks.ts`, `POST /api/admin/launch`, 8 s throttle). From the live server it tests storage round-trip (and whether it is persistent), the internet-answer pipeline against real Wikipedia, the Resend key (read-only call), and the public site address. Reports a plain fix per failure; never returns secrets.
+2. **Voice on phones:** `lib/voice/recognition.ts` removes the repeated/cumulative results some Android browsers report in continuous mode ("hello hello world"). Used by `useVoice`. Needs a real-device test.
+3. **Text in photos:** `lib/ocr.ts` + "Read the text in this picture" button. Uses the browser's built-in TextDetector where it exists (Chrome Android), otherwise Tesseract.js 5.1.1 loaded from jsDelivr only after the visitor taps (a few MB, one time). Result is stored on the file so summaries, error diagnosis and invoice answers work on it. Untested in a browser here; handwriting and poor photos read badly.
+4. **AI key:** AI Providers → "Quick connect": paste a Groq/Gemini/OpenRouter/Cerebras key, the service is recognised from its prefix (`detectProvider`), saved encrypted, switched on and tested. Still needs the owner to create the free key.
+- Also: fixed a TypeScript narrowing flag in `webAnswer.ts` (no behaviour change). Tests: launch 16 checks, voice 35.

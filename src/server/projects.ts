@@ -119,12 +119,16 @@ export async function saveProject(
   if (!input.force && typeof input.baseRev === 'number' && input.baseRev !== p.rev) {
     return { error: 'This project was changed in another tab or device.', status: 409, rev: p.rev };
   }
+  const baseRev = input.force ? undefined : input.baseRev;
   let config: SiteConfig;
   try { config = sanitizeConfig(input.config, { assetIds: new Set(Object.keys(p.assets)) }); } catch (e: any) { return { error: e.message, status: 400 }; }
   const name = typeof input.name === 'string' ? input.name.replace(/[\r\n\t]+/g, ' ').trim().slice(0, 60) : p.name;
-  let out = { rev: 0, updatedAt: '' };
+  let out: { rev: number; updatedAt: string } | { error: string; status: number; rev?: number } = { error: 'Project not found.', status: 404 };
   await update<Project | null>(pname(p.id), null, (d) => {
     if (!d) return;
+    // re-check inside the lock: the check above can be stale when saves race
+    if (isLocked(d)) { out = { error: 'This site is locked because an order was placed. Unlock it to keep editing.', status: 409 }; return; }
+    if (typeof baseRev === 'number' && baseRev !== (d.rev || 0)) { out = { error: 'This project was changed in another tab or device.', status: 409, rev: d.rev || 0 }; return; }
     d.config = config; d.name = name || d.name; d.rev = (d.rev || 0) + 1; d.updatedAt = new Date().toISOString();
     out = { rev: d.rev, updatedAt: d.updatedAt };
   });
@@ -139,12 +143,34 @@ async function storeAsset(p: Project, aid: string | null, mime: string, base64: 
   const buf = Buffer.from(base64, 'base64');
   if (buf.length > MAX_ASSET_BYTES) return { error: 'That image is too large (max 600 KB after compression).', status: 413 };
   if (!magicOk(mime, buf)) return { error: 'That file is not a valid image.', status: 400 };
-  const total = Object.values(p.assets).reduce((n, a) => n + a.bytes, 0);
-  if (Object.keys(p.assets).length >= MAX_ASSETS || total + buf.length > MAX_TOTAL_BYTES) return { error: 'Picture storage for this project is full. Remove unused pictures first.', status: 413 };
   const id = aid ?? rnd(8, 'abcdefghijklmnopqrstuvwxyz0123456789');
+  // Site-wide daily picture budget: a handful of throw-away sites must not be able to fill the database.
+  const budget = await takeUploadBudget(buf.length);
+  if (!budget) return { error: 'Picture uploads are paused for today. Please try again tomorrow, or contact us.', status: 429 };
   await putJson(aname(p.id, id), { mime, data: base64 } satisfies Asset);
-  await update<Project | null>(pname(p.id), null, (d) => { if (d) { d.assets[id] = { mime, bytes: buf.length }; d.updatedAt = new Date().toISOString(); } });
+  // The limits are checked INSIDE the locked update, so parallel uploads can never squeeze past them.
+  const res: { refused?: { error: string; status: number } } = {};
+  await update<Project | null>(pname(p.id), null, (d) => {
+    if (!d) { res.refused = { error: 'Project not found.', status: 404 }; return; }
+    const have = Object.entries(d.assets).filter(([k]) => k !== id);
+    const total = have.reduce((n, [, a]) => n + a.bytes, 0);
+    if (have.length >= MAX_ASSETS || total + buf.length > MAX_TOTAL_BYTES) { res.refused = { error: 'Picture storage for this project is full. Remove unused pictures first.', status: 413 }; return; }
+    d.assets[id] = { mime, bytes: buf.length }; d.updatedAt = new Date().toISOString();
+  });
+  if (res.refused) { await removeJson(aname(p.id, id)).catch(() => undefined); return res.refused; }
   return { id };
+}
+
+/** Counts picture bytes accepted site-wide per day (BUILDER_DAILY_UPLOAD_MB, default 300). Returns false when today's budget is used up. */
+async function takeUploadBudget(bytes: number): Promise<boolean> {
+  const cap = Math.max(10, Math.min(5000, parseInt(process.env.BUILDER_DAILY_UPLOAD_MB || '', 10) || 300)) * 1024 * 1024;
+  const day = new Date().toISOString().slice(0, 10);
+  const got = { ok: false };
+  await update<{ day: string; bytes: number }>('builder-budget', { day, bytes: 0 }, (d) => {
+    if (d.day !== day) { d.day = day; d.bytes = 0; }
+    if (d.bytes + bytes <= cap) { d.bytes += bytes; got.ok = true; }
+  });
+  return got.ok;
 }
 
 export async function addAsset(id: string, key: string, mime: string, base64: string): Promise<{ id: string } | { error: string; status: number }> {

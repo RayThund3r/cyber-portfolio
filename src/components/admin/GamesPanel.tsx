@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api, useApi } from '@/lib/admin/client';
 import { AButton, Badge, Card, Empty, ErrorBox, Field, Notice, Skel, Toggle, inputCls, useToast } from '@/components/admin/ui';
-import { RATIOS, ratioCss, safeUrl, type EmbedMode, type ExtGame, type Ratio } from '@/lib/games/ext';
+import { gameSandbox, RATIOS, ratioCss, safeUrl, type EmbedMode, type ExtGame, type Ratio } from '@/lib/games/ext';
 import Icon from '@/components/ui/Icon';
 
 type Form = { id: string; title: string; url: string; desc: string; cover: string; category: string; mode: EmbedMode; ratio: Ratio; tags: string; off: boolean };
@@ -72,7 +72,7 @@ export default function GamesPanel() {
           {preview && urlOk && (
             <div className="mt-3">
               <div className="overflow-hidden rounded-xl border border-zinc-800 bg-black" style={{ aspectRatio: ratioCss(form.ratio), maxHeight: '60vh' }}>
-                <iframe title="Game preview" src={form.url} loading="lazy" sandbox="allow-scripts allow-same-origin allow-pointer-lock allow-popups allow-forms" allow="fullscreen; gamepad" className="h-full w-full border-0" />
+                <iframe title="Game preview" src={form.url} loading="lazy" sandbox={gameSandbox(form.url)} allow="fullscreen; gamepad" className="h-full w-full border-0" />
               </div>
               <p className="mt-2 text-xs text-zinc-500">If this stays blank, the game&apos;s host blocks embedding (X-Frame-Options or a frame-ancestors rule). Choose &ldquo;Open in a new tab&rdquo; for it, or allow this site&apos;s address in the game&apos;s headers.</p>
             </div>

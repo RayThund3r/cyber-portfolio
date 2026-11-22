@@ -11,6 +11,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ATTACH, formatBytes, kindOfName } from '@/lib/attachmentRules';
 import { SHRINK, shrinkImage } from '@/lib/imageTools';
 import { analyzeFile } from '@/utils/chatEngine/fileInsights';
+import { readImageText } from '@/lib/ocr';
 import type { FileInsight } from '@/utils/chatEngine/types';
 
 export interface SharedFile {
@@ -129,6 +130,34 @@ export function useAttachments() {
     });
   }, []);
 
+  /** Read the text inside a picture (on request). The result is stored on the file so the assistant can use it. */
+  const readText = useCallback(async (id: string) => {
+    const hit = [...latest.current.pending, ...latest.current.shared].find((f) => f.insight.id === id);
+    if (!hit || hit.insight.kind !== 'image') return;
+    setBusy(true);
+    setError(null);
+    try {
+      const text = await readImageText(hit.file, setStatus);
+      const patch = (list: SharedFile[]) => list.map((f) => (f.insight.id === id ? { ...f, insight: { ...f.insight, ...(text ? { text, excerpt: text.slice(0, 3000), summary: `${f.insight.summary} · text read (${(text.match(/\S+/g) || []).length} words)` } : { note: 'No readable text was found in this picture' }) } } : f));
+      setPending(patch);
+      setShared(patch);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not read the text in that picture.');
+    } finally {
+      setStatus(null);
+      setBusy(false);
+    }
+  }, []);
+
+  /** Forget one file that was already shared (the assistant stops using it). */
+  const removeShared = useCallback((id: string) => {
+    setShared((prev) => {
+      const hit = prev.find((f) => f.insight.id === id);
+      if (hit?.previewUrl) { /* the message bubble may still show it, so the blob URL is kept until the chat closes */ }
+      return prev.filter((f) => f.insight.id !== id);
+    });
+  }, []);
+
   /** Move pending files into the conversation; returns what was moved. */
   const commit = useCallback((): SharedFile[] => {
     const moved = latest.current.pending;
@@ -149,5 +178,5 @@ export function useAttachments() {
     setError(null);
   }, []);
 
-  return { pending, shared, error, busy, status, add, removePending, commit, clearAll, clearError: () => setError(null) };
+  return { pending, shared, error, busy, status, add, removePending, removeShared, readText, commit, clearAll, clearError: () => setError(null) };
 }

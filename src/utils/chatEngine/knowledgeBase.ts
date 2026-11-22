@@ -11,6 +11,7 @@ import { KnowledgeEntry } from './types';
 import { SITE } from './siteConfig';
 import { SERVICES } from '@/data/servicesData';
 import { TECH_FACTS } from './techFacts';
+import { MORE_FACTS } from './moreFacts';
 
 const TIME = (i: number) => SERVICES[i]?.timeline || 'agreed per job';
 
@@ -39,7 +40,7 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
     id: 'phone-repair',
     domain: 'HARDWARE_REPAIR',
     title: 'Phone repair',
-    keywords: ['phone', 'mobile', 'smartphone', 'android', 'iphone', 'tecno', 'infinix', 'samsung', 'handset', 'cell phone', 'cracked', 'shattered', 'smashed', 'broken screen', 'screen replacement', 'charging port', 'battery replacement', 'water damage', 'repair'],
+    keywords: ['phone', 'mobile', 'smartphone', 'android', 'iphone', 'tecno', 'infinix', 'samsung', 'handset', 'cell phone', 'cracked', 'shattered', 'smashed', 'broken screen', 'screen replacement', 'charging port', 'battery replacement', 'water damage', 'repair', 'fix phone', 'fix my phone', 'repair phone', 'repair my phone', 'do you fix phones', 'do you repair phones'],
     content:
       'Phone repair covers cracked or dead screens, battery replacement, charging port faults, water damage cleanup, software faults and board-level repair. The technician needs the phone model and the exact symptom to diagnose.',
     reply:
@@ -52,7 +53,7 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
     id: 'pc-repair',
     domain: 'HARDWARE_REPAIR',
     title: 'PC and laptop repair',
-    keywords: ['pc', 'laptop', 'computer', 'desktop', 'motherboard', 'keyboard', 'hinge', 'ram', 'ssd', 'hdd', 'hard drive', 'upgrade', 'windows', 'reinstall', 'notebook', 'macbook', 'chromebook', 'data recovery', 'repair'],
+    keywords: ['pc', 'laptop', 'computer', 'desktop', 'motherboard', 'keyboard', 'hinge', 'ram', 'ssd', 'hdd', 'hard drive', 'upgrade', 'windows', 'reinstall', 'notebook', 'macbook', 'chromebook', 'data recovery', 'repair', 'fix laptop', 'fix laptops', 'repair laptop', 'repair laptops', 'fix computer', 'repair computer', 'fix pc', 'repair pc', 'do you fix laptops', 'do you repair laptops'],
     content:
       'PC and laptop service: diagnostics, screen/keyboard/battery replacement, RAM and SSD upgrades, OS reinstall, malware removal, thermal service, motherboard-level repair and data recovery attempts.',
     reply:
@@ -144,7 +145,7 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
     id: 'embroidery',
     domain: 'DESIGN_BRANDING',
     title: 'Embroidery and fabric print prep',
-    keywords: ['embroidery', 'embroider', 'fabric', 'print', 'printing', 'dst', 'pes', 'name list', 'uniform', 'jersey', 'tshirt', 't-shirt', 'stitch', 'digitizing', 'digitising'],
+    keywords: ['embroidery', 'embroider', 'fabric', 'print', 'printing', 'dst', 'pes', 'name list', 'uniform', 'jersey', 'tshirt', 't-shirt', 'stitch', 'digitizing', 'digitising', 'embroidery files', 'embroidery file', 'dst files', 'pes files', 'do you do embroidery'],
     content:
       'Embroidery and fabric print preparation: converting artwork into machine-ready formats (DST, PES), formatting name lists for batch embroidery/printing, cleaning and vectorising logos so they stitch or print cleanly at small sizes.',
     reply:
@@ -262,7 +263,7 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
     id: 'contact',
     domain: 'CONTACT',
     title: 'Contact and location',
-    keywords: ['contact', 'hire', 'reach', 'email', 'whatsapp', 'call', 'phone number', 'location', 'where', 'address', 'ndejje', 'kampala', 'uganda', 'visit', 'shop', 'book', 'booking', 'appointment', 'located', 'find you', 'directions', 'map'],
+    keywords: ['contact', 'hire', 'reach', 'email', 'whatsapp', 'call', 'phone number', 'location', 'where', 'address', 'ndejje', 'kampala', 'uganda', 'visit', 'shop', 'book', 'booking', 'appointment', 'located', 'find you', 'directions', 'map', 'your whatsapp', 'whatsapp number', 'whatsapp you', 'your number', 'phone number', 'your email', 'email address', 'do you have a shop', 'physical shop', 'workshop', 'office', 'walk in', 'walk-in', 'your premises'],
     content: `Location: ${SITE.location}. ${contactLine || 'Use the contact section of the website to send a message.'}`,
     reply: `I'm based in **${SITE.location}**. ${
       contactLine ? contactLine + '. ' : ''
@@ -310,10 +311,30 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
     domain: 'PRICING_RATES',
     title: 'Payment methods',
     keywords: ['pay', 'paying', 'payment', 'payments', 'mobile money', 'momo', 'mtn', 'airtel', 'cash', 'card', 'bank', 'transfer', 'deposit', 'upfront', 'invoice', 'installments', 'instalments', 'receipt'],
-    content: 'Accepted payment methods and deposit rules are not published in this chat. Do not claim any method is or is not accepted.',
-    reply: "I don't have the accepted payment methods or deposit rules on hand, and I'd rather not say \"yes\" to something that isn't true. 💳 Ask in your message and the owner will confirm when they send the quote. I can pass that question along.",
-    expert: 'PAYMENT // methods not published here. Confirmed by owner with quote.',
+    content: 'Payments are made by mobile money (MTN or Airtel). After a quote, the customer pays and submits the mobile-money reference on the Track page. Deposit amounts and any other methods (cash, bank, card) are confirmed by the owner with the quote; do not claim any other method is or is not accepted.',
+    reply: "Payment is by **mobile money (MTN or Airtel)**. 💳 Once you have a quote you send the payment and enter the mobile-money reference on the **Track** page so it can be confirmed. Deposit amounts, and whether cash, bank or card also work, are confirmed by the owner with your quote. I can pass that question along.",
+    expert: 'PAYMENT // mobile money (MTN/Airtel); reference submitted on /track. Deposit + other methods confirmed by owner with quote.',
     suggestions: ['Send my question to the owner', 'Get a quote'],
+  },
+  {
+    id: 'track-request',
+    domain: 'CONTACT',
+    title: 'Track my request or repair',
+    keywords: ['track', 'tracking', 'track my repair', 'track repair', 'track my request', 'status', 'repair status', 'order status', 'check status', 'where is my', 'progress', 'reference', 'ticket', 'ticket number', 'is it ready', 'ready yet'],
+    content: 'Customers can check the status of a repair or design request on the Track page (/track) using their reference number. The page also shows the quote and deposit and lets them submit a mobile-money payment reference.',
+    reply: "You can follow your request on the **Track** page: enter your reference number to see its status, your quote and deposit, and to submit your mobile-money payment reference. 🔎 I can open it for you. If you've lost your reference, send the owner a message and they'll look it up.",
+    expert: 'TRACK // /track?id=<reference>. Shows status flow, quote/deposit, payment reference form.',
+    suggestions: ['Open the track page', 'Send my question to the owner'],
+  },
+  {
+    id: 'about-owner',
+    domain: 'PORTFOLIO',
+    title: 'Who is Ray Thund3r, the developer and owner',
+    keywords: ['ray', 'thund3r', 'thunder', 'ray thund3r', 'who is ray', 'who are you', 'who is the owner', 'who is the developer', 'who built this', 'who made this', 'who made you', 'who created', 'creator', 'founder', 'owner', 'developer'],
+    content: `${SITE.ownerName} is the hardware technician, designer and web developer behind this site, based in ${SITE.location}. He fixes the hardware, designs the brand and builds the website, so one person handles the whole job. GitHub: RayThund3r. ${contactLine}`,
+    reply: `**${SITE.ownerName}** is the hardware technician, designer and web developer behind this site, based in ${SITE.location}. One person handles the whole job: fixing the hardware, designing the brand and building the website. 🛠️ ${contactLine ? contactLine + '. ' : ''}Want to see the work or start a project?`,
+    expert: `OPERATOR // ${SITE.ownerName} | hardware + design + web | ${SITE.location}. ${contactLine}`,
+    suggestions: ['See projects', 'Get a quote', 'Open contact section'],
   },
   {
     id: 'pickup-delivery',
@@ -371,7 +392,7 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
     id: 'phone-slow',
     domain: 'HARDWARE_REPAIR',
     title: 'Slow phone or storage full',
-    keywords: ['storage full', 'memory full', 'low storage', 'phone hangs', 'phone lag', 'phone slow', 'phone freezing', 'clear cache', 'phone is slow', 'not enough storage', 'phone heating'],
+    keywords: ['storage full', 'memory full', 'low storage', 'phone hangs', 'phone lag', 'phone slow', 'phone freezing', 'clear cache', 'phone is slow', 'not enough storage', 'phone heating', 'speed up my phone', 'speed up phone', 'make my phone faster', 'phone is lagging', 'phone lagging', 'phone running slow', 'clean my phone'],
     content:
       'Slow phones are usually full storage, too many background apps, outdated software, or a worn battery. Fixes: restart, update, uninstall unused apps, clear app caches (not data), move photos and videos to a computer or cloud, disable heavy widgets and animations, check battery health. Factory reset is the last resort after a backup.',
     reply:
@@ -512,6 +533,7 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
   },
   // Extra everyday tech answers (see techFacts.ts)
   ...TECH_FACTS,
+  ...MORE_FACTS,
 ];
 
 /**

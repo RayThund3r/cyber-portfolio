@@ -3,7 +3,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Icon from '@/components/ui/Icon';
-import { ratioCss, type ExtGame } from '@/lib/games/ext';
+import { gameSandbox, ratioCss, type ExtGame } from '@/lib/games/ext';
 import { say } from './arcade';
 
 export function useExternalGames(): ExtGame[] {
@@ -34,7 +34,7 @@ function Player({ g, onClose }: { g: ExtGame; onClose: () => void }) {
       <div ref={box} className="relative mx-auto w-full overflow-hidden rounded-2xl border border-zinc-800 bg-black" style={{ aspectRatio: ratioCss(g.ratio), maxHeight: '78vh', maxWidth: g.ratio === '9:16' ? 420 : '100%' }}>
         {!loaded && <div className="absolute inset-0 flex animate-pulse items-center justify-center font-mono text-xs text-zinc-500">LOADING {g.title.toUpperCase()}…</div>}
         {/* The game runs in its own sandbox: its scripts and storage belong to its own address, never to this site. */}
-        <iframe title={g.title} src={g.url} loading="lazy" onLoad={() => setLoaded(true)} sandbox="allow-scripts allow-same-origin allow-pointer-lock allow-popups allow-forms" allow="fullscreen; gamepad; autoplay" referrerPolicy="no-referrer" className="h-full w-full border-0 bg-black" />
+        <iframe title={g.title} src={g.url} loading="lazy" onLoad={() => setLoaded(true)} sandbox={gameSandbox(g.url)} allow="fullscreen; gamepad; autoplay" referrerPolicy="no-referrer" className="h-full w-full border-0 bg-black" />
       </div>
       <p className="mt-2 text-center text-[11px] text-zinc-500">Blank? This game may not allow embedding. <a href={g.url} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">Open it in a new tab</a>.</p>
     </section>

@@ -12,6 +12,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { foldResults, type Piece } from '@/lib/voice/recognition';
 
 type Rec = {
   lang: string;
@@ -119,13 +120,10 @@ export function useVoice(handlers: VoiceHandlers, opts: VoiceOptions) {
       rec.onspeechstart = () => { setHearing(true); heardThisSession.current = true; quietRuns.current = 0; window.clearTimeout(silenceTimer.current); };
       rec.onspeechend = () => setHearing(false);
       rec.onresult = (e: any) => {
-        let fin = '';
-        let tmp = '';
         resultsLen.current = e.results.length;
-        for (let i = consumed.current; i < e.results.length; i++) {
-          const t = e.results[i][0]?.transcript || '';
-          if (e.results[i].isFinal) fin += t; else tmp += t;
-        }
+        const pieces: Piece[] = [];
+        for (let i = consumed.current; i < e.results.length; i++) pieces.push({ t: e.results[i][0]?.transcript || '', final: !!e.results[i].isFinal });
+        const { fin, tmp } = foldResults(pieces);
         heardThisSession.current = true;
         quietRuns.current = 0;
         lastHeard.current = Date.now();

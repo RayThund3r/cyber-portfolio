@@ -52,6 +52,7 @@ export type SiteCommand =
   | { type: 'project'; id: string; view: 'modal' | 'page'; label: string }
   | { type: 'contact'; kind?: 'design' | 'repair'; label: string }
   | { type: 'theme'; theme?: ThemeName; label: string }
+  | { type: 'mode'; mode?: 'dark' | 'light'; label: string }
   | { type: 'top'; label: string }
   | { type: 'bottom'; label: string }
   | { type: 'back'; label: string }
@@ -78,10 +79,10 @@ export interface FileInsight {
   id: string;
   name: string;
   size: number;
-  kind: 'image' | 'pdf' | 'text';
+  kind: 'image' | 'pdf' | 'text' | 'doc';
   /** One-line facts: "CSV · 120 rows · 5 columns". */
   summary: string;
-  /** Start of a text file (never set for images/PDFs). Untrusted data. */
+  /** Start of a text file (set for text, PDF and Office files when text could be read; never for images). Untrusted data. */
   excerpt?: string;
   width?: number;
   height?: number;
@@ -98,7 +99,7 @@ export interface FileInsight {
 export interface AttachmentMeta {
   name: string;
   size: number;
-  kind: 'image' | 'pdf' | 'text';
+  kind: 'image' | 'pdf' | 'text' | 'doc';
   /** Blob URL for image thumbnails; valid only in this tab, so it is dropped before saving. */
   previewUrl?: string;
 }

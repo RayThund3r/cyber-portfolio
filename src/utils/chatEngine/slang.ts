@@ -23,6 +23,7 @@ const WORDS: Record<string, string> = {
   mobil: 'mobile', moble: 'mobile', wifi_: 'wifi', wi_fi: 'wifi', passwrd: 'password', pasword: 'password',
   servise: 'service', sevice: 'service', servics: 'services', websit: 'website', webiste: 'website', wesite: 'website',
   porfolio: 'portfolio', portfolo: 'portfolio', portofolio: 'portfolio', desing: 'design', desgin: 'design',
+  phn: 'phone', phon: 'phone', fon: 'phone', cmputer: 'computer', pc_: 'pc', abut: 'about', anythin: 'anything', somethin: 'something', nthn: 'nothing', 'wont': "won't", dont: "don't", cant: "can't", doesnt: "doesn't", didnt: "didn't", isnt: "isn't",
   prise: 'price', prce: 'price', cost_: 'cost', quote_: 'quote', contct: 'contact', conact: 'contact',
 };
 
@@ -77,6 +78,9 @@ export function normalizeSlang(raw: string): SlangResult {
     changed = true;
     return ' and ';
   });
+  // "4 screen" / "wont on" / "wnt on": a lone 4 before a word means "for"; "won't on" means "won't turn on"
+  s = s.replace(/(?<=\b(?:much|price|cost|pay|quote|fee|charge|charges|rates?|how|look|looking|need|fix|fixing|ready|time|used?|good|best|ok|okay|thanks|thank you|it|this|that|me|you)) 4 (?=[A-Za-z])/gi, () => { changed = true; return ' for '; });
+  s = s.replace(/\b(wont|won['’]t|doesn['’]?t|doesnt|wnt|wont') (on|start|boot|open|charge)\b/gi, (m, a, b) => { changed = true; return b.toLowerCase() === 'on' ? "won't turn on" : `won't ${b.toLowerCase()}`; });
   // Only STANDALONE words are touched: never part of "5k", "3k-5k", "r2", an email, a URL or a path.
   s = s.replace(/(?<![\w@./:#-])[A-Za-z]+(?![\w@/:#-]|\.\w)/g, (word) => {
     const lower = word.toLowerCase();

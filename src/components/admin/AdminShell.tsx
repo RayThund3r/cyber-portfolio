@@ -20,6 +20,7 @@ export const useAdmin = () => useContext(MeCtx);
 
 export const NAV: Array<{ href: string; label: string; icon: IconName; key: string; hint: string }> = [
   { href: '/admin', label: 'Desk', icon: 'home', key: 'd', hint: 'Requests, bookings, portfolio, builder, studio' },
+  { href: '/admin/launch', label: 'Launch Pad', icon: 'bolt', key: 'x', hint: 'Readiness score and what is left to switch on' },
   { href: '/admin/overview', label: 'Overview', icon: 'spark', key: 'o', hint: 'The big picture' },
   { href: '/admin/analytics', label: 'Analytics', icon: 'grid', key: 'a', hint: 'Traffic, pages, devices' },
   { href: '/admin/chat', label: 'Chat Lab', icon: 'brain', key: 'c', hint: 'Questions, gaps, playground' },

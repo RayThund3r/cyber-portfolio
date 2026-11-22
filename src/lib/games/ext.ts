@@ -66,3 +66,11 @@ export function sanitizeExt(raw: unknown): ExtGame[] {
   return out;
 }
 
+
+/** Sandbox flags for a game frame. "allow-same-origin" lets a game keep its OWN storage, which is safe only when the game lives on a different address;
+ *  if the address is this very site (or unreadable) the flag is withheld so a game can never reach this site's pages, cookies or admin. */
+export function gameSandbox(url: string): string {
+  let same = true;
+  try { same = typeof location !== 'undefined' ? new URL(url, location.href).origin === location.origin : true; } catch { same = true; }
+  return `allow-scripts ${same ? '' : 'allow-same-origin '}allow-pointer-lock allow-popups allow-forms`;
+}

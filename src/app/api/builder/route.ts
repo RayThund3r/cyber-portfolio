@@ -70,7 +70,7 @@ export async function POST(req: Request) {
     }
 
     case 'upload': {
-      if (rateLimit(`b-up:${ip}`, 60, 10 * 60_000)) return bad('Too many uploads. Try again shortly.', 429);
+      if (rateLimit(`b-up:${ip}`, 60, 10 * 60_000) || rateLimit(`b-up-day:${ip}`, 300, 24 * 3600_000)) return bad('Too many uploads. Try again shortly.', 429);
       const r = await addAsset(id, key, clean(b?.mime, 30), typeof b?.data === 'string' ? b.data : '');
       if ('error' in r) { wrong(r.error); return bad(r.error, r.status); }
       return ok(r);
@@ -78,7 +78,7 @@ export async function POST(req: Request) {
 
     case 'restore': {
       // The browser still holds a full copy of a site the server has lost (e.g. a host that wipes its disk): put it back under the same id and key.
-      if (rateLimit(`b-restore:${ip}`, 20, 60 * 60_000)) return bad('Too many restore attempts. Please try again later.', 429);
+      if (rateLimit(`b-restore:${ip}`, 20, 60 * 60_000) || rateLimit(`b-create:${ip}`, 30, 60 * 60_000)) return bad('Too many restore attempts. Please try again later.', 429);
       const r = await restoreProject(id, key, { templateId: b?.templateId, templateName: b?.templateName, name: b?.name, config: b?.config, assetIds: b?.assetIds });
       return 'error' in r ? bad(r.error, r.status) : ok(r);
     }

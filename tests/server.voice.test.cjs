@@ -1,0 +1,34 @@
+// Voice: spoken text must become typed-style text; replies must be speakable; spoken controls must be recognised.
+const H = require('./server-setup.cjs'); const { ok } = H;
+const V = H.req('utils/chatEngine/voiceText'); const S = H.req('lib/voice/speechText');
+const n = (s) => V.normalizeSpoken(s).text;
+const eq = (name, got, want) => ok(name, got === want, JSON.stringify(got));
+eq('phone number from digits', n('call me on plus two five six seven five two two two five one five six'), 'call me on +256752225156');
+eq('double digits', n('my number is zero seven double five one two three four'), 'my number is 07551234');
+eq('email', n('email me at ray at gmail dot com'), 'email me at ray@gmail.com');
+eq('email two-part tld', n('write to info at shop dot co dot ug'), 'write to info@shop.co.ug');
+eq('plain "one of my friends" untouched', n('one of my friends broke a phone'), 'one of my friends broke a phone');
+eq('math still works', n('what is twenty plus twenty two'), 'what is 20 plus 22');
+eq('question mark word', n('how much is a screen question mark'), 'how much is a screen?');
+eq('comma word', n('hello comma I need a logo'), 'hello, I need a logo');
+eq('fillers', n('um open the port folio please'), 'open the portfolio please');
+const meta = (t) => V.voiceMeta(t).meta;
+for (const [t, m] of [['send it', 'send'], ['go ahead', 'send'], ['stop', 'quiet'], ['stop talking', 'quiet'], ['speak slower', 'slower'], ['talk faster', 'faster'], ['slow down', 'slower'], ['cancel', 'clear'], ['say that again', 'repeat'], ['stop listening', 'stop'], ['what is the stop sign', null], ['I need to go ahead with the plan', null]]) eq(`control "${t}"`, meta(t), m);
+eq('send keeps the text before it', V.voiceMeta('I need a new screen send it').text, 'I need a new screen');
+const sp = (s) => S.cleanForSpeech(s);
+ok('speaks a phone number digit by digit', /plus 2 5 6 7 5 2 2 2 5 1 5 6/.test(sp('Call **+256752225156** now')), sp('Call +256752225156'));
+ok('speaks an email', /raytbolt at gmail dot com/.test(sp('Email raytbolt@gmail.com')), sp('Email raytbolt@gmail.com'));
+ok('speaks money in words', /5,000 Ugandan shillings/.test(sp('Cost: UGX 5,000')), sp('UGX 5,000'));
+ok('speaks percent and degrees', /20 percent/.test(sp('20% off')) && /465 degrees Celsius/.test(sp('465 °C')));
+ok('no markdown or emoji', !/[*#`]|🧪/.test(sp('## Title\n**bold** `code` 🧪')));
+ok('long replies are chunked small', S.chunkForSpeech('A sentence goes here. '.repeat(40)).every((c) => c.length <= 190));
+eq('email stops before trailing words', n('email ray at gmail dot com please'), 'email ray@gmail.com please');
+
+const R = H.req('lib/voice/recognition');
+eq('cumulative android results are not repeated', R.foldResults([{ t: 'hello', final: true }, { t: 'hello world', final: true }, { t: 'hello world how', final: true }]).fin, 'hello world how');
+eq('normal separate sentences kept', R.foldResults([{ t: 'I need a screen', final: true }, { t: 'for a Samsung', final: true }]).fin, 'I need a screen for a Samsung');
+eq('interim kept apart from final', JSON.stringify(R.foldResults([{ t: 'book a repair', final: true }, { t: 'for tomor', final: false }])), JSON.stringify({ fin: 'book a repair', tmp: 'for tomor' }));
+eq('exact repeats collapse', R.foldResults([{ t: 'hello there', final: true }, { t: 'Hello there.', final: true }]).fin, 'Hello there.');
+const O = H.req('lib/ocr');
+eq('ocr cleanup drops noise lines', O.cleanOcr('  INVOICE  4471 \n\n|\n~\nTotal   UGX 150,000\n'), 'INVOICE 4471\nTotal UGX 150,000');
+eq('native boxes are ordered into lines', O.orderBoxes([{ rawValue: 'World', boundingBox: { x: 80, y: 10, height: 12 } }, { rawValue: 'Hello', boundingBox: { x: 10, y: 11, height: 12 } }, { rawValue: 'Next line', boundingBox: { x: 10, y: 40, height: 12 } }]), 'Hello World\nNext line');

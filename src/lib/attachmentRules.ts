@@ -17,15 +17,16 @@ export const ATTACH = {
   maxTextChars: 30_000,
 } as const;
 
-export type FileKind = 'image' | 'pdf' | 'text';
+export type FileKind = 'image' | 'pdf' | 'text' | 'doc';
 
 const IMAGE_EXT = ['png', 'jpg', 'jpeg', 'webp', 'gif'];
-const TEXT_EXT = ['txt', 'md', 'csv', 'tsv', 'json', 'log', 'yaml', 'yml', 'ini', 'sql', 'xml'];
+const TEXT_EXT = ['txt', 'md', 'csv', 'tsv', 'json', 'log', 'yaml', 'yml', 'ini', 'sql', 'xml', 'toml', 'srt', 'vtt', 'py', 'js', 'ts', 'css'];
+const DOC_EXT = ['docx', 'xlsx', 'pptx'];
 
 /** Value for <input type="file" accept="...">. */
-export const ACCEPT = [...IMAGE_EXT, 'pdf', ...TEXT_EXT].map((e) => '.' + e).join(',');
+export const ACCEPT = [...IMAGE_EXT, 'pdf', ...DOC_EXT, ...TEXT_EXT].map((e) => '.' + e).join(',');
 
-export const ALLOWED_LABEL = 'PNG, JPG, WEBP, GIF, PDF, TXT, MD, CSV, TSV, JSON, LOG, YAML, INI, SQL, XML';
+export const ALLOWED_LABEL = 'PNG, JPG, WEBP, GIF, PDF, DOCX, XLSX, PPTX, TXT, MD, CSV, TSV, JSON, LOG, YAML, INI, SQL, XML, SRT, VTT, TOML, PY, JS, TS, CSS';
 
 export function extOf(name: string): string {
   const m = /\.([a-z0-9]{1,8})$/i.exec(name.trim());
@@ -35,6 +36,7 @@ export function extOf(name: string): string {
 export function kindOfExt(ext: string): FileKind | null {
   if (IMAGE_EXT.includes(ext)) return 'image';
   if (ext === 'pdf') return 'pdf';
+  if (DOC_EXT.includes(ext)) return 'doc';
   if (TEXT_EXT.includes(ext)) return 'text';
   return null;
 }
@@ -81,6 +83,7 @@ export function matchesSignature(ext: string, b: Uint8Array): boolean {
     return false;
   }
   if (kind === 'pdf') return startsWith(0x25, 0x50, 0x44, 0x46); // %PDF
+  if (kind === 'doc') return startsWith(0x50, 0x4b, 0x03, 0x04); // zip container (Office Open XML)
   // text: no NUL bytes in the first 2 KB (binary files almost always contain them)
   const n = Math.min(b.length, 2048);
   for (let i = 0; i < n; i++) if (b[i] === 0) return false;

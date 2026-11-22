@@ -14,6 +14,7 @@ export default function AiProvidersPage() {
   const q = useApi<Data>('/api/admin/llm-providers', { every: 30000 });
   const [busy, setBusy] = useState('');
   const [tests, setTests] = useState<Record<string, TestRes>>({});
+  const [quickKey, setQuickKey] = useState(''); const [quickMsg, setQuickMsg] = useState('');
   const [newName, setNewName] = useState(''); const [newUrl, setNewUrl] = useState('');
 
   const act = async (body: Record<string, unknown>, ok?: string) => {
@@ -32,6 +33,16 @@ export default function AiProvidersPage() {
   const move = (id: string, dir: -1 | 1) => { const o = ids.slice(); const i = o.indexOf(id), j = i + dir; if (i < 0 || j < 0 || j >= o.length) return; [o[i], o[j]] = [o[j], o[i]]; void act({ action: 'order', order: o }); };
   const test = async (id: string) => { setBusy('test:' + id); try { const r = await api<TestRes>('/api/admin/llm-providers', { method: 'POST', body: { action: 'test', id } }); setTests((t) => ({ ...t, [id]: r })); q.reload(); } catch (e) { setTests((t) => ({ ...t, [id]: { ok: false, error: e instanceof Error ? e.message : 'Failed' } })); } finally { setBusy(''); } };
   const pos = (id: string) => ids.indexOf(id) + 1;
+  const quick = async () => {
+    setBusy('quick'); setQuickMsg('');
+    try {
+      const r = await api<{ id: string; test: TestRes }>('/api/admin/llm-providers', { method: 'POST', body: { action: 'quick', key: quickKey } });
+      setQuickKey('');
+      setQuickMsg(r.test.ok ? `Connected to ${r.id} and it answered: “${(r.test.text || '').slice(0, 80)}”` : `Saved for ${r.id}, but the test failed: ${r.test.error || 'no answer'}`);
+      q.reload();
+    } catch (e) { setQuickMsg(e instanceof Error ? e.message : 'Failed'); }
+    setBusy('');
+  };
 
   return (
     <div className="space-y-5 p-4 sm:p-6">
@@ -40,6 +51,15 @@ export default function AiProvidersPage() {
       <Notice tone="info" title="How it works">
         The chat asks the first switched-on service. If it is out of free quota, slow or broken, the next one answers, and if none can, the built-in engine does. Keys are stored encrypted on the server and never shown to visitors. Free plans change often: check each provider's page for current limits, and set a daily cap below their limit so you never hit it by surprise. Visitors' messages go to the service that answers, so say so on your privacy page.
       </Notice>
+
+      <Card title="Quick connect" icon="key">
+        <p className="text-xs text-zinc-500">Paste a free API key from Groq, Google Gemini, OpenRouter or Cerebras. I recognise the service, save the key (encrypted), switch it on and test it.</p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <input type="password" autoComplete="off" value={quickKey} onChange={(e) => setQuickKey(e.target.value)} placeholder="Paste API key" aria-label="API key" className={`${inputCls} min-w-0 flex-1`} />
+          <AButton icon="bolt" variant="solid" disabled={busy === 'quick' || quickKey.trim().length < 20} onClick={() => void quick()}>{busy === 'quick' ? 'Connecting…' : 'Connect'}</AButton>
+        </div>
+        {quickMsg && <p role="status" className="mt-2 text-xs text-zinc-300">{quickMsg}</p>}
+      </Card>
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <Stat label="Switched on" value={active} icon="bolt" />

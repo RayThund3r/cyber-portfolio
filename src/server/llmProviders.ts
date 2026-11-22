@@ -201,3 +201,14 @@ export async function testProvider(id: string): Promise<{ ok: boolean; text?: st
     return { ok: false, error: ctl.signal.aborted ? 'No answer within 25 seconds.' : /upstream 401|upstream 403/.test(m) ? `The key was refused (${m.replace('upstream ', '')}).` : /upstream 404/.test(m) ? `Not found: check the model name. ${m.slice(13)}` : /upstream 429/.test(m) ? 'Rate limit or free quota reached right now.' : m.startsWith('upstream') ? `The service said: ${m.replace('upstream ', '')}` : 'Could not reach the service.' };
   } finally { clearTimeout(timer); }
 }
+
+
+/** Guess which service a pasted API key belongs to from its well-known prefix. Never logs or returns the key. */
+export function detectProvider(key: string): string | null {
+  const k = key.trim();
+  if (/^gsk_[A-Za-z0-9]{20,}$/.test(k)) return 'groq';
+  if (/^AIza[0-9A-Za-z_-]{30,}$/.test(k)) return 'gemini';
+  if (/^sk-or-[A-Za-z0-9_-]{20,}$/.test(k)) return 'openrouter';
+  if (/^csk-[A-Za-z0-9]{20,}$/.test(k)) return 'cerebras';
+  return null;
+}

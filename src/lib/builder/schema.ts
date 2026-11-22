@@ -96,6 +96,7 @@ export const SECTION_DEFS: Record<SectionType, SectionDef> = {
   features: { type: 'features', label: 'Services / features', icon: '✨', fields: [
     T('title', 'Title', 'What we offer', { max: 100 }),
     TA('subtitle', 'Intro (optional)', 'A quick look at how we can help you.', { max: 300 }),
+    SEL('variant', 'Layout', o(['cards', 'Cards'], ['list', 'Rows with icon'], ['steps', 'Numbered steps'], ['minimal', 'Minimal (no boxes)']), 'cards'),
     SEL('columns', 'Cards per row', o(['2', '2'], ['3', '3'], ['4', '4']), '3'),
     LIST('items', 'Cards', [EMO('icon', 'Icon', '⭐'), T('title', 'Title', 'Service name', { max: 60 }), TA('text', 'Description', 'Describe this service in a sentence or two.', { max: 300 })],
       [{ icon: '🚀', title: 'Fast delivery', text: 'We get things done quickly without cutting corners.' }, { icon: '💡', title: 'Smart ideas', text: 'Fresh thinking tailored to your needs.' }, { icon: '🤝', title: 'Friendly support', text: 'Real people ready to help whenever you need us.' }],
@@ -103,6 +104,7 @@ export const SECTION_DEFS: Record<SectionType, SectionDef> = {
     ...STYLE,
   ] },
   stats: { type: 'stats', label: 'Numbers / stats', icon: '📊', fields: [
+    SEL('variant', 'Layout', o(['plain', 'Plain'], ['cards', 'Cards']), 'plain'),
     LIST('items', 'Numbers', [T('value', 'Number', '100', { max: 10 }), T('suffix', 'After the number (e.g. + or %)', '+', { max: 4 }), T('label', 'Label', 'Happy clients', { max: 40 })],
       [{ value: '120', suffix: '+', label: 'Happy clients' }, { value: '8', suffix: '', label: 'Years of experience' }, { value: '300', suffix: '+', label: 'Projects done' }, { value: '24', suffix: '/7', label: 'Support' }],
       { itemLabel: 'Number', titleKey: 'label', max: 6 }),
@@ -111,6 +113,7 @@ export const SECTION_DEFS: Record<SectionType, SectionDef> = {
   gallery: { type: 'gallery', label: 'Photo gallery', icon: '🖼️', fields: [
     T('title', 'Title', 'Our work', { max: 100 }),
     TA('subtitle', 'Intro (optional)', '', { max: 300 }),
+    SEL('variant', 'Layout', o(['grid', 'Even grid'], ['masonry', 'Masonry (natural heights)'], ['strip', 'Scrolling strip']), 'grid'),
     SEL('columns', 'Photos per row', o(['2', '2'], ['3', '3'], ['4', '4']), '3'),
     LIST('images', 'Photos', [IMG('image', 'Photo', ''), T('caption', 'Caption (optional)', '', { max: 80 })],
       [
@@ -141,6 +144,7 @@ export const SECTION_DEFS: Record<SectionType, SectionDef> = {
   team: { type: 'team', label: 'Team', icon: '👥', fields: [
     T('title', 'Title', 'Meet the team', { max: 100 }),
     TA('subtitle', 'Intro (optional)', '', { max: 300 }),
+    SEL('variant', 'Layout', o(['round', 'Round photos'], ['cards', 'Cards']), 'round'),
     LIST('members', 'People', [T('name', 'Name', 'Full name', { max: 60 }), T('role', 'Role', 'Position', { max: 60 }), IMG('photo', 'Photo', '')],
       [{ name: 'Team Member', role: 'Founder', photo: '' }, { name: 'Team Member', role: 'Manager', photo: '' }, { name: 'Team Member', role: 'Designer', photo: '' }],
       { itemLabel: 'Person', titleKey: 'name', max: 12 }),
@@ -148,6 +152,7 @@ export const SECTION_DEFS: Record<SectionType, SectionDef> = {
   ] },
   faq: { type: 'faq', label: 'FAQ', icon: '❓', fields: [
     T('title', 'Title', 'Frequently asked questions', { max: 100 }),
+    SEL('variant', 'Layout', o(['accordion', 'Collapsing list'], ['open', 'All answers visible, two columns']), 'accordion'),
     LIST('items', 'Questions', [T('q', 'Question', 'How does it work?', { max: 150 }), TA('a', 'Answer', 'Explain it clearly here.', { max: 800 })],
       [{ q: 'How does it work?', a: 'Contact us, tell us what you need, and we take it from there.' }, { q: 'How long does it take?', a: 'It depends on the job — we always give you a clear estimate first.' }, { q: 'How can I pay?', a: 'We accept mobile money and cash.' }],
       { itemLabel: 'Question', titleKey: 'q', max: 15 }),

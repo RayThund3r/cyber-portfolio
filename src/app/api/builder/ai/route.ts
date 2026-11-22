@@ -24,6 +24,7 @@ const IMG = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 const OFFICE = new Set(['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.openxmlformats-officedocument.presentationml.presentation']);
 const TEXTY = /^(text\/(plain|markdown|csv|html)|application\/(json|csv))$/;
 
+let bigInFlight = 0; // large request bodies being read right now on this server instance
 const bad = (error: string, status = 400, extra: Record<string, unknown> = {}) => NextResponse.json({ error, ...extra }, { status });
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -32,8 +33,16 @@ export async function POST(req: Request) {
   const ip = clientIp(req);
   if (rateLimit(`ai:${ip}`, 24, 10 * 60_000)) return bad('You are going a little fast — please wait a minute and try again.', 429);
 
-  // bounded while it is read: 6 files of up to ~10 MB (base64 ≈ 30 MB) plus the text
-  const parsed = await readJsonLimited(req, 33 * 1024 * 1024);
+  // bounded while it is read: 6 files of up to ~10 MB (base64 ≈ 30 MB) plus the text.
+  // The body is read BEFORE the key can be checked, so big bodies are rationed: few per address, and only a few in flight at once on this server.
+  const big = Number(req.headers.get('content-length') || 0) > 1_500_000;
+  if (big) {
+    if (rateLimit(`ai-big:${ip}`, 6, 10 * 60_000)) return bad('You are going a little fast — please wait a few minutes and try again.', 429);
+    if (bigInFlight >= 4) return bad('The AI is busy with other large files. Please try again in a minute.', 503);
+  }
+  if (big) bigInFlight++;
+  let parsed: Awaited<ReturnType<typeof readJsonLimited>>;
+  try { parsed = await readJsonLimited(req, 33 * 1024 * 1024); } finally { if (big) bigInFlight--; }
   if (!parsed.ok) return bad(parsed.status === 413 ? 'Request too large (the files may be too big).' : parsed.error, parsed.status);
   const b: any = parsed.body;
 

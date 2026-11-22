@@ -11,11 +11,11 @@
 
 export const SITE = {
   assistantName: 'Cyber Assistant',
-  ownerName: 'the owner', // e.g. 'Spider' — used in the AI's persona
+  ownerName: 'Ray Thund3r', // used in the AI's persona and the About-the-developer block
   location: 'Ndejje, Makindye Ssabagabo, Uganda',
 
-  whatsapp: process.env.NEXT_PUBLIC_WHATSAPP || '',
-  email: process.env.NEXT_PUBLIC_CONTACT_EMAIL || '',
+  whatsapp: process.env.NEXT_PUBLIC_WHATSAPP || '+256752225156', // env var overrides
+  email: process.env.NEXT_PUBLIC_CONTACT_EMAIL || 'raytbolt@gmail.com',
   hours: process.env.NEXT_PUBLIC_HOURS || '',
 
   // Public site URL (used for sitemap / social previews). No trailing slash.

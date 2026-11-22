@@ -32,7 +32,7 @@ function scrollToIdWhenReady(id: string, tries = 30, firstDelay = 0) {
 export function useSiteCommands() {
   const router = useRouter();
   const pathname = usePathname();
-  const { setTheme, cycleTheme } = useTheme();
+  const { setTheme, cycleTheme, setColorMode, toggleColorMode } = useTheme();
 
   /** @returns true when the visitor should now look at the page (navigation / scroll). */
   const run = useCallback(
@@ -69,6 +69,11 @@ export function useSiteCommands() {
           else cycleTheme();
           return false; // the visitor stays where they are
 
+        case 'mode':
+          if (cmd.mode) setColorMode(cmd.mode);
+          else toggleColorMode();
+          return false;
+
         case 'fx':
           triggerFx(cmd.fx, 6000);
           return false;
@@ -100,7 +105,7 @@ export function useSiteCommands() {
           return false; // handled by the widget itself
       }
     },
-    [router, pathname, setTheme, cycleTheme]
+    [router, pathname, setTheme, cycleTheme, setColorMode, toggleColorMode]
   );
 
   return { run, pathname };

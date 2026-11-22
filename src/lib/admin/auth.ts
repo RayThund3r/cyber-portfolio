@@ -10,6 +10,7 @@
 import { b64u, hmac } from './crypto';
 import { db } from './store';
 import { adminConfigured as ownerConfigured, adminSession } from '@/server/auth';
+import { clientIp } from '@/server/util';
 
 export const COOKIE = 'sys_admin';
 
@@ -30,7 +31,7 @@ async function ipKey(): Promise<Uint8Array> {
 export interface ClientInfo { ip: string; ipHash: string; ua: string; country: string; city: string }
 export async function clientInfo(req: Request): Promise<ClientInfo> {
   const h = req.headers;
-  const ip = (h.get('x-forwarded-for') || h.get('x-real-ip') || '').split(',')[0].trim() || 'unknown';
+  const ip = clientIp(req); // the same trusted derivation as everywhere else: a forged X-Forwarded-For can no longer fake visitors
   const ua = (h.get('user-agent') || '').slice(0, 300);
   const key = await ipKey().catch(() => new Uint8Array(1));
   const ipHash = b64u((await hmac(key, 'ip:' + ip)).slice(0, 9));

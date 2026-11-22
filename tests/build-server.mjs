@@ -8,7 +8,7 @@ let ts; for (const p of [undefined, join(here, '..'), '/home/claude/.npm-global/
 if (!ts) { console.error('typescript is required'); process.exit(1); }
 rmSync(out, { recursive: true, force: true });
 const walk = (d) => readdirSync(d).flatMap((n) => { const f = join(d, n); return statSync(f).isDirectory() ? walk(f) : f.endsWith('.ts') ? [f] : []; });
-const want = ['server', 'lib', 'data', join('app', 'api')].map((x) => join(root, x));
+const want = ['server', 'lib', 'data', 'utils', join('app', 'api')].map((x) => join(root, x));
 let n = 0;
 for (const f of want.flatMap(walk)) {
   const dest = join(out, relative(root, f).replace(/\.ts$/, '.js')); mkdirSync(dirname(dest), { recursive: true });

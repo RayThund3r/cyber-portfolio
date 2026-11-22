@@ -79,6 +79,38 @@ export const GLOSSARY: Term[] = [
   { names: ['bit', 'byte', 'bytes'], def: 'A bit is a single 1 or 0; a byte is 8 bits (one character of text). Kilobyte, megabyte and gigabyte are thousands, millions and billions of bytes.', eli5: 'A bit is one light switch (on/off); a byte is a row of eight of them.' },
   { names: ['pwa', 'progressive web app'], def: 'A website that can be installed to the home screen and work offline like an app, without an app store.', eli5: 'A website wearing an app costume.' },
   { names: ['open source', 'open-source'], def: 'Software whose code is public so anyone can inspect, use and improve it (Linux, Firefox, many web libraries).', eli5: 'A recipe everyone is allowed to read, cook and improve.' },
+  { names: ['ai', 'artificial intelligence'], def: 'Software that does things we normally expect a thinking person to do — understand language, recognise pictures, make predictions or write text. Chat assistants like this one are a kind of AI.', eli5: 'A computer that learns from lots of examples instead of being told every single step.' },
+  { names: ['machine learning', 'ml'], def: 'A way of building AI where the computer learns patterns from many examples instead of following hand-written rules.', eli5: 'Showing a child a thousand photos of cats until it can spot a new cat by itself.' },
+  { names: ['llm', 'large language model', 'language model'], def: 'An AI trained on huge amounts of text so it can read and write language — the technology behind chat assistants. It predicts the most likely next words, which is why it can sound fluent yet still be wrong sometimes.', eli5: 'A very well-read parrot that is brilliant at finishing your sentences.' },
+  { names: ['chatbot', 'bot'], def: 'A program you talk to by typing or speaking. Simple ones follow rules; modern ones use a language model.', eli5: 'A robot pen-pal that answers your messages.' },
+  { names: ['algorithm'], def: 'A step-by-step set of instructions for solving a problem, like a recipe a computer follows.', eli5: 'A recipe: do these steps in this order and you get the result.' },
+  { names: ['python'], def: 'A popular, beginner-friendly programming language used for automation, data work, AI and websites.', eli5: 'A programming language that reads almost like plain English.' },
+  { names: ['database', 'db'], def: 'An organised place where an app stores information (customers, orders, messages) so it can be searched and updated quickly and safely.', eli5: 'A huge, tidy filing cabinet a program can search in a blink.' },
+  { names: ['sql'], def: 'The language used to ask a database questions and change its data, e.g. "give me all orders from last week".', eli5: 'The polite way to ask the filing cabinet for exactly the folders you want.' },
+  { names: ['server'], def: 'A computer that is always on and answers requests from other devices, such as sending your browser a web page.', eli5: 'A waiter that brings you whatever you order from the kitchen.' },
+  { names: ['browser', 'web browser'], def: 'The app that loads and shows websites — Chrome, Brave, Firefox, Safari and Edge are browsers.', eli5: 'A window you look through to see the internet.' },
+  { names: ['cookie', 'cookies'], def: 'A tiny note a website saves in your browser to remember you (logins, settings, cart). Some are used for tracking, so you can clear or block them.', eli5: 'A name tag the website sticks on you so it recognises you next visit.' },
+  { names: ['internet'], def: 'The worldwide network of connected computers that lets devices share information. The web (websites) is just one thing that runs on it.', eli5: 'A giant road system connecting every computer in the world.' },
+  { names: ['website', 'web site'], def: 'A collection of web pages at one address (a domain) that anyone with a browser can open.', eli5: 'A shop window on the internet that anyone can look into.' },
+  { names: ['app', 'application'], def: 'A program you install or open to do a particular job on a phone or computer — chat, banking, games, maps.', eli5: 'A tool on your phone built to do one job well.' },
+  { names: ['git', 'github'], def: 'Git tracks every change to a project’s code so you can go back or work with others; GitHub is a website that stores Git projects online.', eli5: 'An unlimited undo button for a whole project, kept safely online.' },
+  { names: ['linux'], def: 'A free, open-source operating system used on most servers and by many developers; Android is built on it too.', eli5: 'A free operating system anyone is allowed to look inside and improve.' },
+  { names: ['android'], def: 'Google’s mobile operating system used by Tecno, Infinix, Samsung and most phones in Uganda.', eli5: 'The software that makes most phones work.' },
+  { names: ['ios', 'iphone os'], def: 'Apple’s operating system for iPhones.', eli5: 'The software that makes an iPhone work.' },
+  { names: ['antivirus'], def: 'Software that scans for and removes malware. Good habits (updates, no pirated software, careful links) matter more than any single product.', eli5: 'A security guard that checks everything coming through the door.' },
+  { names: ['firewall'], def: 'A filter that blocks unwanted connections to or from a device or network.', eli5: 'A bouncer who only lets approved visitors in.' },
+  { names: ['ethernet', 'lan cable', 'network cable'], def: 'A wired network connection. It is usually faster and steadier than Wi-Fi.', eli5: 'A real road between your computer and the router, instead of shouting across the room.' },
+  { names: ['hdmi'], def: 'A cable and port that carries picture and sound to a TV or monitor.', eli5: 'The cable that sends the picture from your laptop to the big screen.' },
+  { names: ['sim card', 'sim'], def: 'A small chip that identifies you to the mobile network — your phone number and airtime or data plan are linked to it.', eli5: 'Your phone’s ID card for the network.' },
+  { names: ['mobile money', 'momo'], def: 'Sending, receiving and paying money with a phone number through MTN MoMo or Airtel Money, no bank account needed.', eli5: 'A wallet inside your phone number.' },
+  { names: ['bitcoin', 'cryptocurrency', 'crypto'], def: 'Digital money that exists only online and is tracked on a public ledger instead of by a bank. Prices swing a lot, so it is risky, and scams are common.', eli5: 'Internet money kept in a notebook that everyone can check but nobody owns.' },
+  { names: ['blockchain'], def: 'A shared record of transactions copied across many computers, built so past entries are very hard to change.', eli5: 'A notebook everyone holds a copy of, so nobody can secretly rewrite a page.' },
+  { names: ['ui ux', 'ui/ux', 'ux ui', 'ui and ux'], def: 'UI is how a product looks (buttons, colours, layout); UX is how it feels to use (is it easy and clear?). Good design needs both.', eli5: 'UI is the shape of the door handle; UX is whether the door opens the way you expect.' },
+  { names: ['figma'], def: 'A free-to-start design tool that runs in the browser, used to design app and website screens and clickable prototypes.', eli5: 'A digital drawing board for planning how an app or website will look.' },
+  { names: ['logo'], def: 'A simple mark or symbol that represents a business. A good logo is clear at small sizes and works in one colour.', eli5: 'The little picture that says “this is us”.' },
+  { names: ['fast charging', 'quick charge'], def: 'Charging that delivers more power so a battery fills faster. Needs a compatible charger AND cable, and runs warmer, so avoid it under a pillow.', eli5: 'Filling a bucket with a fire hose instead of a tap.' },
+  { names: ['charger', 'power adapter'], def: 'The block that converts wall power to the lower voltage your device needs. A weak or fake charger can charge slowly or damage a battery.', eli5: 'A translator between the wall socket and your gadget.' },
+  { names: ['screen protector', 'tempered glass'], def: 'A thin glass or film layer stuck on a screen to take scratches and knocks instead of the screen itself. It is much cheaper to replace than the display.', eli5: 'A raincoat for your screen.' },
 ];
 
 /* ------------------------------------------------------------------ matching */
@@ -134,7 +166,7 @@ export function tryGlossary(input: string, allowBare = false): TermQuery | null 
 }
 
 export function termReply(q: TermQuery): { human: string; expert: string; suggestions: string[] } {
-  const title = q.term.names[0].replace(/\b\w/g, (c) => c.toUpperCase()).replace(/\b(Ssd|Hdd|Cpu|Gpu|Ram|Dns|Ip|Vpn|Api|Html|Css|Ux|Ui|Seo|Ssl|Cmyk|Rgb|Dpi|Oled|Lcd|Bios|Os|Pwa|Mah|Svg)\b/g, (x) => x.toUpperCase());
+  const title = q.term.names[0].replace(/\b\w/g, (c) => c.toUpperCase()).replace(/\b(Ssd|Hdd|Cpu|Gpu|Ram|Dns|Ip|Vpn|Api|Html|Css|Ux|Ui|Seo|Ssl|Cmyk|Rgb|Dpi|Oled|Lcd|Bios|Os|Pwa|Mah|Svg|Ai|Ml|Llm|Sql|Db|Hdmi|Sim|Ios|Momo)\b/g, (x) => x.toUpperCase()).replace(/^Wifi$/, 'Wi-Fi').replace(/^Ui Ux$/, 'UI vs UX');
   const lines = [`**${title}**`, q.term.def];
   if (q.simple) lines.push(`🧒 In simple terms: ${q.term.eli5}`);
   else lines.push(`💡 Like this: ${q.term.eli5}`);
