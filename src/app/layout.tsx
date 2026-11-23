@@ -19,7 +19,10 @@ import BackToTop from '@/components/site/BackToTop';
 import AnnouncementBar from '@/components/layout/AnnouncementBar';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { ProjectsProvider } from '@/context/ProjectsContext';
-import { getProjects } from '@/server/store';
+import { getProjects, getSiteSettings } from '@/server/store';
+import { DEFAULT_SETTINGS } from '@/lib/siteSettings';
+import { SiteSettingsProvider } from '@/context/SiteSettingsContext';
+import MaintenanceGate from '@/components/layout/MaintenanceGate';
 import { SITE, whatsappDigits } from '@/utils/chatEngine/siteConfig';
 
 const geistSans = Geist({
@@ -36,7 +39,7 @@ const TITLE = "System Portfolio // Phone & PC Repair, Design and Web Development
 const DESCRIPTION =
   "Phone and PC repair, graphic and brand design, UI/UX and web development in Ndejje, Makindye Ssabagabo, Uganda. Send your device details or project brief for a quote.";
 
-export const metadata: Metadata = {
+const BASE_META: Metadata = {
   metadataBase: new URL(SITE.url),
   title: { default: TITLE, template: "%s | System Portfolio" },
   description: DESCRIPTION,
@@ -50,6 +53,13 @@ export const metadata: Metadata = {
   twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },
   alternates: { canonical: "/" },
 };
+
+/** The owner can set the Google/sharing title and description in Admin → SETTINGS; empty keeps the built-in text. */
+export async function generateMetadata(): Promise<Metadata> {
+  let t = TITLE, d = DESCRIPTION;
+  try { const s = (await getSiteSettings()).seo; t = s.title || TITLE; d = s.description || DESCRIPTION; } catch { /* storage unavailable: keep defaults */ }
+  return { ...BASE_META, title: { default: t, template: "%s | System Portfolio" }, description: d, openGraph: { ...BASE_META.openGraph, title: t, description: d }, twitter: { card: "summary_large_image", title: t, description: d } };
+}
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -86,6 +96,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   // Portfolio items come from the CMS (/admin) and fall back to the built-in list.
   // Admin edits call revalidatePath('/', 'layout'), so pages stay static between edits.
   const projects = await getProjects();
+  const settings = await getSiteSettings().catch(() => null);
+  const chatOn = settings ? settings.features.chat : true;
   return (
     <html
       lang="en"
@@ -106,6 +118,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body className="min-h-full flex flex-col bg-zinc-950 text-zinc-100 font-sans selection:bg-accent-strong selection:text-black">
         <ThemeProvider>
           <ProjectsProvider projects={projects}>
+            <SiteSettingsProvider settings={settings ?? DEFAULT_SETTINGS}>
             <a
               href="#main"
               className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[200] focus:rounded focus:bg-accent-strong focus:px-4 focus:py-2 focus:font-mono focus:text-xs focus:font-semibold focus:text-black"
@@ -121,14 +134,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             </ChromeGate>
             {/* Page transition is handled by app/template.tsx. Pages render <div>/<section> inside this one <main>. */}
             <main id="main" className="flex-1 flex flex-col">
-              {children}
+              <MaintenanceGate>{children}</MaintenanceGate>
             </main>
             <ChromeGate>
               <SiteFooter />
             </ChromeGate>
             {/* Loaded after the page is idle so it never competes with first paint */}
             <ChromeGate>
-              <ChatLoader />
+              {chatOn && <ChatLoader />}
               <BackToTop />
               <FxLayer />
               <EasterEggs />
@@ -138,6 +151,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <PageMotion />
             <PressFeedback />
             <OfflineNotice />
+            </SiteSettingsProvider>
           </ProjectsProvider>
         </ThemeProvider>
       </body>

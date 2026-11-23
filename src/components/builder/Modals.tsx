@@ -8,8 +8,8 @@ import type { TemplateDef } from '@/lib/builder/templates';
 import { post } from './lib';
 
 import { CategoryIcon, IconCart, IconCheck, IconCheckCircle, IconClose, IconCode, IconCopy, IconDesktop, IconEye, IconEyeOff, IconImage, IconLayers, IconLock, IconPalette, IconPaperclip, IconPencil, IconPhone, IconPlus, IconSettings, IconSparkle, IconTablet, IconTrash, IconWarn, IconBulb, IconFolder } from './icons';
-export function BuyModal({ priceUGX, templateName, warnings, projectId, keyStr, onClose, onDone }: {
-  priceUGX: number | null; templateName: string; warnings: string[]; projectId: string; keyStr: string; onClose: () => void; onDone: (ticket: string, contact: string) => void;
+export function BuyModal({ priceUGX, quoteLines, templateName, warnings, projectId, keyStr, onClose, onDone }: {
+  priceUGX: number | null; quoteLines?: { key: string; label: string; amount: number }[]; templateName: string; warnings: string[]; projectId: string; keyStr: string; onClose: () => void; onDone: (ticket: string, contact: string) => void;
 }) {
   const [f, setF] = useState({ name: '', email: '', phone: '' });
   const [ok, setOk] = useState(false);
@@ -32,6 +32,7 @@ export function BuyModal({ priceUGX, templateName, warnings, projectId, keyStr, 
         <div className="rounded-lg bg-zinc-900 border border-zinc-800 p-3 text-sm">
           <div className="text-zinc-400 text-xs font-mono">{templateName}</div>
           <div className="text-xl font-bold text-cyan-300">{formatMoney(priceUGX, 'UGX', rates)}</div>
+          {quoteLines && quoteLines.length > 0 && <ul className="mt-2 space-y-0.5 text-[11px] text-zinc-400">{quoteLines.map((l) => <li key={l.key} className="flex justify-between gap-3"><span>{l.label}</span><span className="font-mono">{formatMoney(l.amount, 'UGX', rates)}</span></li>)}</ul>}
           {priceUGX ? <div className="text-[11px] text-zinc-500 font-mono">≈ {formatMoney(priceUGX, 'USD', rates)} · live rate · one-time payment, no monthly fees</div> : null}
         </div>
         {warnings.length > 0 && <div className="rounded border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-amber-200 space-y-1"><div className="font-mono">Before you confirm (you can still go back and fix these):</div><ul className="list-disc pl-4">{warnings.map((w) => <li key={w}>{w}</li>)}</ul></div>}

@@ -3,6 +3,9 @@
 
 import { useState } from 'react';
 import type { Field } from '@/lib/builder/schema';
+import Icon from '@/components/ui/Icon';
+import { useSiteSettings } from '@/context/SiteSettingsContext';
+import { useSortable } from './useSortable';
 import { cloudToken, cloudVerifier, hashPass } from '@/lib/builder/sha256';
 
 import { IconCart, IconCheck, IconCheckCircle, IconClose, IconCode, IconCopy, IconDesktop, IconEye, IconEyeOff, IconImage, IconLayers, IconLock, IconPalette, IconPaperclip, IconPencil, IconPhone, IconPlus, IconSettings, IconSparkle, IconTablet, IconTrash, IconWarn, IconBulb, IconFolder } from './icons';
@@ -108,9 +111,16 @@ function ImageField({ f, v, set, ctx }: { f: Field; v: string; set: (v: string) 
     setBusy(true); setErr(null);
     try { set(`asset:${await ctx.upload(file)}`); } catch (e: any) { setErr(e.message || 'Upload failed'); } finally { setBusy(false); }
   };
+  const dd = useSiteSettings().features.dragDrop;
+  const [over, setOver] = useState(false);
   return (
-    <div>
-      <span className="block text-[11px] font-mono text-zinc-400 mb-1">{f.label}</span>
+    <div
+      onDragOver={dd ? (e) => { if (ctx.upload && !ctx.disabled && e.dataTransfer.types.includes('Files')) { e.preventDefault(); setOver(true); } } : undefined}
+      onDragLeave={dd ? () => setOver(false) : undefined}
+      onDrop={dd ? (e) => { e.preventDefault(); setOver(false); if (!ctx.disabled) pick(e.dataTransfer.files?.[0]); } : undefined}
+      className={over ? 'rounded-lg bg-cyan-500/10 outline outline-2 outline-dashed outline-cyan-400 outline-offset-4' : undefined}
+    >
+      <span className="block text-[11px] font-mono text-zinc-400 mb-1">{f.label}{dd && ctx.upload && !ctx.disabled && <span className="text-zinc-600"> · or drop a picture here</span>}</span>
       <div className="flex gap-3 items-start">
         <div className="w-20 h-16 rounded border border-zinc-800 bg-zinc-900 overflow-hidden flex-none flex items-center justify-center text-zinc-600 text-xs">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -140,15 +150,22 @@ function ListField({ f, items, set, ctx, tag }: { f: Field; items: Record<string
   const max = f.max ?? 12;
   const blank = () => Object.fromEntries(f.fields!.map((x) => [x.key, x.type === 'list' ? [] : x.def ?? (x.type === 'toggle' ? false : '')]));
   const titleOf = (it: Record<string, any>, i: number) => String(it[f.titleKey || f.fields![0].key] || '').slice(0, 40) || `${f.itemLabel || 'Item'} ${i + 1}`;
+  const dd = useSiteSettings().features.dragDrop; // OPTIONAL (Admin → SETTINGS): drag handle on top of the arrow buttons
+  const sort = useSortable({
+    count: items.length, disabled: ctx.disabled || !dd,
+    onReorder: (from, to) => { const n = [...items]; const [m] = n.splice(from, 1); n.splice(to, 0, m); set(n, `${tag}.move`); setOpenIdx(to); },
+  });
   const move = (i: number, d: number) => { const n = [...items]; const j = i + d; if (j < 0 || j >= n.length) return; [n[i], n[j]] = [n[j], n[i]]; set(n, `${tag}.move`); setOpenIdx(j); };
 
   return (
     <div className="rounded-lg border border-zinc-800 p-3 bg-zinc-900/30">
       <div className="text-[11px] font-mono text-zinc-400 mb-2">{f.label} <span className="text-zinc-600">({items.length}/{max})</span></div>
+      {dd && <span className="sr-only" role="status">{sort.status}</span>}
       <ul className="space-y-2">
         {items.map((it, i) => (
-          <li key={i} className="rounded border border-zinc-800 bg-zinc-950">
+          <li key={i} {...(dd ? sort.itemProps(i) : {})} className="rounded border border-zinc-800 bg-zinc-950">
             <div className="flex items-center gap-1 px-2 py-1.5">
+              {dd && items.length > 1 && <button {...sort.handleProps(i)} aria-label="Drag to reorder" className="flex h-8 w-6 flex-none items-center justify-center rounded text-zinc-500 hover:text-cyan-300"><Icon name="grip" size={16} /></button>}
               <button type="button" className="flex-1 text-left text-xs text-zinc-200 truncate cursor-pointer" onClick={() => setOpenIdx(openIdx === i ? null : i)} aria-expanded={openIdx === i}>
                 {openIdx === i ? '▾' : '▸'} {titleOf(it, i)}
               </button>

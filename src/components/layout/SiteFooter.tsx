@@ -5,6 +5,7 @@ import SessionLine from '@/components/site/SessionLine';
 import Link from 'next/link';
 import { ROUTES } from '@/lib/siteMap';
 import { openChat } from '@/lib/chatBus';
+import { useSiteSettings } from '@/context/SiteSettingsContext';
 import { SITE, hasWhatsApp, whatsappLink } from '@/utils/chatEngine/siteConfig';
 import Icon from '@/components/ui/Icon';
 import { NodeFooter } from '@/components/site/VisitorNode';
@@ -16,7 +17,11 @@ const EXTRA_LINKS = [
   { path: '/privacy', label: 'PRIVACY' },
 ];
 
+const SOCIAL_BASE: Record<string, string> = { instagram: 'https://instagram.com/', facebook: 'https://facebook.com/', tiktok: 'https://tiktok.com/@', youtube: 'https://youtube.com/@', x: 'https://x.com/' };
+
 export default function SiteFooter() {
+  const { social } = useSiteSettings();
+  const socials = Object.entries(social).filter(([, v]) => v).map(([k, v]) => [k, /^https:\/\//i.test(v) ? v : SOCIAL_BASE[k] + v] as const);
   return (
     // Extra bottom padding on phones keeps the floating chat button from covering the links.
     <footer className="border-t border-zinc-900 bg-zinc-950">
@@ -26,6 +31,11 @@ export default function SiteFooter() {
           <NodeFooter />
           <SessionLine />
           {SITE.hours && <div className="mt-1 text-[10px] text-zinc-500">Hours: {SITE.hours}</div>}
+          {socials.length > 0 && (
+            <div className="mt-1 flex flex-wrap justify-center gap-x-3 sm:justify-start">
+              {socials.map(([k, href]) => <a key={k} href={href} target="_blank" rel="noopener noreferrer" className="py-1 uppercase text-zinc-400 hover:text-accent">{k}</a>)}
+            </div>
+          )}
           {hasWhatsApp() && (
             <div className="mt-1">
               <a

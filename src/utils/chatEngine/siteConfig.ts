@@ -42,6 +42,12 @@ export const FALLBACK_SUGGESTIONS = [
   'What pages are there?',
 ];
 
+const BASE = { whatsapp: SITE.whatsapp, email: SITE.email, hours: SITE.hours, location: SITE.location };
+/** Lets the owner's saved settings (Admin → SETTINGS) override the built-in/env values at runtime. Empty = back to the built-in value. */
+export function applySiteOverrides(o: Partial<Pick<typeof SITE, 'whatsapp' | 'email' | 'hours' | 'location'>>) {
+  for (const k of ['whatsapp', 'email', 'hours', 'location'] as const) (SITE as any)[k] = o[k] || BASE[k];
+}
+
 /** Digits-only WhatsApp number (wa.me format), or '' when not configured. */
 export function whatsappDigits(): string {
   return SITE.whatsapp.replace(/[^\d]/g, '');

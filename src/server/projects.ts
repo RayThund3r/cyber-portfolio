@@ -7,7 +7,7 @@ import 'server-only';
 import crypto from 'crypto';
 import { promises as fs } from 'fs';
 import path from 'path';
-import { createExclusive, createTicket, findTicket, listNames, mutateTicket, readJson, removeJson, update, type Ticket } from './store';
+import { createExclusive, createTicket, findTicket, getRateCard, getSiteSettings, listNames, mutateTicket, readJson, removeJson, update, type Ticket } from './store';
 import { getTemplates, putJson, removeTree } from './builderUtil';
 import { makeZip, type ZipFile } from './zip';
 import { buildSite } from '@/lib/builder/generate';
@@ -18,6 +18,7 @@ import { SITE_URL } from './mail';
 import { referencedAssets, sanitizeConfig } from '@/lib/builder/sanitize';
 import type { SiteConfig } from '@/lib/builder/schema';
 import { effectiveUGX } from '@/lib/builder/pricing';
+import { quote as smartQuote, type RateCard } from '@/lib/builder/smartPricing';
 import { getRates } from './rates';
 import { notifyOwner } from './mail';
 import { esc } from './util';
@@ -275,10 +276,28 @@ export async function orderState(p: Project): Promise<{ ticket: string; paid: bo
 }
 
 /** The UGX price a customer would pay RIGHT NOW (market USD reference × live rate, or the owner's fixed UGX price). */
-export async function priceNow(templateId: string): Promise<number | null> {
+export async function priceNow(templateId: string, config?: SiteConfig): Promise<number | null> {
   const tpl = (await getTemplates()).find((t) => t.id === templateId);
   if (!tpl) return null;
-  return effectiveUGX(tpl, (await getRates()).rates.UGX);
+  const base = effectiveUGX(tpl, (await getRates()).rates.UGX);
+  // OPTIONAL "smart pricing" (Admin → SETTINGS, off by default): the price follows what is in the site; the template price is the minimum.
+  if (config && base !== null && base > 0) {
+    const smart = await smartPricingFor(base);
+    if (smart && config.kind !== 'pro') return smartQuote(config, smart.card, base).total;
+  }
+  return base;
+}
+
+/** The rate card and the minimum price when smart pricing is switched on, otherwise null (nothing changes for customers). */
+export async function smartPricingFor(base: number | null): Promise<{ card: RateCard; floor: number } | null> {
+  if (base === null || base <= 0) return null;
+  if (!(await getSiteSettings()).features.smartPricing) return null;
+  return { card: await getRateCard(), floor: base };
+}
+
+export async function smartInfoFor(templateId: string) {
+  const tpl = (await getTemplates()).find((t) => t.id === templateId);
+  return tpl ? smartPricingFor(effectiveUGX(tpl, (await getRates()).rates.UGX)) : null;
 }
 
 export async function placeOrder(id: string, key: string, c: { name: string; email: string; phone: string }): Promise<{ ticket: string } | { error: string; status: number }> {
@@ -286,7 +305,7 @@ export async function placeOrder(id: string, key: string, c: { name: string; ema
   if (!p) return { error: 'Project not found.', status: 404 };
   if (p.order) { const st = await orderState(p); if (st && !st.cancelled) return { ticket: p.order.ticket }; }
 
-  const price = await priceNow(p.templateId);
+  const price = await priceNow(p.templateId, p.config);
   if (price === null) return { error: 'This template is not for sale yet — please contact us.', status: 409 };
 
   const snapshot = sanitizeConfig(p.config, { assetIds: new Set(Object.keys(p.assets)) });

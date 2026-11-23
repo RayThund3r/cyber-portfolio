@@ -6,10 +6,12 @@ import { ACRONYMS, LANGS, COMPANIES } from './tech';
 import { EVENTS, PEOPLE } from './history';
 import { ALL_FACTS, ZONES, type Fact } from './local';
 import { GENERAL } from './general';
+import { MORE, DICT, TRANS } from './more';
+import { EXTRA } from './extra';
 
 export interface WorldAnswer { human: string; expert: string; suggestions: string[] }
 
-const STOP = new Set('a an the is are was were of in on at to for do does did what whats which who whom how tell me about please can you could i my give explain define meaning mean means exactly really actually just so then this that there it its'.split(' '));
+const STOP = new Set('whos hows wheres thats whens whys a an the is are was were of in on at to for do does did what whats which who whom how tell me about please can you could i my give explain define meaning mean means exactly really actually just so then this that there it its'.split(' '));
 const norm = (s: string) => s.toLowerCase().replace(/[’']/g, '').replace(/[^a-z0-9+#. ]+/g, ' ').replace(/\.(?=\s|$)/g, ' ').replace(/\s+/g, ' ').trim();
 const words = (s: string) => norm(s).split(' ').filter(Boolean);
 const content = (s: string) => words(s).filter((w) => !STOP.has(w));
@@ -54,7 +56,7 @@ const planetIdx = new Map(PLANETS.map((p) => [p.name.toLowerCase(), p] as const)
 
 /* ---------- strict keyed facts (science, uganda, health, business, tech) ---------- */
 const KEYED: Array<{ key: string; kw: string[]; f: Fact }> = [];
-for (const f of [...SCIENCE, ...ALL_FACTS, ...GENERAL]) for (const k of f.keys) { const nk = norm(k); if (nk) KEYED.push({ key: nk, kw: content(nk), f }); }
+for (const f of [...SCIENCE, ...ALL_FACTS, ...GENERAL, ...MORE, ...EXTRA]) for (const k of f.keys) { const nk = norm(k); if (nk) KEYED.push({ key: nk, kw: content(nk), f }); }
 KEYED.sort((a, b) => b.key.length - a.key.length);
 function keyed(q: string): Fact | null {
   const qc = content(q);
@@ -64,7 +66,7 @@ function keyed(q: string): Fact | null {
     if (!hasPhrase(q, key) || !kw.length) continue;
     // the matched key must account for most of what the person asked
     const cov = kw.length / qc.length;
-    if (cov < 0.6) continue;
+    if (cov < 0.75) continue;
     const score = cov * 10 + kw.length;
     if (!best || score > best.score) best = { f, score };
   }
@@ -215,14 +217,58 @@ function historyAnswer(q: string): WorldAnswer | null {
   return null;
 }
 
+/* ---------- small maths ---------- */
+function powerAnswer(q: string): WorldAnswer | null {
+  let m = /^(?:what(?:s| is) )?(?:the )?(square|cube|square root) of (-?\d+(?:\.\d+)?)$/.exec(q);
+  if (m) { const n = Number(m[2]); const v = m[1] === 'square' ? n * n : m[1] === 'cube' ? n ** 3 : Math.sqrt(n); if (Number.isFinite(v)) return out('MATH', `${m[1]} of ${n} = **${+v.toFixed(6)}** 🧮`); }
+  m = /^(?:what(?:s| is) )?(-?\d+(?:\.\d+)?) (squared|cubed)$/.exec(q);
+  if (m) { const n = Number(m[1]); const v = m[2] === 'squared' ? n * n : n ** 3; return out('MATH', `${n} ${m[2]} = **${+v.toFixed(6)}** 🧮`); }
+  return null;
+}
+
+/* ---------- time zone by place ---------- */
+function zoneQ(q: string): WorldAnswer | null {
+  const m = /^(?:what )?time ?zone (?:is |does )?(.+?)(?: in| use| have| on)?$/.exec(q) || /^(.+?) time ?zone$/.exec(q);
+  if (!m) return null;
+  const z = ZONES.find(([n]) => n === m[1].replace(/^the /, '').trim());
+  if (!z) return null;
+  return out('FACT', `${title(z[0])} is on **${z[2]}**, UTC${z[1] >= 0 ? '+' : '−'}${Math.abs(Math.trunc(z[1]))}${z[1] % 1 ? ':30' : ''}. 🕒`);
+}
+
+/* ---------- dictionary & translation ---------- */
+function dictAnswer(q: string): WorldAnswer | null {
+  let m: RegExpExecArray | null;
+  let word = '', wantSyn = false, wantDef = false;
+  if ((m = /^(?:what(?:s| is) (?:the )?)?(?:synonyms?|another word|similar words?|other words?) (?:of|for) (?:the word )?(.+)$/.exec(q)) || (m = /^(?:give me )?(?:a )?synonyms? (?:for|of) (.+)$/.exec(q))) { word = m[1]; wantSyn = true; }
+  else if ((m = /^(?:define|definition of|meaning of|what does) (?:the word )?(.+?)(?: mean)?$/.exec(q)) || (m = /^(?:what(?:s| is) )?(?:the )?(?:meaning|definition) of (?:the word )?(.+)$/.exec(q)) || (m = /^(.+?) (?:meaning|definition)$/.exec(q)) || (m = /^what (?:is )?(?:does )?(?:the word )?(.+?) mean$/.exec(q))) { word = m[1]; wantDef = true; }
+  if (!word) return null;
+  word = word.replace(/^(?:a |an |the |to )/, '').trim();
+  const d = DICT[word];
+  if (!d) return null;
+  if (wantSyn) return out('FACT', `Words similar to **${word}**: ${d.syn || d.def}. 📖`);
+  void wantDef;
+  return out('FACT', `**${word}** (${d.pos}): ${d.def}.${d.syn ? ` Similar: ${d.syn}.` : ''} 📖`);
+}
+
+const LANG_ALIAS: Record<string, string> = { french: 'french', spanish: 'spanish', portuguese: 'portuguese', german: 'german', italian: 'italian', arabic: 'arabic', swahili: 'swahili', kiswahili: 'swahili', luganda: 'luganda', ganda: 'luganda', chinese: 'chinese', mandarin: 'chinese', japanese: 'japanese', hindi: 'hindi', kinyarwanda: 'kinyarwanda' };
+function transAnswer(q: string): WorldAnswer | null {
+  const m = /^(?:how (?:do|would) (?:you|i) say|how to say|what(?:s| is) |say |translate |translation of )?(?:the word |the phrase )?["']?(.+?)["']? (?:in|to|into) (\w+)(?: language)?$/.exec(q) || /^how (?:do|would) (?:you|i) say (.+?) in (\w+)$/.exec(q);
+  if (!m) return null;
+  const lang = LANG_ALIAS[m[2]];
+  const phrase = m[1].replace(/^(?:the word |the phrase |say )/, '').trim();
+  const row = TRANS[phrase];
+  if (!lang || !row || !row[lang]) return null;
+  return out('FACT', `“${phrase}” in ${title(lang)}: **${row[lang]}** 🗣️`);
+}
+
 /* ---------- public API ---------- */
 export function tryWorld(input: string): WorldAnswer | null {
   const q = norm(input).replace(/^(?:please )?(?:how (?:do|can|should|would|could|must) (?:i|we|you|one)|how (?:to|do you)|what(?:s| is) the way to|steps to|ways to|tips to) /, 'how to ');
   if (!q || q.length > 140) return null;
-  const direct = zoneDiff(q) || zoneAnswer(q) || countryAnswer(q) || scienceAnswer(q) || techAnswer(q) || historyAnswer(q);
+  const direct = zoneDiff(q) || zoneAnswer(q) || zoneQ(q) || powerAnswer(q) || transAnswer(q) || dictAnswer(q) || countryAnswer(q) || scienceAnswer(q) || techAnswer(q) || historyAnswer(q);
   if (direct) return direct;
   const f = keyed(q);
   return f ? out('FACT', f.a) : null;
 }
 
-export const WORLD_STATS = { countries: COUNTRIES.length, elements: ELEMENTS.length, acronyms: ACRONYMS.length, languages: LANGS.length, companies: COMPANIES.length, events: EVENTS.length, people: PEOPLE.length, facts: SCIENCE.length + ALL_FACTS.length + GENERAL.length };
+export const WORLD_STATS = { countries: COUNTRIES.length, elements: ELEMENTS.length, acronyms: ACRONYMS.length, languages: LANGS.length, companies: COMPANIES.length, events: EVENTS.length, people: PEOPLE.length, facts: SCIENCE.length + ALL_FACTS.length + GENERAL.length + MORE.length + EXTRA.length, words: Object.keys(DICT).length };

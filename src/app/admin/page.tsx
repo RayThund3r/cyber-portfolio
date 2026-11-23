@@ -12,13 +12,15 @@ import { api, box, btn, primary, needsAttention, printJobCard, useAdminTickets, 
 import Overview from '@/components/admin/Overview';
 import TicketsPanel from '@/components/admin/TicketsPanel';
 import DataPanel from '@/components/admin/DataPanel';
+import CustomersPanel from '@/components/admin/CustomersPanel';
+import SettingsPanel from '@/components/admin/SettingsPanel';
 import StudioPanel from '@/components/studio/StudioPanel';
 
 import Icon from '@/components/ui/Icon';
 /** The extra tools live on their own pages (shared frame, same sign-in). */
 const TOOLS: Array<[string, string]> = [['/admin/overview', 'Pulse'], ['/admin/analytics', 'Analytics'], ['/admin/chat', 'Chat Lab'], ['/admin/site', 'Site'], ['/admin/health', 'Health'], ['/admin/security', 'Security'], ['/admin/board', 'Board'], ['/admin/shell', 'Shell'], ['/admin/lab', 'Lab']];
 
-type Tab = 'overview' | 'tickets' | 'studio' | 'templates' | 'sites' | 'portfolio' | 'insights' | 'data';
+type Tab = 'overview' | 'tickets' | 'customers' | 'settings' | 'studio' | 'templates' | 'sites' | 'portfolio' | 'insights' | 'data';
 
 export default function AdminPage() {
   const [authed, setAuthed] = useState<boolean | null>(null);
@@ -46,11 +48,13 @@ export default function AdminPage() {
   const tabs: { id: Tab; label: string; badge?: number }[] = [
     { id: 'overview', label: 'OVERVIEW' },
     { id: 'tickets', label: 'TICKETS', badge: attention },
+    { id: 'customers', label: 'CUSTOMERS' },
     { id: 'studio', label: 'STUDIO' },
     { id: 'templates', label: 'TEMPLATES' },
     { id: 'sites', label: 'SITES' },
     { id: 'portfolio', label: 'PORTFOLIO' },
     { id: 'insights', label: 'INSIGHTS' },
+    { id: 'settings', label: 'SETTINGS' },
     { id: 'data', label: 'DATA' },
   ];
 
@@ -89,6 +93,8 @@ export default function AdminPage() {
             renderEditor={(t, onSaved) => <TicketEditor t={t} onSaved={onSaved} />}
           />
         )}
+        {tab === 'customers' && <CustomersPanel tickets={live.tickets} onOpenTicket={(id) => { setOpenId(id); setTab('tickets'); }} />}
+        {tab === 'settings' && <SettingsPanel />}
         {tab === 'studio' && <StudioPanel onAuthLost={onAuthLost} />}
         {tab === 'templates' && <Templates />}
         {tab === 'sites' && <Sites />}

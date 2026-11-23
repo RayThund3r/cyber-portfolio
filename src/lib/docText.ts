@@ -5,6 +5,8 @@
 // Best effort by design: scanned PDFs and unusual font encodings give little or no text, and we say so.
 // Hostile files are bounded: entry count, declared size, and the real decompressed size are all capped.
 
+import { extractPdf } from './pdfText';
+
 const MAX_OUT = 4_000_000; // decompressed bytes we are willing to produce for any one part
 const MAX_ENTRIES = 3000;
 const MAX_TEXT = 80_000; // characters kept
@@ -151,72 +153,11 @@ async function officeText(b: Uint8Array, ext: string): Promise<DocText> {
 
 /* ------------------------------------------------------------------ pdf */
 
-function pdfString(s: string): string {
-  return s.replace(/\\([nrtbf()\\]|[0-7]{1,3}|\r?\n)/g, (_m, g: string) => {
-    if (g === 'n') return '\n'; if (g === 'r' || g === 't') return ' '; if (g === 'b' || g === 'f') return '';
-    if (/^[0-7]+$/.test(g)) return String.fromCharCode(parseInt(g, 8) & 255);
-    if (g === '(' || g === ')' || g === '\\') return g;
-    return '';
-  });
-}
-
-export function pdfContentToText(c: string): string {
-  const out: string[] = [];
-  const blocks = c.match(/BT[\s\S]*?ET/g) || [];
-  for (const blk of blocks) {
-    const tokRe = /\[((?:[^\]\\]|\\.)*)\]\s*TJ|\(((?:[^()\\]|\\.|\((?:[^()\\]|\\.)*\))*)\)\s*(?:Tj|'|")|<([0-9A-Fa-f\s]+)>\s*Tj|([-\d.]+)\s+([-\d.]+)\s+T[dD]|T\*|\bET\b/g;
-    let m: RegExpExecArray | null;
-    let line = '';
-    const flush = () => { if (line.trim()) out.push(line.trim()); line = ''; };
-    while ((m = tokRe.exec(blk))) {
-      if (m[1] !== undefined) {
-        const parts = [...m[1].matchAll(/\(((?:[^()\\]|\\.)*)\)|(-?\d+(?:\.\d+)?)/g)];
-        for (const p of parts) { if (p[1] !== undefined) line += pdfString(p[1]); else if (Number(p[2]) < -220) line += ' '; }
-      } else if (m[2] !== undefined) line += pdfString(m[2]);
-      else if (m[3] !== undefined) {
-        const hex = m[3].replace(/\s+/g, ''); let s = '';
-        for (let i = 0; i + 1 < hex.length; i += 2) s += String.fromCharCode(parseInt(hex.slice(i, i + 2), 16));
-        if (/^[\x20-\x7e]*$/.test(s)) line += s;
-      } else if (m[4] !== undefined) { if (Math.abs(Number(m[5])) > 0.5) flush(); else line += ' '; }
-      else flush();
-    }
-    flush();
-  }
-  return out.join('\n');
-}
-
 async function pdfText(b: Uint8Array): Promise<DocText> {
-  const s = dec(b, 'latin1');
-  let pages = (s.match(/\/Type\s*\/Page(?![s\w])/g) || []).length;
-  const texts: string[] = [];
-  const re = /stream\r?\n/g;
-  let m: RegExpExecArray | null, streams = 0, total = 0;
-  while ((m = re.exec(s)) && streams < 400 && total < MAX_TEXT) {
-    const start = m.index + m[0].length;
-    const end = s.indexOf('endstream', start);
-    if (end < 0) break;
-    const dictStart = Math.max(0, s.lastIndexOf('obj', m.index));
-    const dict = s.slice(dictStart, m.index);
-    streams++;
-    if (/\/Subtype\s*\/(?:Image|Type1C|CIDFontType0C|OpenType)|\/FontFile|\/Type\s*\/(?:XObject|Metadata|ObjStm|XRef)/.test(dict)) { re.lastIndex = end; continue; }
-    let body: string;
-    if (/\/FlateDecode/.test(dict)) {
-      let stop = end;
-      const len = /\/Length\s+(\d+)(?!\s+\d+\s+R)/.exec(dict);
-      if (len && start + Number(len[1]) <= end) stop = start + Number(len[1]);
-      else { if (b[stop - 1] === 0x0a) stop--; if (b[stop - 1] === 0x0d) stop--; } // the EOL before "endstream" is not data
-      const raw = b.subarray(start, stop);
-      const o = raw.length > 1_500_000 ? null : await inflate(raw, 'deflate');
-      if (!o) { re.lastIndex = end; continue; }
-      body = dec(o, 'latin1');
-    } else body = s.slice(start, end);
-    re.lastIndex = end;
-    if (!/\bBT\b/.test(body)) continue;
-    const t = pdfContentToText(body);
-    if (t) { texts.push(t); total += t.length; }
-  }
-  const text = tidy(texts.join('\n')).slice(0, MAX_TEXT);
-  return { text, pages, note: text.length < 20 ? 'This PDF has no selectable text I can read (it may be scanned or use special fonts).' : undefined };
+  const { text, pages, encrypted } = await extractPdf(b, inflate);
+  if (encrypted) return { text: '', pages: pages || undefined, note: 'This PDF is password-protected, so I can’t read inside it. Remove the password and share it again.' };
+  const t = tidy(text).slice(0, MAX_TEXT);
+  return { text: t, pages: pages || undefined, note: t.length < 20 ? 'This PDF has no selectable text I can read (it may be scanned or use special fonts).' : undefined };
 }
 
 /* ------------------------------------------------------------------ entry point */

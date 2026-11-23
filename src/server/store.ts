@@ -571,3 +571,25 @@ export async function getTemplates(): Promise<TemplateDef[]> {
 export async function saveTemplates(items: TemplateDef[]) {
   await update<{ items: TemplateDef[] | null; v?: number }>('templates', { items: null }, (d) => { d.items = items; d.v = 2; });
 }
+
+import { DEFAULT_SETTINGS, normalizeSettings, type SiteSettings } from '@/lib/siteSettings';
+export async function getSiteSettings(): Promise<SiteSettings> {
+  const stored = await readJson<{ v: unknown }>('site-settings', { v: null });
+  return stored.v ? normalizeSettings(stored.v) : DEFAULT_SETTINGS;
+}
+export async function saveSiteSettings(input: unknown): Promise<SiteSettings> {
+  const v = normalizeSettings(input);
+  await update<{ v: unknown }>('site-settings', { v: null }, (d) => { d.v = v; });
+  return v;
+}
+
+import { DEFAULT_RATE_CARD, normalizeRateCard, type RateCard } from '@/lib/builder/smartPricing';
+export async function getRateCard(): Promise<RateCard> {
+  const stored = await readJson<{ card: unknown }>('pricing', { card: null });
+  return stored.card ? normalizeRateCard(stored.card) : DEFAULT_RATE_CARD;
+}
+export async function saveRateCard(input: unknown): Promise<RateCard> {
+  const card = normalizeRateCard(input);
+  await update<{ card: unknown }>('pricing', { card: null }, (d) => { d.card = card; });
+  return card;
+}

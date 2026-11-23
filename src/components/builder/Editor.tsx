@@ -21,6 +21,7 @@ import CodePanel from './CodePanel';
 import GuidedTour, { type TourStep } from './GuidedTour';
 import Portal from '@/components/ui/Portal';
 import { BuyModal, NewProjectModal } from './Modals';
+import { quote as smartQuote, type RateCard } from '@/lib/builder/smartPricing';
 import { compressImage, lsDel, lsGet, lsSet, post, setPath } from './lib';
 import { rememberProject } from '@/utils/useProjectRef';
 import ImportBackup from './ImportBackup';
@@ -43,7 +44,7 @@ type Device = keyof typeof DEVICE_W;
 /** Undo history is stored as JSON strings with a byte budget — an 80-step history of a large site would otherwise hold ~80 full copies in memory. */
 interface Hist { past: string[]; present: SiteConfig; future: string[]; tag: string; t: number; v: number; bytes: number }
 const MAX_HIST_CHARS = 12_000_000;
-interface Meta { templateId?: string; name: string; templateName: string; priceUGX: number | null; order: { ticket: string; paid: boolean; price: number } | null; updatedAt: string }
+interface Meta { smart?: { card: RateCard; floor: number } | null; templateId?: string; name: string; templateName: string; priceUGX: number | null; order: { ticket: string; paid: boolean; price: number } | null; updatedAt: string }
 
 function useMedia(q: string) {
   const [m, setM] = useState(false);
@@ -140,7 +141,7 @@ export default function Editor({ mode, id, keyStr }: { mode: 'project' | 'templa
           loadedKind = d.config?.kind;
           setHist({ past: [], present: d.config, future: [], tag: '', t: 0, v: 0, bytes: 0 });
           setAssets(d.assets || {}); setProjName(d.name); revRef.current = d.rev || 0;
-          setMeta({ templateId: d.templateId, name: d.name, templateName: d.templateName, priceUGX: d.priceUGX, order: d.order, updatedAt: d.updatedAt || '' });
+          setMeta({ smart: d.smart ?? null, templateId: d.templateId, name: d.name, templateName: d.templateName, priceUGX: d.priceUGX, order: d.order, updatedAt: d.updatedAt || '' });
           savedRef.current = JSON.stringify([d.config, d.name]);
           rememberProject({ id: d.id, key: keyStr!, name: d.name, template: d.templateName });
           writeCopy({ id: d.id, key: keyStr!, name: d.name, templateId: d.templateId || 'blank', templateName: d.templateName || '', config: d.config, rev: d.rev || 0 });
@@ -394,6 +395,8 @@ export default function Editor({ mode, id, keyStr }: { mode: 'project' | 'templa
   }, [isProject, !!cfg, locked]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loadErr) return <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col items-center justify-center gap-4 px-6 text-center"><p role="alert" className="text-sm text-red-300 max-w-md">{loadErr}</p><ImportBackup /><Link href="/builder" className="text-cyan-400 text-sm underline">← Back to designs</Link></div>;
+  // only while Admin → SETTINGS → Smart pricing is on: the price follows the site's contents (the server recomputes it at checkout)
+  const smartLive = cfg && meta?.smart && cfg.kind !== 'pro' ? smartQuote(cfg, meta.smart.card, meta.smart.floor) : null;
   if (!cfg || !meta) return <div className="min-h-screen bg-zinc-950 text-zinc-400 flex flex-col items-center justify-center gap-3 text-sm font-mono"><div className="load-bar" role="progressbar" aria-label="Loading" />Opening your project…</div>;
 
   const fixedW = DEVICE_W[device];
@@ -554,7 +557,7 @@ export default function Editor({ mode, id, keyStr }: { mode: 'project' | 'templa
       )}
 
       <Portal>
-      {buy && isProject && <BuyModal priceUGX={meta.priceUGX} templateName={meta.templateName} warnings={warnings} projectId={id} keyStr={keyStr!} onClose={() => setBuy(false)} onDone={(ticket, contact) => {
+      {buy && isProject && <BuyModal priceUGX={smartLive ? smartLive.total : meta.priceUGX} quoteLines={smartLive?.lines} templateName={meta.templateName} warnings={warnings} projectId={id} keyStr={keyStr!} onClose={() => setBuy(false)} onDone={(ticket, contact) => {
         try { sessionStorage.setItem('sys_track_prefill', JSON.stringify({ id: ticket, contact })); } catch { /* ignore */ }
         window.location.assign(`/track?id=${ticket}`);
       }} />}

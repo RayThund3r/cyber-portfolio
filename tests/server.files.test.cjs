@@ -84,5 +84,28 @@ const mem = () => ({ interactionCount: 0, lastTopic: 'general', userContext: {},
   a = await ask([xl], 'how many rows are in the file?');
   ok('questions about an xlsx are answered as a table', /\b2\b/.test(a.reply), a.reply.slice(0, 200));
   ok('quick asks adapt to the file', FI.quickAsks(logf).some((x) => /fix/i.test(x)) && FI.quickAsks(inv).some((x) => /total/i.test(x)));
+
+  // ---- real-world files (made by Chromium, LibreOffice, python-docx/pptx/openpyxl, and qpdf object streams)
+  const fx = (n) => new Uint8Array(fs.readFileSync(path.join(__dirname, 'fixtures', n)));
+  for (const [n, ext] of [['chrome.pdf', 'pdf'], ['libreoffice-objstm.pdf', 'pdf']]) {
+    const r = await D.extractDocText(fx(n), ext);
+    ok(`real PDF ${n}: text, numbers and table`, /Quarterly Report/.test(r.text) && /UGX 5,000,000/.test(r.text) && /Item Cost/.test(r.text) && r.pages === 1, JSON.stringify(r.text.slice(0, 120)));
+  }
+  const enc = await D.extractDocText(fx('encrypted.pdf'), 'pdf');
+  ok('password-protected PDF is named as such, not "scanned"', enc.text === '' && /password/.test(enc.note || ''), enc.note);
+  const multi = await D.extractDocText(fx('long-multipage.pdf'), 'pdf');
+  ok('real multi-page PDF with compressed objects: all pages, in order', multi.pages === 5 && /Section 1\b/.test(multi.text) && /Section 40\b/.test(multi.text) && multi.text.indexOf('Section 2\n') < multi.text.indexOf('Section 30\n'), `pages=${multi.pages} len=${multi.text.length}`);
+  ok('PDF lines that were only wrapped are rejoined into sentences', /testing\. Payment is split/.test(multi.text.replace(/\n/g, ' ')) && !/design, build and\ntesting/.test(multi.text));
+  let rd = await D.extractDocText(fx('real.docx'), 'docx'); ok('real docx incl. table', /Meeting notes/.test(rd.text) && /Task \| Owner/.test(rd.text));
+  rd = await D.extractDocText(fx('real.xlsx'), 'xlsx'); ok('real xlsx', /Sheet: Stock/.test(rd.text) && /Screen\t5\t120000/.test(rd.text));
+  rd = await D.extractDocText(fx('real.pptx'), 'pptx'); ok('real pptx', /Slide 1: Launch plan/.test(rd.text) && /Slide 2: Pricing/.test(rd.text));
+  const bigpdf = await FI.analyzeFile(new File([fx('long-multipage.pdf')], 'agreement.pdf'));
+  a = await ask([bigpdf], 'what does the document say about the warranty?');
+  ok('answers about a real multi-page PDF', /warranty/i.test(a.reply) && /twelve months/.test(a.reply), a.reply.slice(0, 200));
+  a = await ask([bigpdf], 'summarize it');
+  ok('summarises a real multi-page PDF', /main points/.test(a.reply) && /\n- /.test(a.reply), a.reply.slice(0, 160));
+  const rx = await FI.analyzeFile(new File([fx('real.xlsx')], 'stock.xlsx'));
+  a = await ask([rx], 'what is the average price?');
+  ok('real xlsx answers a number question', /\b60,?000\b|60000/.test(a.reply), a.reply.slice(0, 160));
   ok('business question still answered with a file present', !/From \*\*a\.docx/.test(a.reply), a.reply.slice(0, 100));
 })().catch((e) => { console.error('CRASH', e); process.exit(1); });

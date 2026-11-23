@@ -1,6 +1,6 @@
 // src/app/api/builder/route.ts — public template-builder API (customers). Auth = project id + secret edit key.
 import { NextResponse } from 'next/server';
-import { addAsset, assetDataUrls, authProject, cancelOrder, createProject, deleteAsset, deleteOwnProject, duplicateProject, orderState, placeOrder, priceNow, restoreAsset, restoreProject, saveProject } from '@/server/projects';
+import { addAsset, assetDataUrls, authProject, cancelOrder, createProject, deleteAsset, deleteOwnProject, duplicateProject, orderState, placeOrder, priceNow, smartInfoFor, restoreAsset, restoreProject, saveProject } from '@/server/projects';
 import { clean, clientIp, EMAIL_RE, isLimited, PHONE_RE, rateLimit, readJsonLimited, sameOrigin } from '@/server/util';
 
 export const runtime = 'nodejs';
@@ -45,7 +45,7 @@ export async function POST(req: Request) {
       const st = await orderState(p);
       return ok({
         id: p.id, name: p.name, templateId: p.templateId, templateName: p.templateName,
-        priceUGX: await priceNow(p.templateId), config: p.config, assets: await assetDataUrls(p), rev: p.rev, updatedAt: p.updatedAt,
+        priceUGX: await priceNow(p.templateId, p.config), smart: await smartInfoFor(p.templateId), config: p.config, assets: await assetDataUrls(p), rev: p.rev, updatedAt: p.updatedAt,
         order: st && !st.cancelled ? st : null,
       });
     }
@@ -57,7 +57,7 @@ export async function POST(req: Request) {
       if (!p) { noteWrongKey(ip, id); return bad('We could not open that project. Check the link or code.', 404); }
       const st = await orderState(p);
       return ok({
-        id: p.id, name: p.name, templateId: p.templateId, templateName: p.templateName, priceUGX: await priceNow(p.templateId),
+        id: p.id, name: p.name, templateId: p.templateId, templateName: p.templateName, priceUGX: await priceNow(p.templateId, p.config),
         order: st && !st.cancelled ? st : null, contact: st && !st.cancelled ? (p.contact?.email || p.contact?.phone || '') : '',
       });
     }

@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { adminConfigured, checkPassword, createSession, destroySession, isAdmin, ipAllowed, lockedOut, noteFailure, totpRequired, verifyTotp, logoutEverywhere, audit, readAudit, clearAudit } from '@/server/auth';
 import { clean, clientIp, rateLimit, readJsonLimited, safeLink, sameOrigin, toWaNumber } from '@/server/util';
-import { listTickets, mutateTicket, getProjects, saveProjects, readStats, storageInfo, bulkSetStatus, deleteTickets, importTickets, type Ticket } from '@/server/store';
+import { listTickets, mutateTicket, getProjects, saveProjects, readStats, storageInfo, bulkSetStatus, deleteTickets, importTickets, getSiteSettings, saveSiteSettings, getRateCard, saveRateCard, type Ticket } from '@/server/store';
 import { notifyCustomer, notifyOwner, reportServerError } from '@/server/mail';
 import { esc } from '@/server/util';
 import { assetDataUrls, deleteProject, listProjects, loadProject } from '@/server/projects';
@@ -204,6 +204,19 @@ export async function POST(req: Request) {
         }
         await audit(req, `restore:${tRes.added}t/${pAdded}p`, true);
         return ok({ tickets: { ...tRes, invalid: rawTickets.length - tickets.length }, projects: { added: pAdded } });
+      }
+
+      // Optional smart pricing: the rate card (only used while Admin → SETTINGS → Smart pricing is on)
+      case 'pricing.get': return ok({ card: await getRateCard() });
+      case 'pricing.save': { const card = await saveRateCard(body?.card); await audit(req, 'pricing-saved', true); return ok({ card }); }
+
+      // Site-wide settings (business details, maintenance mode, social links, SEO, chat switch)
+      case 'settings.get': return ok({ settings: await getSiteSettings() });
+      case 'settings.save': {
+        const settings = await saveSiteSettings(body?.settings);
+        revalidatePath('/', 'layout');
+        await audit(req, `settings-saved${settings.maintenance.enabled ? ':maintenance-ON' : ''}`, true);
+        return ok({ settings });
       }
 
       case 'projects':
