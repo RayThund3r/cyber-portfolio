@@ -29,6 +29,7 @@ const results = [
   run('server: assistant knowledge', ['tests/server.chatkb.test.cjs']),
   run('server: voice text', ['tests/server.voice.test.cjs']),
   run('server: file reading', ['tests/server.files.test.cjs']),
+  run('server: chat hand-off text', ['tests/server.handoff.test.cjs']),
   run('server: site settings', ['tests/server.settings.test.cjs']),
   run('server: world knowledge', ['tests/server.world.test.cjs']),
   run('server: web answers', ['tests/server.webanswer.test.cjs']),

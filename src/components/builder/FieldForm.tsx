@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import type { Field } from '@/lib/builder/schema';
-import Icon from '@/components/ui/Icon';
+import Icon from '@/components/ui/IconAny';
 import { useSiteSettings } from '@/context/SiteSettingsContext';
 import { useSortable } from './useSortable';
 import { cloudToken, cloudVerifier, hashPass } from '@/lib/builder/sha256';

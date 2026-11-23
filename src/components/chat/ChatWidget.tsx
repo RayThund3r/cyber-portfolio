@@ -10,7 +10,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CHAT_CLOSE_EVENT, CHAT_OPEN_EVENT, ChatOpenDetail, setChatListening, takePendingChatOpen } from '@/lib/chatBus';
-import { hasWhatsApp, whatsappLink } from '@/utils/chatEngine/siteConfig';
+import { SITE, hasWhatsApp, whatsappLink } from '@/utils/chatEngine/siteConfig';
+import { chatSummary, whatsappMessage } from '@/utils/chatEngine/handoffText';
 import { trackEvent } from '@/utils/analytics';
 import { isCoarsePointer } from '@/lib/motion';
 import { lockScroll } from '@/lib/scrollLock';
@@ -208,24 +209,18 @@ export default function ChatWidget() {
     void ctl.send(text);
   };
 
-  // The last few messages, for "Continue on WhatsApp" and so the contact form can pre-fill what was discussed.
-  const waTranscript = useMemo(
-    () =>
-      ctl.messages
-        .filter((m) => m.text && m.id !== 'welcome')
-        .slice(-8)
-        .map((m) => `${m.sender === 'user' ? 'Customer' : 'Assistant'}: ${m.text.replace(/\s+/g, ' ').slice(0, 220)}`)
-        .join('\n'),
-    [ctl.messages]
-  );
+  // What "Continue on WhatsApp" and the contact page get: a short summary of the job, never the raw chat unless the visitor ticks it.
+  const [waHistory, setWaHistory] = useState(false);
+  const waSummary = useMemo(() => chatSummary(ctl.messages, ctl.brief), [ctl.messages, ctl.brief]);
+  const waText = useMemo(() => whatsappMessage({ messages: ctl.messages, brief: ctl.brief, includeHistory: waHistory, owner: SITE.ownerName.split(' ')[0] }), [ctl.messages, ctl.brief, waHistory]);
   useEffect(() => {
     if (ctl.messages.length < 2) return;
     try {
-      sessionStorage.setItem('sys_chat_handoff', waTranscript);
+      sessionStorage.setItem('sys_chat_handoff', waSummary);
     } catch {
       /* storage blocked: the contact form still works without it */
     }
-  }, [ctl.messages.length, waTranscript]);
+  }, [ctl.messages.length, waSummary]);
 
   /* ---------- closed: launcher ---------- */
   if (!isOpen) {
@@ -317,7 +312,7 @@ export default function ChatWidget() {
         <div className="flex flex-wrap items-center gap-2 border-b border-zinc-800 bg-zinc-900/60 px-4 py-2 font-mono text-[11px]">
           <span className="text-zinc-400">Need a person?</span>
           <a
-            href={whatsappLink(`Hello, I was chatting on your website.\n\n${waTranscript}`)}
+            href={whatsappLink(waText)}
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => trackEvent('chat_handoff')}
@@ -325,6 +320,10 @@ export default function ChatWidget() {
           >
             Continue on WhatsApp
           </a>
+          <label className="flex min-h-8 cursor-pointer items-center gap-1.5 text-zinc-400">
+            <input type="checkbox" checked={waHistory} onChange={(e) => setWaHistory(e.target.checked)} className="accent-[var(--accent)]" />
+            include chat history
+          </label>
         </div>
       )}
 

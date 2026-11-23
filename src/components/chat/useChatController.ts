@@ -31,7 +31,7 @@ import { trackChat } from '@/utils/analytics';
 import { useProjects } from '@/context/ProjectsContext';
 import type { Message, PersonaMode, ResponseSource, SessionMemory, SiteCommand, SystemAction } from '@/utils/chatEngine/types';
 import { getUnansweredQueries, loadSession, recordLearnedAlias, saveSession } from '@/utils/chatEngine/learningEngine';
-import { readState } from '@/utils/chatEngine/dialogue';
+import { handoffNoteFor, readState } from '@/utils/chatEngine/dialogue';
 import { safeLocal } from '@/lib/safeStorage';
 import { prefersReducedMotion } from '@/lib/motion';
 import { useAttachments } from './useAttachments';
@@ -407,6 +407,8 @@ export function useChatController({ pathname, isOpen, isMobile, runCommand, requ
 
   /** What guided flow (if any) is running, for the header pill. */
   const flow = readState(memory).flow?.id;
+  /** The assistant's worked-out summary of the job (device, problem, project…), or '' when there isn't one yet. */
+  const brief = handoffNoteFor(readState(memory));
 
   return {
     att,
@@ -415,6 +417,7 @@ export function useChatController({ pathname, isOpen, isMobile, runCommand, requ
     isThinking,
     suggestions,
     handoff,
+    brief,
     revealingId,
     unread,
     toast,

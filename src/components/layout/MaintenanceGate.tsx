@@ -6,7 +6,7 @@
 
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
-import Icon from '@/components/ui/Icon';
+import Icon from '@/components/ui/IconAny';
 import { useSiteSettings } from '@/context/SiteSettingsContext';
 
 export default function MaintenanceGate({ children }: { children: ReactNode }) {

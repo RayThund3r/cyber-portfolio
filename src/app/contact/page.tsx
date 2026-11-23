@@ -34,6 +34,7 @@ function ContactInner() {
   const [ticket, setTicket] = useState<string | null>(null);
   const [honeypot, setHoneypot] = useState('');
   const [chatContext, setChatContext] = useState('');
+  const [useChat, setUseChat] = useState(true);
   const [consent, setConsent] = useState(false);
   // Appointment booking (repairs)
   const [win, setWin] = useState<{ min: string; max: string; openDays: number[] } | null>(null);
@@ -185,7 +186,7 @@ function ContactInner() {
           phone: formData.phone,
           formType,
           website: honeypot,
-          chatContext,
+          chatContext: useChat ? chatContext : '',
           turnstile: tsToken,
           slot: formType === 'repair' && slotDate && slotTime ? { date: slotDate, time: slotTime } : undefined,
           serviceType: formType === 'design' ? 'UI/UX & Design Inquiry' : 'Hardware Repair Booking',
@@ -525,7 +526,10 @@ function ContactInner() {
               </div>
 
               {chatContext && (
-                <p className="text-[11px] font-mono text-zinc-400">✓ Your chat conversation will be attached so you don't have to repeat yourself.</p>
+                <label className="flex cursor-pointer items-start gap-2 text-[11px] font-mono text-zinc-400">
+                  <input type="checkbox" checked={useChat} onChange={(e) => setUseChat(e.target.checked)} className="mt-0.5" />
+                  <span>Add a short summary of my chat so I don&apos;t have to repeat myself:<span className="mt-1 block whitespace-pre-line text-zinc-500">{chatContext.slice(0, 240)}</span></span>
+                </label>
               )}
 
               <label className="flex items-start gap-2 text-xs text-zinc-300 cursor-pointer">

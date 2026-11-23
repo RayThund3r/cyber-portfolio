@@ -9,19 +9,12 @@ import Turnstile, { turnstileEnabled } from '@/components/Turnstile';
 import { ATTACH } from '@/lib/attachmentRules';
 import { fileToBase64 } from '@/lib/fileEncode';
 import type { Message } from '@/utils/chatEngine/types';
+import { chatHistory } from '@/utils/chatEngine/handoffText';
 import type { SharedFile } from './useAttachments';
 
+/** The conversation as text: only used when the visitor chooses to include it (filler like "ok" and "thanks" is dropped). */
 export function buildTranscript(messages: Message[]): string {
-  const lines = messages
-    .filter((m) => m.id !== 'welcome' && m.text.trim())
-    .slice(-20)
-    .map((m) => `${m.sender === 'user' ? 'Visitor' : 'Assistant'}: ${m.text.replace(/\s+/g, ' ').trim().slice(0, 500)}`);
-  let out = lines.join('\n');
-  while (out.length > 7800 && lines.length > 1) {
-    lines.shift();
-    out = lines.join('\n');
-  }
-  return out.slice(-7800);
+  return chatHistory(messages, 20, 7800);
 }
 
 interface Props {
@@ -38,7 +31,8 @@ export default function HandoffCard({ files, messages, prefill, expert, onCancel
   const [email, setEmail] = useState('');
   const [note, setNote] = useState(prefill);
   const [website, setWebsite] = useState(''); // honeypot
-  const [withChat, setWithChat] = useState(true);
+  // The raw chat is NOT sent by default: the note above already says what is needed. It is pre-ticked only when there is nothing else to send.
+  const [withChat, setWithChat] = useState(!prefill.trim() && files.length === 0);
   const [chosen, setChosen] = useState<Record<string, boolean>>({});
   const [state, setState] = useState<'idle' | 'sending' | 'error'>('idle');
   const [error, setError] = useState('');
@@ -120,7 +114,7 @@ export default function HandoffCard({ files, messages, prefill, expert, onCancel
         <legend className="px-1 font-mono text-[10px] text-zinc-500">INCLUDE</legend>
         <label className="flex min-h-8 cursor-pointer items-center gap-2 text-zinc-300">
           <input type="checkbox" checked={withChat} onChange={(e) => setWithChat(e.target.checked)} className="accent-[var(--accent)]" />
-          This conversation (text only)
+          Also include the chat history (optional, text only)
         </label>
         {files.map((f) => (
           <label key={f.insight.id} className="flex min-h-8 cursor-pointer items-center gap-2 text-zinc-300">

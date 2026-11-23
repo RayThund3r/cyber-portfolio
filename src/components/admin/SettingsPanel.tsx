@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState, type ReactNode } from 'react';
-import Icon from '@/components/ui/Icon';
+import Icon from '@/components/ui/IconAny';
 import { DEFAULT_SETTINGS, type SiteSettings } from '@/lib/siteSettings';
 import { api, box, primary } from './adminKit';
 import PricingPanel from './PricingPanel';

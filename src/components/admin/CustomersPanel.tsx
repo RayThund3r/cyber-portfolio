@@ -2,7 +2,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import Icon from '@/components/ui/Icon';
+import Icon from '@/components/ui/IconAny';
 import { formatUGX, STATUS_LABEL } from '@/lib/shared';
 import { box, btn, downloadText, isOpenTicket, kampalaDay, timeAgo, type AdminTicket } from './adminKit';
 
