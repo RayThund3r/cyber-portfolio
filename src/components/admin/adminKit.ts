@@ -26,9 +26,13 @@ export async function api<T = any>(action: string, data: Record<string, unknown>
   return d as T;
 }
 
-export const box = 'w-full bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-cyan-500';
-export const btn = 'px-3 py-1.5 rounded border border-zinc-700 text-xs font-mono hover:border-zinc-500 cursor-pointer disabled:opacity-40';
-export const primary = 'px-3 py-1.5 rounded bg-cyan-500 text-black text-xs font-mono font-semibold hover:bg-cyan-400 cursor-pointer disabled:opacity-40';
+export const box = 'min-h-10 w-full rounded-lg border border-zinc-700/80 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-600 focus:border-accent focus:ring-2 focus:ring-accent/20 disabled:opacity-50';
+export const btn = 'inline-flex min-h-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-zinc-700 px-3 py-1.5 font-mono text-[11px] text-zinc-300 transition hover:border-accent/50 hover:text-accent active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-accent';
+export const primary = 'inline-flex min-h-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-accent-strong px-3.5 py-1.5 font-mono text-[11px] font-bold text-zinc-950 transition hover:opacity-90 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-accent';
+/** The look of a panel/card in the Desk (same as the kit Card). */
+export const panel = 'rounded-2xl border border-zinc-800/80 bg-zinc-900/50 shadow-sm shadow-black/20';
+/** A small section label used inside panels. */
+export const sectionLabel = 'text-[11px] font-semibold uppercase tracking-wider text-zinc-400';
 
 /* ───────────── small helpers ───────────── */
 

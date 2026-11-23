@@ -273,3 +273,10 @@ Verified: full suite ALL GREEN. Not verified: real `next build`; the new tabs/ma
 ## Round 26: Vercel type errors + chat hand-off
 - Build fix: the merged panels used icon names (`message-circle`, `grip`, any string) the small `components/ui/Icon` doesn't type. New `components/ui/IconAny.tsx` draws any icon from `lib/icons.ts`; CustomersPanel, SettingsPanel, MaintenanceGate, FieldForm use it.
 - Hand-off (`utils/chatEngine/handoffText.ts`): the raw chat is no longer sent by default. Required info only: the assistant's worked-out brief, else the visitor's own substantive messages (greetings/"ok thanks"/repeats dropped, max 3). History is added only when ticked: "include chat history" beside Continue on WhatsApp; "Also include the chat history" in Send-to-owner (pre-ticked only when there is nothing else to send); contact page shows a summary with a checkbox. WhatsApp text now reads as a message (greeting, what I need, ask to reply on WhatsApp). 9 tests.
+
+## Round 27 — Admin overhaul
+- New sidebar shell + top bar (replaces the old top tab strip); mobile gets a section chip row.
+- New kit pieces in components/admin/ui.tsx (StatusPill, KindBadge, Avatar, Banner, Chips, ListRow, compactUGX, redesigned Stat/Field/AreaChart).
+- Panels split out of app/admin/page.tsx: Overview, TicketsPanel, TicketEditor, CustomersPanel, PortfolioPanel, TemplatesPanel, SitesPanel, InsightsPanel, SettingsPanel, DataPanel; logic unchanged, visuals restyled.
+- Verified in a real browser (esbuild + Playwright, mocked API). Not verified: real `next build`, live data, light mode.
+- Round 27b: login redesigned; Studio list restyled; light-mode fixes (status text shades in globals.css, chart strokes use theme vars).

@@ -2,6 +2,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import Icon from '@/components/ui/IconAny';
 import { api, btn, downloadText, kampalaDay, primary, ticketsToCsv, type AdminTicket } from './adminKit';
 
 export default function DataPanel({ tickets }: { tickets: AdminTicket[] }) {
@@ -42,42 +43,45 @@ export default function DataPanel({ tickets }: { tickets: AdminTicket[] }) {
     } catch (e: any) { setMsg({ ok: false, text: e.message }); } finally { setBusy(false); }
   };
 
+  const Card = ({ icon, title, children }: { icon: string; title: string; children: React.ReactNode }) => (
+    <section className="space-y-3 rounded-2xl border border-zinc-800/80 bg-zinc-900/50 p-4 shadow-sm shadow-black/20 sm:p-5">
+      <header className="flex items-center gap-3"><span className="flex h-9 w-9 flex-none items-center justify-center rounded-xl bg-accent/12 text-accent"><Icon name={icon} size={17} /></span><h3 className="text-sm font-semibold text-zinc-100">{title}</h3></header>
+      {children}
+    </section>
+  );
   return (
-    <section className="space-y-6">
-      <div className="space-y-3 rounded-xl border border-zinc-800 bg-zinc-900/40 p-5">
-        <h2 className="font-mono text-xs text-cyan-400">BACKUP</h2>
-        <p className="text-sm text-zinc-400">Download everything you would need to rebuild the dashboard: all requests (with payments and history) and your portfolio. Keep a copy somewhere safe, especially if your host stores files on a temporary disk.</p>
-        <button className={primary} onClick={backup} disabled={busy}>{busy ? '…' : '⬇ Download backup (.json)'}</button>
-      </div>
+    <section className="grid gap-4 lg:grid-cols-2">
+      <Card icon="download" title="Backup">
+        <p className="text-sm leading-relaxed text-zinc-400">Download everything you would need to rebuild the dashboard: all requests (with payments and history) and your portfolio. Keep a copy somewhere safe, especially if your host stores files on a temporary disk.</p>
+        <button className={primary} onClick={backup} disabled={busy}>{busy ? 'Working…' : 'Download backup (.json)'}</button>
+      </Card>
 
-      <div className="space-y-3 rounded-xl border border-zinc-800 bg-zinc-900/40 p-5">
-        <h2 className="font-mono text-xs text-cyan-400">RESTORE</h2>
-        <p className="text-sm text-zinc-400">Choose a backup file. Restoring only <strong>adds</strong> what is missing (matched by id): it never overwrites or deletes anything you have now, so it is safe to try.</p>
-        <input ref={fileRef} type="file" accept="application/json,.json" onChange={(e) => pick(e.target.files?.[0])} className="block w-full text-xs text-zinc-300 file:mr-3 file:cursor-pointer file:rounded file:border file:border-zinc-700 file:bg-zinc-900 file:px-3 file:py-1.5 file:font-mono file:text-xs file:text-zinc-200" aria-label="Backup file" />
+      <Card icon="undo" title="Restore">
+        <p className="text-sm leading-relaxed text-zinc-400">Choose a backup file. Restoring only <strong className="text-zinc-200">adds</strong> what is missing (matched by id): it never overwrites or deletes anything you have now, so it is safe to try.</p>
+        <input ref={fileRef} type="file" accept="application/json,.json" onChange={(e) => pick(e.target.files?.[0])} className="block w-full text-xs text-zinc-300 file:mr-3 file:cursor-pointer file:rounded-lg file:border file:border-zinc-700 file:bg-zinc-900 file:px-3 file:py-2 file:text-xs file:text-zinc-200" />
         {pending && (
-          <div className="flex flex-wrap items-center gap-3 rounded border border-zinc-800 bg-zinc-950 p-3 text-sm">
+          <div className="flex flex-wrap items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-950/60 p-3 text-sm">
             <span className="text-zinc-300">{pending.name}: <strong>{pending.tickets}</strong> requests, <strong>{pending.projects}</strong> projects</span>
-            <button className={primary} onClick={restore} disabled={busy}>{busy ? '…' : 'Restore missing items'}</button>
+            <button className={primary} onClick={restore} disabled={busy}>{busy ? 'Working…' : 'Restore missing items'}</button>
           </div>
         )}
-      </div>
+      </Card>
 
-      <div className="space-y-3 rounded-xl border border-zinc-800 bg-zinc-900/40 p-5">
-        <h2 className="font-mono text-xs text-cyan-400">EXPORT</h2>
+      <Card icon="save" title="Export">
         <p className="text-sm text-zinc-400">All {tickets.length} requests as a spreadsheet (opens in Excel or Google Sheets).</p>
-        <button className={btn} onClick={() => downloadText(`requests-${kampalaDay()}.csv`, ticketsToCsv(tickets), 'text/csv')} disabled={!tickets.length}>⬇ Export requests (.csv)</button>
-      </div>
+        <button className={btn} onClick={() => downloadText(`requests-${kampalaDay()}.csv`, ticketsToCsv(tickets), 'text/csv')} disabled={!tickets.length}>Export requests (.csv)</button>
+      </Card>
 
-      <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-5 text-xs text-zinc-400">
-        <h2 className="mb-2 font-mono text-xs text-cyan-400">KEYBOARD SHORTCUTS</h2>
-        <ul className="space-y-1 font-mono">
-          <li><kbd className="rounded border border-zinc-700 px-1.5">/</kbd> search requests</li>
-          <li><kbd className="rounded border border-zinc-700 px-1.5">r</kbd> refresh</li>
-          <li><kbd className="rounded border border-zinc-700 px-1.5">Esc</kbd> clear selection</li>
+      <Card icon="terminal" title="Keyboard shortcuts">
+        <ul className="space-y-2 text-xs text-zinc-400">
+          <li className="flex items-center gap-3"><kbd className="min-w-8 rounded-md border border-zinc-700 bg-zinc-950 px-2 py-0.5 text-center font-mono">/</kbd> search requests</li>
+          <li className="flex items-center gap-3"><kbd className="min-w-8 rounded-md border border-zinc-700 bg-zinc-950 px-2 py-0.5 text-center font-mono">r</kbd> refresh</li>
+          <li className="flex items-center gap-3"><kbd className="min-w-8 rounded-md border border-zinc-700 bg-zinc-950 px-2 py-0.5 text-center font-mono">Esc</kbd> clear selection</li>
+          <li className="flex items-center gap-3"><kbd className="rounded-md border border-zinc-700 bg-zinc-950 px-2 py-0.5 font-mono">Ctrl K</kbd> command palette</li>
         </ul>
-      </div>
+      </Card>
 
-      {msg && <p role="status" className={`text-sm ${msg.ok ? 'text-emerald-400' : 'text-red-400'}`}>{msg.text}</p>}
+      {msg && <p role="status" className={`rounded-xl border px-3 py-2 text-sm lg:col-span-2 ${msg.ok ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300' : 'border-rose-500/30 bg-rose-500/10 text-rose-300'}`}>{msg.text}</p>}
     </section>
   );
 }

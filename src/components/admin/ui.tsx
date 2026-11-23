@@ -51,7 +51,7 @@ export function AdminProviders({ children }: { children: ReactNode }) {
 /* ------------------------------ building blocks ------------------------------ */
 export function Card({ title, icon, right, children, className = '', pad = true }: { title?: string; icon?: IconName; right?: ReactNode; children: ReactNode; className?: string; pad?: boolean }) {
   return (
-    <section className={`rounded-xl border border-zinc-800 bg-zinc-900/50 ${className}`}>
+    <section className={`rounded-2xl border border-zinc-800/80 bg-zinc-900/50 shadow-sm shadow-black/20 ${className}`}>
       {(title || right) && (
         <header className="flex items-center justify-between gap-3 border-b border-zinc-800/80 px-4 py-2.5">
           <h2 className="flex items-center gap-2 font-mono text-[11px] font-semibold uppercase tracking-wider text-zinc-300">{icon && <Icon name={icon} size={14} className="text-accent" />}{title}</h2>
@@ -68,15 +68,22 @@ export function Delta({ value }: { value: number | null }) {
   const up = value >= 0;
   return <span className={`font-mono text-[10px] ${value === 0 ? 'text-zinc-500' : up ? 'text-emerald-400' : 'text-rose-400'}`}>{value === 0 ? '±0%' : `${up ? '+' : ''}${value}%`}</span>;
 }
-export function Stat({ label, value, delta, icon, hint, spark }: { label: string; value: ReactNode; delta?: number | null; icon: IconName; hint?: string; spark?: number[] }) {
-  return (
-    <div className="relative overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/50 p-4">
-      <div className="flex items-center justify-between"><span className="font-mono text-[10px] uppercase tracking-wider text-zinc-500">{label}</span><Icon name={icon} size={14} className="text-accent/70" /></div>
-      <div className="mt-1 flex items-end gap-2"><span className="font-mono text-2xl font-bold tabular-nums text-zinc-100">{value}</span>{delta !== undefined && <Delta value={delta} />}</div>
-      {hint && <div className="mt-0.5 text-[11px] text-zinc-500">{hint}</div>}
-      {spark && spark.length > 1 && <div className="pointer-events-none absolute inset-x-0 bottom-0 opacity-60"><Spark data={spark} h={26} /></div>}
-    </div>
+export function Stat({ label, value, delta, icon, hint, spark, tone = 'accent', onClick }: { label: string; value: ReactNode; delta?: number | null; icon: IconName; hint?: string; spark?: number[]; tone?: 'accent' | 'ok' | 'warn' | 'bad'; onClick?: () => void }) {
+  const chip = { accent: 'bg-accent/12 text-accent', ok: 'bg-emerald-500/12 text-emerald-300', warn: 'bg-amber-500/12 text-amber-300', bad: 'bg-rose-500/12 text-rose-300' }[tone];
+  const body = (
+    <>
+      <div className="flex items-start justify-between gap-2"><span className="text-[11px] font-medium uppercase tracking-wider text-zinc-500">{label}</span><span className={`flex h-8 w-8 flex-none items-center justify-center rounded-xl ${chip}`}><Icon name={icon} size={16} /></span></div>
+      <div className="mt-2 flex items-end justify-between gap-3">
+        <span className="flex min-w-0 items-end gap-2"><span className="truncate text-2xl font-bold tabular-nums tracking-tight text-zinc-50 sm:text-[1.7rem]">{value}</span>{delta !== undefined && <Delta value={delta} />}</span>
+        {spark && spark.length > 1 && <span className="mb-1 w-16 flex-none opacity-80 sm:w-20"><Spark data={spark} h={26} /></span>}
+      </div>
+      {hint && <div className="mt-1 truncate text-[11px] text-zinc-500">{hint}</div>}
+    </>
   );
+  const cls = 'relative block w-full overflow-hidden rounded-2xl border border-zinc-800/80 bg-zinc-900/50 p-4 text-left shadow-sm shadow-black/20 transition';
+  return onClick
+    ? <button type="button" onClick={onClick} className={`${cls} cursor-pointer hover:-translate-y-0.5 hover:border-accent/40`}>{body}</button>
+    : <div className={cls}>{body}</div>;
 }
 
 export function AButton({ children, onClick, icon, variant = 'ghost', disabled, small, danger, className = '', type = 'button', title }: { children?: ReactNode; onClick?: () => void; icon?: IconName; variant?: 'ghost' | 'solid'; disabled?: boolean; small?: boolean; danger?: boolean; className?: string; type?: 'button' | 'submit'; title?: string }) {
@@ -103,7 +110,7 @@ export function Toggle({ checked, onChange, label, hint }: { checked: boolean; o
 
 export const inputCls = 'min-h-10 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 font-mono text-sm text-zinc-100 outline-none transition placeholder:text-zinc-600 focus:border-accent';
 export function Field({ label, children, hint }: { label: string; children: ReactNode; hint?: string }) {
-  return <label className="block"><span className="mb-1 block font-mono text-[10px] uppercase tracking-wider text-zinc-500">{label}</span>{children}{hint && <span className="mt-1 block text-[11px] text-zinc-600">{hint}</span>}</label>;
+  return <label className="block"><span className="mb-1 block text-xs font-medium text-zinc-400">{label}</span>{children}{hint && <span className="mt-1 block text-[11px] text-zinc-600">{hint}</span>}</label>;
 }
 
 export function Tabs<T extends string>({ value, onChange, items }: { value: T; onChange: (v: T) => void; items: Array<{ id: T; label: string; badge?: number }> }) {
@@ -141,6 +148,87 @@ export function Notice({ tone = 'info', title, children }: { tone?: 'info' | 'wa
   return <div className={`rounded-xl border p-3 text-sm ${tone === 'warn' ? 'border-amber-500/40 bg-amber-500/5 text-amber-100' : 'border-accent/30 bg-accent/5 text-zinc-200'}`}><div className="flex items-center gap-2 font-semibold"><Icon name={tone === 'warn' ? 'bell' : 'lightbulb'} size={14} className={tone === 'warn' ? 'text-amber-300' : 'text-accent'} />{title}</div>{children && <div className="mt-1 text-xs leading-relaxed text-zinc-400">{children}</div>}</div>;
 }
 
+/* ------------------------------ status, people, banners, chips ------------------------------ */
+/** One colour language for request status everywhere in the Desk. Literal class names so Tailwind sees them. */
+export const STATUS_STYLE: Record<string, { dot: string; chip: string; bar: string }> = {
+  RECEIVED: { dot: 'bg-sky-400', chip: 'border-sky-500/30 bg-sky-500/10 text-sky-300', bar: 'bg-sky-400' },
+  QUOTED: { dot: 'bg-violet-400', chip: 'border-violet-500/30 bg-violet-500/10 text-violet-300', bar: 'bg-violet-400' },
+  AWAITING_DEPOSIT: { dot: 'bg-amber-400', chip: 'border-amber-500/30 bg-amber-500/10 text-amber-300', bar: 'bg-amber-400' },
+  IN_PROGRESS: { dot: 'bg-accent', chip: 'border-accent/30 bg-accent/10 text-accent', bar: 'bg-accent' },
+  READY: { dot: 'bg-teal-400', chip: 'border-teal-500/30 bg-teal-500/10 text-teal-300', bar: 'bg-teal-400' },
+  COMPLETED: { dot: 'bg-emerald-400', chip: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300', bar: 'bg-emerald-400' },
+  CANCELLED: { dot: 'bg-zinc-500', chip: 'border-zinc-600/40 bg-zinc-800/60 text-zinc-400', bar: 'bg-zinc-600' },
+};
+export function StatusPill({ status, label }: { status: string; label: string }) {
+  const st = STATUS_STYLE[status] ?? STATUS_STYLE.CANCELLED;
+  return <span className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] font-medium ${st.chip}`}><span className={`h-1.5 w-1.5 rounded-full ${st.dot}`} />{label}</span>;
+}
+
+export const KIND_META: Record<string, { label: string; icon: IconName; chip: string }> = {
+  repair: { label: 'Repair', icon: 'wrench', chip: 'bg-amber-500/12 text-amber-300' },
+  design: { label: 'Design', icon: 'pencil', chip: 'bg-violet-500/12 text-violet-300' },
+  template: { label: 'Website', icon: 'globe', chip: 'bg-sky-500/12 text-sky-300' },
+};
+export function KindBadge({ kind, withLabel = false }: { kind: string; withLabel?: boolean }) {
+  const k = KIND_META[kind] ?? { label: kind, icon: 'cube' as IconName, chip: 'bg-zinc-800 text-zinc-300' };
+  return <span className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium ${k.chip}`} title={k.label}><Icon name={k.icon} size={12} />{withLabel && k.label}</span>;
+}
+
+const AVATAR = ['bg-sky-500/15 text-sky-300', 'bg-violet-500/15 text-violet-300', 'bg-amber-500/15 text-amber-300', 'bg-emerald-500/15 text-emerald-300', 'bg-rose-500/15 text-rose-300', 'bg-teal-500/15 text-teal-300'];
+/** Round initials badge; the colour is stable per name. */
+export function Avatar({ name, size = 36 }: { name: string; size?: number }) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  const initials = ((parts[0]?.[0] ?? '?') + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
+  let h = 0; for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return <span className={`flex flex-none items-center justify-center rounded-full font-semibold ${AVATAR[h % AVATAR.length]}`} style={{ width: size, height: size, fontSize: size * 0.36 }} aria-hidden>{initials}</span>;
+}
+
+/** A slim notice with an optional action and a dismiss button (dismissal lasts for this browser tab). */
+export function Banner({ tone = 'info', icon, children, action, onAction, id }: { tone?: 'info' | 'warn' | 'ok'; icon?: IconName; children: ReactNode; action?: string; onAction?: () => void; id?: string }) {
+  const key = id ? `sys_banner_${id}` : '';
+  const [gone, setGone] = useState(false);
+  useEffect(() => { if (key) { try { setGone(sessionStorage.getItem(key) === '1'); } catch { /* ignore */ } } }, [key]);
+  if (gone) return null;
+  const look = { info: 'border-accent/25 bg-accent/[0.06] text-zinc-200', warn: 'border-amber-500/30 bg-amber-500/[0.07] text-amber-100', ok: 'border-emerald-500/30 bg-emerald-500/[0.07] text-emerald-100' }[tone];
+  const ic = { info: 'text-accent', warn: 'text-amber-300', ok: 'text-emerald-300' }[tone];
+  return (
+    <div className={`flex items-center gap-3 rounded-xl border px-3.5 py-2.5 text-[13px] ${look}`} role="note">
+      <Icon name={icon ?? (tone === 'warn' ? 'bell' : 'lightbulb')} size={16} className={`flex-none ${ic}`} />
+      <div className="min-w-0 flex-1 leading-snug">{children}</div>
+      {action && <button type="button" onClick={onAction} className={`flex-none cursor-pointer rounded-lg border border-current/30 px-2.5 py-1 text-xs font-semibold hover:bg-white/5 ${ic}`}>{action}</button>}
+      {key && <button type="button" aria-label="Dismiss" onClick={() => { setGone(true); try { sessionStorage.setItem(key, '1'); } catch { /* ignore */ } }} className="flex-none cursor-pointer rounded-md p-1 text-zinc-500 hover:bg-white/5 hover:text-zinc-200"><Icon name="close" size={14} /></button>}
+    </div>
+  );
+}
+
+/** Filter chips with live counts; `dot` adds the status colour. */
+export function Chips<T extends string>({ value, onChange, items }: { value: T; onChange: (v: T) => void; items: Array<{ id: T; label: string; count?: number; dot?: string }> }) {
+  return (
+    <div className="sb-slim -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1" role="group">
+      {items.map((c) => (
+        <button key={c.id} type="button" aria-pressed={value === c.id} onClick={() => onChange(c.id)}
+          className={`inline-flex min-h-8 flex-none cursor-pointer items-center gap-1.5 rounded-full border px-3 text-xs transition ${value === c.id ? 'border-accent/60 bg-accent/12 font-semibold text-accent' : 'border-zinc-800 bg-zinc-900/40 text-zinc-400 hover:border-zinc-600 hover:text-zinc-200'}`}>
+          {c.dot && <span className={`h-1.5 w-1.5 rounded-full ${c.dot}`} />}{c.label}{c.count !== undefined && <span className={`tabular-nums ${value === c.id ? 'text-accent/80' : 'text-zinc-600'}`}>{c.count}</span>}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** Row that looks like a button: avatar/icon, title, subtitle, right-hand content. */
+export function ListRow({ lead, title, sub, right, onClick, tone }: { lead?: ReactNode; title: ReactNode; sub?: ReactNode; right?: ReactNode; onClick?: () => void; tone?: 'warn' }) {
+  const cls = `flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition ${tone === 'warn' ? 'border-amber-500/25 bg-amber-500/[0.04]' : 'border-zinc-800/80 bg-zinc-950/40'} ${onClick ? 'cursor-pointer hover:border-accent/40 hover:bg-zinc-900/70' : ''}`;
+  const body = <>{lead}<span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium text-zinc-100">{title}</span>{sub && <span className="mt-0.5 block truncate text-xs text-zinc-500">{sub}</span>}</span>{right && <span className="flex-none text-right">{right}</span>}</>;
+  return onClick ? <button type="button" onClick={onClick} className={cls}>{body}</button> : <div className={cls}>{body}</div>;
+}
+
+/** Compact UGX for tight spaces: 1,490,000 → "UGX 1.49M". */
+export function compactUGX(n: number): string {
+  if (n >= 1_000_000) return `UGX ${(n / 1_000_000).toFixed(n >= 10_000_000 ? 1 : 2).replace(/\.?0+$/, '')}M`;
+  if (n >= 10_000) return `UGX ${Math.round(n / 1000)}K`;
+  return `UGX ${n.toLocaleString('en-US')}`;
+}
+
 /* ------------------------------ charts (plain SVG) ------------------------------ */
 export function Spark({ data, h = 32, className = '' }: { data: number[]; h?: number; className?: string }) {
   const w = 120, max = Math.max(1, ...data), step = w / Math.max(1, data.length - 1);
@@ -150,7 +238,17 @@ export function Spark({ data, h = 32, className = '' }: { data: number[]; h?: nu
 
 export function AreaChart({ labels, a, b, aName, bName, height = 180 }: { labels: string[]; a: number[]; b?: number[]; aName: string; bName?: string; height?: number }) {
   const [hover, setHover] = useState<number | null>(null);
-  const W = 640, H = height, pad = { l: 34, r: 8, t: 8, b: 20 };
+  // Draw at the real width so the labels stay readable on a phone (the SVG is not scaled down).
+  const box = useRef<HTMLDivElement>(null);
+  const [W, setW] = useState(640);
+  useEffect(() => {
+    const el = box.current; if (!el) return;
+    const measure = () => setW(Math.max(260, Math.round(el.clientWidth)));
+    measure();
+    if (typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(measure); ro.observe(el); return () => ro.disconnect();
+  }, []);
+  const H = height, pad = { l: 34, r: 8, t: 8, b: 20 };
   const max = Math.max(1, ...a, ...(b || []));
   const nice = Math.max(1, Math.ceil(max / 4) * 4);
   const x = (i: number) => pad.l + (a.length <= 1 ? 0 : (i / (a.length - 1)) * (W - pad.l - pad.r));
@@ -159,7 +257,7 @@ export function AreaChart({ labels, a, b, aName, bName, height = 180 }: { labels
   const area = (d: number[]) => `${line(d)} L${x(d.length - 1).toFixed(1)},${y(0)} L${x(0).toFixed(1)},${y(0)} Z`;
   const i = hover ?? a.length - 1;
   return (
-    <div>
+    <div ref={box}>
       <div className="mb-1 flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-[11px] text-zinc-400" aria-live="polite">
         <span className="text-zinc-500">{labels[i]}</span>
         <span><span className="mr-1 inline-block h-2 w-2 rounded-full bg-accent" />{aName} <b className="text-zinc-100">{fmtNum(a[i] ?? 0)}</b></span>
@@ -168,10 +266,10 @@ export function AreaChart({ labels, a, b, aName, bName, height = 180 }: { labels
       <svg viewBox={`0 0 ${W} ${H}`} className="block w-full touch-none" style={{ height }} role="img" aria-label={`${aName} over time`}
         onPointerMove={(e) => { const r = (e.currentTarget as unknown as Element).getBoundingClientRect(); const px = ((e.clientX - r.left) / r.width) * W; setHover(Math.max(0, Math.min(a.length - 1, Math.round(((px - pad.l) / (W - pad.l - pad.r)) * (a.length - 1))))); }}
         onPointerLeave={() => setHover(null)}>
-        {[0, 1, 2, 3, 4].map((g) => { const v = (nice / 4) * g; return <g key={g}><line x1={pad.l} x2={W - pad.r} y1={y(v)} y2={y(v)} stroke="#27272a" strokeWidth="1" /><text x={pad.l - 5} y={y(v) + 3} textAnchor="end" fontSize="9" fill="#71717a" fontFamily="monospace">{fmtNum(Math.round(v))}</text></g>; })}
-        {b && <><path d={area(b)} fill="rgb(251 191 36 / 0.10)" /><path d={line(b)} fill="none" stroke="#fbbf24" strokeWidth="1.6" strokeLinejoin="round" /></>}
+        {[0, 1, 2, 3, 4].map((g) => { const v = (nice / 4) * g; return <g key={g}><line x1={pad.l} x2={W - pad.r} y1={y(v)} y2={y(v)} stroke="var(--color-zinc-800)" strokeWidth="1" /><text x={pad.l - 5} y={y(v) + 3} textAnchor="end" fontSize="9" fill="var(--color-zinc-500)" fontFamily="monospace">{fmtNum(Math.round(v))}</text></g>; })}
+        {b && <><path d={area(b)} fill="rgb(251 191 36 / 0.10)" /><path d={line(b)} fill="none" stroke="var(--color-amber-400)" strokeWidth="1.6" strokeLinejoin="round" /></>}
         <path d={area(a)} fill="rgb(var(--accent-rgb) / 0.16)" /><path d={line(a)} fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinejoin="round" />
-        {labels.map((l, k) => (k % Math.ceil(labels.length / 7) === 0 ? <text key={k} x={x(k)} y={H - 5} textAnchor="middle" fontSize="9" fill="#71717a" fontFamily="monospace">{l.slice(5)}</text> : null))}
+        {labels.map((l, k) => (k % Math.ceil(labels.length / (W < 420 ? 4 : 7)) === 0 ? <text key={k} x={x(k)} y={H - 5} textAnchor="middle" fontSize="9" fill="var(--color-zinc-500)" fontFamily="monospace">{l.slice(5)}</text> : null))}
         <line x1={x(i)} x2={x(i)} y1={pad.t} y2={H - pad.b} stroke="var(--accent)" strokeOpacity="0.4" strokeDasharray="3 3" />
         <circle cx={x(i)} cy={y(a[i] ?? 0)} r="3.5" fill="var(--accent)" />
       </svg>
@@ -202,7 +300,7 @@ export function Donut({ items, size = 120, label }: { items: Array<{ name: strin
   return (
     <div className="flex items-center gap-4">
       <svg viewBox="0 0 100 100" width={size} height={size} role="img" aria-label={label || 'Breakdown'} className="shrink-0 -rotate-90">
-        <circle cx="50" cy="50" r={r} fill="none" stroke="#27272a" strokeWidth="14" />
+        <circle cx="50" cy="50" r={r} fill="none" stroke="var(--color-zinc-800)" strokeWidth="14" />
         {items.slice(0, 6).map((it, i) => { const len = (it.n / total) * c; const el = <circle key={it.name} cx="50" cy="50" r={r} fill="none" stroke={DONUT[i]} strokeWidth="14" strokeDasharray={`${Math.max(0, len - 1)} ${c - len + 1}`} strokeDashoffset={-off} />; off += len; return el; })}
       </svg>
       <ul className="space-y-1 font-mono text-[11px]">{items.slice(0, 6).map((it, i) => <li key={it.name} className="flex items-center gap-2 text-zinc-300"><span className="h-2 w-2 rounded-full" style={{ background: DONUT[i] }} />{it.name}<span className="text-zinc-500">{Math.round((it.n / total) * 100)}%</span></li>)}</ul>

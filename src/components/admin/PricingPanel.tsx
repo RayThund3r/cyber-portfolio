@@ -50,7 +50,7 @@ export default function PricingPanel() {
   return (
     <section className="space-y-6">
       <div>
-        <h2 className="font-mono text-xs text-cyan-400">SMART PRICING</h2>
+        <h2 className="font-mono text-xs text-accent">SMART PRICING</h2>
         <p className="mt-1 text-sm text-zinc-400">A website&apos;s price is worked out from what is <strong>in</strong> it: sections, special features, pictures, colours and extras. Set your rates here; customers see a live price while they build, with an itemised breakdown, and the server recalculates it at checkout. A template&apos;s own price (Admin → TEMPLATES) acts as a &quot;starting from&quot; minimum. The numbers below are starting suggestions: review them against your real costs.</p>
       </div>
       <div className="grid gap-6 lg:grid-cols-2">

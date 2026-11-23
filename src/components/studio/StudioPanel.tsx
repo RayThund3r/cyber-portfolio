@@ -5,14 +5,13 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import StudioEditor from './StudioEditor';
 
 import Icon from '@/components/ui/Icon';
+import { btn, primary, box } from '@/components/admin/adminKit';
 async function post(body: unknown) {
   const r = await fetch('/api/studio', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   const d = await r.json().catch(() => ({}));
   if (!r.ok) throw Object.assign(new Error(d.error || 'Request failed'), { status: r.status });
   return d;
 }
-const btn = 'px-3 py-1.5 rounded border border-zinc-700 text-xs font-mono hover:border-zinc-500 disabled:opacity-40 cursor-pointer';
-const primary = 'px-3 py-1.5 rounded bg-cyan-500 text-black text-xs font-mono font-semibold hover:bg-cyan-400 disabled:opacity-40 cursor-pointer';
 
 type Site = { slug: string; name: string; mode: string; published: boolean; portfolioId: string | null; products: number; updatedAt: string; kb: number };
 type Preset = { id: string; label: string; desc: string };
@@ -37,24 +36,21 @@ export default function StudioPanel({ onAuthLost }: { onAuthLost: () => void }) 
 
   return (
     <section className="space-y-6">
-      <div>
-        <h2 className="font-mono text-xs text-cyan-400">SITE STUDIO</h2>
-        <p className="mt-1 text-sm text-zinc-400">Design complete business websites for your clients: slideshow, catalogue, cart with WhatsApp ordering, bookings or quotes, reviews, three languages, light and dark mode, and an owner admin panel. Preview on any device, download the finished site, and show it live in your portfolio.</p>
-      </div>
+      <p className="max-w-3xl text-sm leading-relaxed text-zinc-400">Design complete business websites for your clients: slideshow, catalogue, cart with WhatsApp ordering, bookings or quotes, reviews, three languages, light and dark mode, and an owner admin panel. Preview on any device, download the finished site, and show it live in your portfolio.</p>
 
-      <div className="space-y-3 rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
-        <h3 className="font-mono text-xs text-zinc-300">NEW WEBSITE</h3>
+      <div className="space-y-4 rounded-2xl border border-zinc-800/80 bg-zinc-900/50 p-4 shadow-sm shadow-black/20 sm:p-5">
+        <h3 className="text-sm font-semibold text-zinc-100">Start a new website</h3>
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
           {presets.map((p) => (
-            <button key={p.id} type="button" onClick={() => setPreset(p.id)} aria-pressed={preset === p.id} className={`rounded-lg border p-3 text-left transition-colors ${preset === p.id ? 'border-cyan-500 bg-cyan-500/10' : 'border-zinc-800 hover:border-zinc-600'}`}>
+            <button key={p.id} type="button" onClick={() => setPreset(p.id)} aria-pressed={preset === p.id} className={`cursor-pointer rounded-xl border p-3.5 text-left transition-colors ${preset === p.id ? 'border-accent bg-accent/10' : 'border-zinc-800 hover:border-zinc-600'}`}>
               <div className="text-sm font-semibold text-zinc-100">{p.label}</div>
               <div className="mt-1 text-[11px] leading-snug text-zinc-400">{p.desc}</div>
             </button>
           ))}
         </div>
         <div className="flex flex-wrap gap-2">
-          <input value={newName} onChange={(e) => setNewName(e.target.value)} maxLength={60} placeholder="Client / business name" aria-label="Business name" className="min-w-0 flex-1 rounded border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 focus:border-cyan-500 focus:outline-none sm:max-w-xs" />
-          <button className={primary} disabled={busy} onClick={() => run(async () => { const r = await post({ action: 'create', name: newName, preset }); setNewName(''); setEditing(r.slug); })}>Create &amp; design →</button>
+          <input value={newName} onChange={(e) => setNewName(e.target.value)} maxLength={60} placeholder="Client / business name" aria-label="Business name" className={`${box} min-w-0 flex-1 sm:max-w-xs`} />
+          <button className={primary} disabled={busy} onClick={() => run(async () => { const r = await post({ action: 'create', name: newName, preset }); setNewName(''); setEditing(r.slug); })}>Create &amp; design</button>
           <input ref={file} type="file" accept=".html,.json,text/html,application/json" className="hidden" onChange={(e) => {
             const f = e.target.files?.[0]; e.target.value = '';
             if (!f) return;
@@ -69,22 +65,22 @@ export default function StudioPanel({ onAuthLost }: { onAuthLost: () => void }) 
         </div>
       </div>
 
-      {msg && <p role="status" className="text-xs text-amber-300">{msg}</p>}
+      {msg && <p role="status" className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">{msg}</p>}
 
       <div className="space-y-3">
-        <h3 className="font-mono text-xs text-zinc-300">YOUR WEBSITES</h3>
+        <h3 className="text-sm font-semibold text-zinc-100">Your websites</h3>
         {sites === null ? <p className="text-sm text-zinc-400">Loading…</p> : sites.length === 0 ? <p className="text-sm text-zinc-400">No websites yet. Pick a starting look above, or import one you already have.</p> : (
           <ul className="space-y-3">
             {sites.map((s) => (
-              <li key={s.slug} className="flex flex-wrap items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
+              <li key={s.slug} className="flex flex-wrap items-center gap-3 rounded-2xl border border-zinc-800/80 bg-zinc-900/50 p-4">
                 <div className="min-w-0 flex-1">
-                  <div className="truncate font-semibold text-zinc-100">{s.name} {s.published && <span className="ml-1 rounded bg-emerald-500/20 px-1.5 py-0.5 font-mono text-[10px] text-emerald-400">LIVE</span>}</div>
-                  <div className="font-mono text-[11px] text-zinc-500">{s.mode === 'quote' ? 'Quote site' : 'Booking site'} · {s.products} products · {s.kb} KB of pictures · edited {new Date(s.updatedAt).toLocaleDateString('en-UG')}</div>
+                  <div className="truncate font-semibold text-zinc-100">{s.name} {s.published && <span className="ml-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-300">LIVE</span>}</div>
+                  <div className="text-xs text-zinc-500">{s.mode === 'quote' ? 'Quote site' : 'Booking site'} · {s.products} products · {s.kb} KB of pictures · edited {new Date(s.updatedAt).toLocaleDateString('en-UG')}</div>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <button className={primary} onClick={() => setEditing(s.slug)}>Design</button>
-                  {s.published && <a className={btn} href={`/demo/${s.slug}`} target="_blank" rel="noopener noreferrer">Open demo ↗</a>}
-                  <a className={btn} href={`/api/studio?download=${encodeURIComponent(s.slug)}`}>⬇ .zip</a>
+                  {s.published && <a className={btn} href={`/demo/${s.slug}`} target="_blank" rel="noopener noreferrer">Open demo</a>}
+                  <a className={btn} href={`/api/studio?download=${encodeURIComponent(s.slug)}`}>Download .zip</a>
                   <a className={btn} href={`/api/studio?backup=${encodeURIComponent(s.slug)}`} title="Settings and pictures, to restore this site later"><Icon name="save" size={13} className="mr-1 align-[-2px]" />Backup</a>
                   <button className={btn} disabled={busy} onClick={() => run(async () => { await post({ action: 'duplicate', slug: s.slug }); await load(); })}>Duplicate</button>
                   <button className={`${btn} !border-red-500/50 text-red-400`} disabled={busy} onClick={() => { if (confirm(`Delete "${s.name}" and all its pictures? This cannot be undone.`)) run(async () => { await post({ action: 'delete', slug: s.slug }); await load(); }); }}>Delete</button>

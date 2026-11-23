@@ -4,6 +4,7 @@
 import { useMemo, useState } from 'react';
 import Icon from '@/components/ui/IconAny';
 import { formatUGX, STATUS_LABEL } from '@/lib/shared';
+import { AButton, Avatar, Badge, Empty, Priv, Stat, compactUGX } from './ui';
 import { box, btn, downloadText, isOpenTicket, kampalaDay, timeAgo, type AdminTicket } from './adminKit';
 
 interface Customer { key: string; name: string; phones: Set<string>; emails: Set<string>; tickets: AdminTicket[]; quoted: number; paid: number; last: string; first: string }
@@ -44,38 +45,49 @@ export default function CustomersPanel({ tickets, onOpenTicket }: { tickets: Adm
 
   const repeat = customers.filter((c) => c.tickets.length > 1).length;
   return (
-    <section className="space-y-4">
+    <section className="space-y-5">
       <div className="grid grid-cols-3 gap-3">
-        {([['Customers', customers.length], ['Repeat customers', repeat], ['Lifetime quoted', formatUGX(customers.reduce((a, c) => a + c.quoted, 0))]] as [string, string | number][]).map(([t, v]) => (
-          <div key={t} className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-3"><div className="font-mono text-[10px] uppercase text-zinc-400">{t}</div><div className="mt-1 text-lg font-bold text-zinc-100 sm:text-2xl">{v}</div></div>
-        ))}
+        <Stat label="Customers" value={customers.length} icon="user" />
+        <Stat label="Repeat" value={repeat} icon="heart" tone="ok" hint={customers.length ? `${Math.round((repeat / customers.length) * 100)}% came back` : undefined} />
+        <Stat label="Lifetime quoted" value={compactUGX(customers.reduce((a, c) => a + c.quoted, 0))} icon="money" tone="warn" />
       </div>
-      <div className="flex flex-wrap gap-2">
-        <input className={`${box} sm:max-w-xs`} placeholder="Search name, phone or email…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search customers" />
-        <select className={`${box} sm:max-w-[11rem]`} value={sort} onChange={(e) => setSort(e.target.value as any)} aria-label="Sort"><option value="recent">Most recent</option><option value="value">Highest value</option><option value="count">Most requests</option></select>
-        <button className={btn} onClick={exportCsv} disabled={!shown.length}><Icon name="download" /> CSV</button>
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative min-w-[12rem] flex-1 sm:max-w-sm">
+          <Icon name="search" size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+          <input className={`${box} pl-9`} placeholder="Search name, phone or email…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search customers" />
+        </div>
+        <select className={`${box} !w-auto`} value={sort} onChange={(e) => setSort(e.target.value as any)} aria-label="Sort"><option value="recent">Most recent</option><option value="value">Highest value</option><option value="count">Most requests</option></select>
+        <div className="ml-auto"><AButton onClick={exportCsv} disabled={!shown.length} icon="download">CSV</AButton></div>
       </div>
-      {shown.length === 0 ? <p className="text-sm text-zinc-400">{customers.length ? 'No customers match.' : 'Customers appear here once requests come in.'}</p> : (
-        <ul className="space-y-2">
+      {shown.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-zinc-800"><Empty icon="user" title={customers.length ? 'No customers match' : 'No customers yet'} text={customers.length ? 'Try a different search.' : 'Customers appear here once requests come in.'} /></div>
+      ) : (
+        <ul className="space-y-2.5">
           {shown.map((c) => {
             const wa = [...c.phones][0]?.replace(/\D/g, '');
+            const isOpen = open === c.key;
             return (
-              <li key={c.key} className="rounded-xl border border-zinc-800 bg-zinc-900/40">
-                <button type="button" onClick={() => setOpen(open === c.key ? null : c.key)} aria-expanded={open === c.key} className="flex w-full flex-wrap items-center justify-between gap-2 p-4 text-left">
-                  <span className="flex items-center gap-3"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-cyan-500/15 font-mono text-sm text-cyan-300">{c.name.trim().charAt(0).toUpperCase() || '?'}</span><span><strong className="text-sm text-zinc-100">{c.name}</strong>{c.tickets.length > 1 && <span className="ml-2 rounded bg-emerald-500/15 px-1.5 py-0.5 font-mono text-[10px] text-emerald-300">REPEAT</span>}<span className="block text-[11px] text-zinc-500">{[...c.phones][0] || [...c.emails][0] || 'no contact'}</span></span></span>
-                  <span className="text-right font-mono text-[11px] text-zinc-400">{c.tickets.length} request{c.tickets.length > 1 ? 's' : ''} · {c.quoted ? formatUGX(c.quoted) : 'no quote'}<span className="block text-zinc-600">last {timeAgo(c.last)}</span></span>
+              <li key={c.key} className={`overflow-hidden rounded-2xl border bg-zinc-900/50 transition ${isOpen ? 'border-zinc-600' : 'border-zinc-800/80 hover:border-zinc-700'}`}>
+                <button type="button" onClick={() => setOpen(isOpen ? null : c.key)} aria-expanded={isOpen} className="flex w-full cursor-pointer items-center gap-3 p-3.5 text-left">
+                  <Avatar name={c.name} size={42} />
+                  <span className="min-w-0 flex-1">
+                    <span className="flex flex-wrap items-center gap-2"><strong className="truncate text-sm font-semibold text-zinc-100"><Priv>{c.name}</Priv></strong>{c.tickets.length > 1 && <Badge tone="ok">Repeat</Badge>}{c.tickets.some(isOpenTicket) && <Badge tone="accent">{c.tickets.filter(isOpenTicket).length} open</Badge>}</span>
+                    <span className="mt-0.5 block truncate text-xs text-zinc-500"><Priv>{[...c.phones][0] || [...c.emails][0] || 'No contact details'}</Priv></span>
+                  </span>
+                  <span className="flex-none text-right text-xs"><span className="block font-semibold text-zinc-200">{c.tickets.length} request{c.tickets.length > 1 ? 's' : ''}</span><span className="block text-zinc-500">{c.quoted ? compactUGX(c.quoted) : 'no quote'} · {timeAgo(c.last)}</span></span>
+                  <Icon name="arrow" size={14} className={`hidden flex-none text-zinc-600 transition sm:block ${isOpen ? 'rotate-90' : ''}`} />
                 </button>
-                {open === c.key && (
-                  <div className="space-y-3 border-t border-zinc-800 p-4 ios-enter">
+                {isOpen && (
+                  <div className="space-y-3 border-t border-zinc-800/80 bg-zinc-950/40 p-4 ios-enter">
                     <div className="flex flex-wrap gap-2 text-xs">
-                      {wa && <a className={btn} href={`https://wa.me/${wa}`} target="_blank" rel="noopener noreferrer"><Icon name="message-circle" /> WhatsApp</a>}
-                      {[...c.phones].map((p) => <a key={p} className={btn} href={`tel:${p.replace(/[^\d+]/g, '')}`}><Icon name="phone" /> {p}</a>)}
-                      {[...c.emails].map((e) => <a key={e} className={btn} href={`mailto:${e}`}><Icon name="mail" /> {e}</a>)}
+                      {wa && <a className={btn} href={`https://wa.me/${wa}`} target="_blank" rel="noopener noreferrer"><Icon name="message-circle" size={14} /> WhatsApp</a>}
+                      {[...c.phones].map((p) => <a key={p} className={btn} href={`tel:${p.replace(/[^\d+]/g, '')}`}><Icon name="phone" size={14} /> <Priv>{p}</Priv></a>)}
+                      {[...c.emails].map((e) => <a key={e} className={btn} href={`mailto:${e}`}><Icon name="mail" size={14} /> <Priv>{e}</Priv></a>)}
                     </div>
                     <ul className="space-y-1.5">
                       {[...c.tickets].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map((t) => (
-                        <li key={t.id}><button type="button" onClick={() => onOpenTicket(t.id)} className="flex w-full items-center justify-between gap-3 rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-left text-xs hover:border-zinc-600">
-                          <span><span className="font-mono text-cyan-400">{t.id}</span> <span className="text-zinc-300">{t.kind}</span></span><span className="font-mono text-zinc-400">{STATUS_LABEL[t.status]} · {timeAgo(t.createdAt)}</span>
+                        <li key={t.id}><button type="button" onClick={() => onOpenTicket(t.id)} className="flex w-full cursor-pointer items-center justify-between gap-3 rounded-xl border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-left text-xs transition hover:border-accent/40">
+                          <span><span className="font-mono text-accent">{t.id}</span> <span className="ml-1 text-zinc-300">{t.kind}</span></span><span className="text-zinc-500">{STATUS_LABEL[t.status]} · {timeAgo(t.createdAt)}</span>
                         </button></li>
                       ))}
                     </ul>
