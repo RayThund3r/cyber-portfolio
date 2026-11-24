@@ -280,3 +280,14 @@ Verified: full suite ALL GREEN. Not verified: real `next build`; the new tabs/ma
 - Panels split out of app/admin/page.tsx: Overview, TicketsPanel, TicketEditor, CustomersPanel, PortfolioPanel, TemplatesPanel, SitesPanel, InsightsPanel, SettingsPanel, DataPanel; logic unchanged, visuals restyled.
 - Verified in a real browser (esbuild + Playwright, mocked API). Not verified: real `next build`, live data, light mode.
 - Round 27b: login redesigned; Studio list restyled; light-mode fixes (status text shades in globals.css, chart strokes use theme vars).
+
+## Round 28 — AI providers fix + admin motion
+- server/llmModels.ts: model discovery (parse /models, drop speech/embedding models, flag retiring ones), best-model picker, plain-language error explanations.
+- Defaults updated: Groq openai/gpt-oss-20b (llama-3.1-8b-instant shuts down 16 Aug 2026), Gemini gemini-2.5-flash-lite (2.5-flash retired 1 Dec 2026), Cerebras gpt-oss-120b. A saved model equal to an OLD default is upgraded automatically.
+- Test button: checks key + model through the free models list first (no chat quota), refuses repeat clicks within 15 s, explains 429/404/401 clearly, offers suggested models. Quick connect auto-picks a working model.
+- AI Providers page: "Load models" + model dropdown, recommended-model link, retiring warnings, clickable suggestions.
+- Admin motion (globals.css adm-*): staggered rise, count-up numbers, chart line draw, bar grow, skeleton shimmer, hover lift; all off under prefers-reduced-motion.
+
+## Round 29 — /track overhaul
+- Restyled tracking page: plain-language 'what happens now' per stage, stepper, numbered mobile-money steps with copy buttons, payments list, update timeline, silent refresh every 3 min (max 8), remembers recent references (and phone only if ticked) on the device, auto-opens from ?id= when a phone is remembered.
+- Admin 'Reply on WhatsApp' text now includes the /track?id= link (emails already did).

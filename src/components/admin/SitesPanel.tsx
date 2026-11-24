@@ -34,7 +34,7 @@ export default function SitesPanel() {
       ) : (
         <ul className="space-y-2.5">
           {rows.map((r) => (
-            <li key={r.id} className="flex flex-wrap items-center gap-3 rounded-2xl border border-zinc-800/80 bg-zinc-900/50 p-3.5 transition hover:border-zinc-700">
+            <li key={r.id} className="adm-rise flex flex-wrap items-center gap-3 rounded-2xl border border-zinc-800/80 bg-zinc-900/50 p-3.5 transition hover:border-zinc-700">
               <Avatar name={r.siteName || r.name || 'Site'} size={40} />
               <div className="min-w-[12rem] flex-1">
                 <div className="flex flex-wrap items-center gap-2"><span className="text-sm font-semibold text-zinc-100">{r.siteName}</span><span className="text-xs text-zinc-500">{r.template}</span></div>

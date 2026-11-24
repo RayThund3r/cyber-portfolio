@@ -8,7 +8,7 @@ import { api, box, primary } from './adminKit';
 import PricingPanel from './PricingPanel';
 
 const Card = ({ title, icon, children, hint }: { title: string; icon: string; children: ReactNode; hint?: string }) => (
-  <section className="space-y-3.5 rounded-2xl border border-zinc-800/80 bg-zinc-900/50 p-4 shadow-sm shadow-black/20 sm:p-5">
+  <section className="adm-rise space-y-3.5 rounded-2xl border border-zinc-800/80 bg-zinc-900/50 p-4 shadow-sm shadow-black/20 sm:p-5">
     <header className="flex items-start gap-3">
       <span className="flex h-9 w-9 flex-none items-center justify-center rounded-xl bg-accent/12 text-accent"><Icon name={icon} size={17} /></span>
       <div className="min-w-0"><h3 className="text-sm font-semibold text-zinc-100">{title}</h3>{hint && <p className="mt-0.5 text-xs leading-relaxed text-zinc-500">{hint}</p>}</div>
@@ -30,7 +30,7 @@ export default function SettingsPanel() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   useEffect(() => { api<{ settings: SiteSettings }>('settings.get').then((d) => { setS(d.settings); setSaved(JSON.stringify(d.settings)); }).catch((e) => setMsg({ ok: false, text: e.message })); }, []);
-  if (!s) return msg ? <p className="text-sm text-rose-300">{msg.text}</p> : <div className="space-y-4" aria-busy="true"><div className="h-64 animate-pulse rounded-2xl bg-zinc-900/70" /><div className="h-48 animate-pulse rounded-2xl bg-zinc-900/70" /></div>;
+  if (!s) return msg ? <p className="text-sm text-rose-300">{msg.text}</p> : <div className="space-y-4" aria-busy="true"><div className="h-64 adm-skel rounded-2xl" /><div className="h-48 adm-skel rounded-2xl" /></div>;
   const dirty = JSON.stringify(s) !== saved;
   const up = <K extends keyof SiteSettings>(k: K, patch: Partial<SiteSettings[K]>) => setS({ ...s, [k]: { ...s[k], ...patch } });
   const save = async () => {

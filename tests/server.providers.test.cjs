@@ -3,7 +3,7 @@ const H = require('./server-setup.cjs'); const { ok } = H; const fs = require('f
 const P = H.req('server/llmProviders');
 const sse = (txt) => new Response(new ReadableStream({ start(c) { const e = new TextEncoder(); c.enqueue(e.encode(`data: ${JSON.stringify({ choices: [{ delta: { content: txt } }] })}\n\ndata: [DONE]\n\n`)); c.close(); } }), { status: 200 });
 const calls = []; let plan = {};
-global.fetch = async (url, init) => { const host = new URL(url).host; calls.push({ host, body: JSON.parse(init.body), auth: init.headers.Authorization }); const r = plan[host]; if (r && r.status) return new Response(r.body || 'err', { status: r.status }); return sse('hi from ' + host); };
+let models = {}; global.fetch = async (url, init) => { const host = new URL(url).host; if (/\/models$/.test(url)) { const m = models[host]; if (m && m.status) return new Response(m.body || 'err', { status: m.status }); return new Response(JSON.stringify(m || { data: [] }), { status: 200 }); } calls.push({ host, body: JSON.parse(init.body), auth: init.headers.Authorization }); const r = plan[host]; if (r && r.status) return new Response(r.body || 'err', { status: r.status }); return sse('hi from ' + host); };
 const drain = async (res) => { let t = ''; const r = res.body.getReader(); const d = new TextDecoder(); for (;;) { const { done, value } = await r.read(); if (done) break; t += d.decode(value); } return t; };
 (async () => {
   ok('no providers at first', (await P.candidates()).length === 0 && !(await P.anyAvailable()).available);
@@ -32,10 +32,35 @@ const drain = async (res) => { let t = ''; const r = res.body.getReader(); const
   await P.streamWithFallback([{ role: 'user', content: 'x' }], ac.signal);
   await new Promise((r) => setTimeout(r, 80));
   ok('daily cap stops a provider once reached', (await P.candidates()).every((c) => c.id !== 'mistral'));
-  const t = await P.testProvider('groq'); ok('test button works', t.ok && /hi from/.test(t.text));
-  plan['api.groq.com'] = { status: 401, body: 'bad key' }; const t2 = await P.testProvider('groq');
+  P.resetTestThrottle(); const t = await P.testProvider('groq'); ok('test button works', t.ok && /hi from/.test(t.text));
+  ok('test button refuses a rapid repeat (saves free quota)', (await P.testProvider('groq')).kind === 'minute');
+  P.resetTestThrottle(); plan['api.groq.com'] = { status: 401, body: 'bad key' }; const t2 = await P.testProvider('groq');
   ok('test button explains refused key', !t2.ok && /refused/.test(t2.error), t2.error);
   plan = {};
+  // ---- model discovery ----
+  models['api.groq.com'] = { data: [{ id: 'openai/gpt-oss-20b' }, { id: 'llama-3.1-8b-instant' }, { id: 'whisper-large-v3' }, { id: 'openai/gpt-oss-120b' }, { id: 'orpheus-tts' }] };
+  const ml = await P.listModels('groq');
+  ok('model list drops speech/embedding models, picks the best', ml.ok && ml.models.length === 3 && ml.pick === 'openai/gpt-oss-20b', JSON.stringify(ml));
+  ok('retiring model is flagged', ml.models.find((m) => m.id === 'llama-3.1-8b-instant').retiring);
+  await P.saveProvider({ id: 'groq', model: 'llama-x' }); P.resetTestThrottle(); calls.length = 0;
+  const tm = await P.testProvider('groq');
+  ok('unknown model reported with suggestions and NO chat call', !tm.ok && tm.kind === 'model' && tm.pick === 'openai/gpt-oss-20b' && calls.length === 0, JSON.stringify(tm));
+  const ap = await P.autoPickModel('groq'); ok('autopick switches to a working model', ap.changed && ap.model === 'openai/gpt-oss-20b');
+  models['generativelanguage.googleapis.com'] = { data: [{ id: 'models/gemini-2.5-flash' }, { id: 'models/gemini-2.5-flash-lite' }, { id: 'models/text-embedding-004' }, { id: 'models/gemini-3.5-flash-lite' }] };
+  await P.saveProvider({ id: 'gemini', key: 'AIza' + 'x'.repeat(35) });
+  const gl = await P.listModels('gemini'); ok('gemini: models/ prefix removed, flash-lite preferred', gl.ok && gl.pick === 'gemini-3.5-flash-lite' && !gl.models.some((m) => /embed/.test(m.id)), JSON.stringify(gl));
+  models['api.groq.com'] = { status: 401, body: 'nope' }; const bad = await P.listModels('groq');
+  ok('bad key reported from the free list call', !bad.ok && bad.kind === 'key'); models = {};
+  // old built-in defaults that the owner never changed are upgraded
+  await P.saveProvider({ id: 'cerebras', key: 'csk-' + 'y'.repeat(30) });
+  const db0 = await P.getDb(); db0.items.cerebras.model = 'llama3.1-8b';
+  ok('old default model upgraded when untouched', P.ordered(db0).find((x) => x.id === 'cerebras').model === 'gpt-oss-120b');
+  const M = H.req('server/llmModels');
+  ok('explain: daily quota', /daily quota/.test(M.explainError(429, '{"error":{"message":"You exceeded your current quota, per day"}}', 'm').text));
+  ok('explain: no free quota (limit 0)', /no quota/.test(M.explainError(429, 'quota limit: 0', 'm').text));
+  ok('explain: per minute', M.explainError(429, 'rate limit reached per minute', 'm').kind === 'minute');
+  ok('explain: model gone', M.explainError(404, '{"error":{"message":"The model `x` does not exist"}}', 'x').kind === 'model');
+  ok('OpenRouter keeps only free models', M.parseModels('openrouter', { data: [{ id: 'a/b:free' }, { id: 'c/d', pricing: { prompt: '0.1', completion: '0.1' } }, { id: 'e/f', pricing: { prompt: '0', completion: '0' } }] }).map((m) => m.id).join() === 'a/b:free,e/f');
   ok('SSRF guard: http / private hosts refused', ['http://api.x.com/v1', 'https://localhost/v1', 'https://127.0.0.1/v1', 'https://192.168.1.5/v1', 'https://10.0.0.2/v1', 'https://169.254.169.254/latest', 'https://u:p@x.com/v1', 'nonsense'].every((u) => P.cleanBaseUrl(u) === null) && P.cleanBaseUrl('https://api.example.com/v1/') === 'https://api.example.com/v1');
   let e3 = null; try { await P.addCustom('Bad', 'https://127.0.0.1/v1'); } catch (e) { e3 = e; }
   ok('custom endpoint with private address refused', e3 && e3.status === 400);

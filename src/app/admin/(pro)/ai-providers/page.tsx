@@ -7,7 +7,8 @@ import { AButton, Badge, Card, ErrorBox, Field, Notice, PageHead, Skel, Stat, To
 interface Use { ok: number; fail: number; skipped: number; last?: string }
 interface Item { id: string; name: string; enabled: boolean; custom: boolean; model: string; baseUrl: string; dailyCap: number; keySet: boolean; keyTail: string; keyLost: boolean; links: { signup: string; keys: string; docs: string } | null; note: string; today: Use; coolingMs: number }
 interface Data { master: boolean; items: Item[]; order: string[]; env: { configured: boolean; enabled: boolean; host: string; model: string; today: Use }; day: string }
-interface TestRes { ok: boolean; text?: string; firstTokenMs?: number; totalMs?: number; error?: string }
+interface TestRes { ok: boolean; text?: string; firstTokenMs?: number; totalMs?: number; error?: string; kind?: string; suggestions?: string[]; pick?: string; warning?: string }
+interface ModelList { ok: boolean; models: { id: string; retiring?: string }[]; pick: string; current: string; currentOk: boolean | null; error?: string }
 
 export default function AiProvidersPage() {
   const toast = useToast();
@@ -36,9 +37,9 @@ export default function AiProvidersPage() {
   const quick = async () => {
     setBusy('quick'); setQuickMsg('');
     try {
-      const r = await api<{ id: string; test: TestRes }>('/api/admin/llm-providers', { method: 'POST', body: { action: 'quick', key: quickKey } });
+      const r = await api<{ id: string; model?: string; switched?: boolean; test: TestRes }>('/api/admin/llm-providers', { method: 'POST', body: { action: 'quick', key: quickKey } });
       setQuickKey('');
-      setQuickMsg(r.test.ok ? `Connected to ${r.id} and it answered: “${(r.test.text || '').slice(0, 80)}”` : `Saved for ${r.id}, but the test failed: ${r.test.error || 'no answer'}`);
+      setQuickMsg(r.test.ok ? `Connected to ${r.id}${r.model ? ` using ${r.model}` : ''} and it answered: “${(r.test.text || '').slice(0, 80)}”` : `Saved for ${r.id}${r.switched ? ` (switched to ${r.model})` : ''}, but the test failed: ${r.test.error || 'no answer'}`);
       q.reload();
     } catch (e) { setQuickMsg(e instanceof Error ? e.message : 'Failed'); }
     setBusy('');
@@ -93,19 +94,27 @@ export default function AiProvidersPage() {
   );
 }
 
-function TestBox({ r }: { r?: TestRes }) {
+function TestBox({ r, onPick }: { r?: TestRes; onPick?: (m: string) => void }) {
   if (!r) return null;
   return (
-    <div className={`mt-3 rounded-lg border p-3 text-sm ${r.ok ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-red-500/30 bg-red-500/5'}`} role="status">
+    <div className={`mt-3 rounded-xl border p-3 text-sm ios-enter ${r.ok ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-red-500/30 bg-red-500/5'}`} role="status">
       {r.ok ? <><div className="mb-1 font-mono text-[11px] text-zinc-500">first word {r.firstTokenMs} ms · total {((r.totalMs || 0) / 1000).toFixed(1)} s</div><p className="whitespace-pre-wrap text-zinc-200">{r.text}</p></> : <p className="text-red-300">{r.error}</p>}
+      {r.warning && <p className="mt-2 text-xs text-amber-300">Heads up: {r.warning}. Choose another model soon.</p>}
+      {!r.ok && r.suggestions && r.suggestions.length > 0 && onPick && (
+        <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs"><span className="text-zinc-500">Try:</span>
+          {r.suggestions.map((m) => <button key={m} type="button" onClick={() => onPick(m)} className={`cursor-pointer rounded-full border px-2.5 py-1 font-mono transition ${m === r.pick ? 'border-accent text-accent' : 'border-zinc-700 text-zinc-300 hover:border-accent'}`}>{m}{m === r.pick ? ' ★' : ''}</button>)}
+        </div>
+      )}
     </div>
   );
 }
 
 function ProviderCard({ p, pos, last, busy, onMove, onAct, onTest, test }: { p: Item; pos: number; last: boolean; busy: string; onMove: (id: string, d: -1 | 1) => void; onAct: (b: Record<string, unknown>, ok?: string) => Promise<unknown>; onTest: (id: string) => void; test?: TestRes }) {
   const [key, setKey] = useState(''); const [model, setModel] = useState(p.model); const [cap, setCap] = useState(String(p.dailyCap)); const [url, setUrl] = useState(p.baseUrl);
+  const [list, setList] = useState<ModelList | null>(null); const [loadingM, setLoadingM] = useState(false);
+  const loadModels = async () => { setLoadingM(true); try { const r = await api<ModelList>('/api/admin/llm-providers', { method: 'POST', body: { action: 'models', id: p.id } }); setList(r); if (r.ok && r.currentOk === false && r.pick) setModel(r.pick); } catch (e) { setList({ ok: false, models: [], pick: '', current: p.model, currentOk: null, error: e instanceof Error ? e.message : 'Failed' }); } setLoadingM(false); };
   const dirty = !!key || model !== p.model || cap !== String(p.dailyCap) || (p.custom && url !== p.baseUrl);
-  const save = () => onAct({ action: 'save', id: p.id, key: key || undefined, model, dailyCap: Number(cap) || 0, ...(p.custom ? { baseUrl: url } : {}) }, 'Saved').then((r) => { if (r) setKey(''); });
+  const save = () => { const hadKey = !!key; return onAct({ action: 'save', id: p.id, key: key || undefined, model, dailyCap: Number(cap) || 0, ...(p.custom ? { baseUrl: url } : {}) }, 'Saved').then((r) => { if (r) { setKey(''); if (hadKey) void loadModels(); } }); };
   const tone = p.enabled && p.keySet ? (p.coolingMs > 0 ? 'warn' : 'ok') : 'default';
   return (
     <Card title={`${pos}. ${p.name}`} icon="cpu" right={<Badge tone={tone}>{p.enabled && p.keySet ? (p.coolingMs > 0 ? 'RESTING' : 'ON') : 'OFF'}</Badge>}>
@@ -129,7 +138,14 @@ function ProviderCard({ p, pos, last, busy, onMove, onAct, onTest, test }: { p: 
           <Field label="API key" hint={p.keySet ? `saved (ends …${p.keyTail}). Paste a new one to replace it.` : 'paste the key you copied'}>
             <input className={inputCls} type="password" autoComplete="off" spellCheck={false} placeholder={p.keySet ? '••••••••••' : 'paste key'} value={key} onChange={(e) => setKey(e.target.value)} />
           </Field>
-          <Field label="Model" hint="exact name from the provider's model list"><input className={inputCls} value={model} spellCheck={false} onChange={(e) => setModel(e.target.value)} /></Field>
+          <Field label="Model" hint={list?.error ? list.error : list?.ok ? (list.models.find((m) => m.id === model)?.retiring ? `Warning: ${list.models.find((m) => m.id === model)?.retiring}` : list.currentOk === false && model === list.current ? 'Not offered to your key. Pick another.' : `${list.models.length} models available to your key`) : 'press Load models to see what your key can use'}>
+            <div className="flex gap-2">
+              <input className={`${inputCls} min-w-0 flex-1`} list={`models-${p.id}`} value={model} spellCheck={false} onChange={(e) => setModel(e.target.value)} />
+              <AButton small icon="refresh" disabled={!p.keySet || loadingM} onClick={loadModels} title="Ask the provider which models your key can use (free, uses no chat quota)">{loadingM ? 'Loading…' : 'Load models'}</AButton>
+            </div>
+            {list?.ok && <datalist id={`models-${p.id}`}>{list.models.map((m) => <option key={m.id} value={m.id}>{m.retiring ? `${m.id} (retiring)` : m.id}</option>)}</datalist>}
+            {list?.ok && list.pick && model !== list.pick && <button type="button" onClick={() => setModel(list.pick)} className="mt-1.5 cursor-pointer text-xs text-accent hover:underline">Use the recommended one: <span className="font-mono">{list.pick}</span></button>}
+          </Field>
           {p.custom && <Field label="Address"><input className={inputCls} value={url} spellCheck={false} onChange={(e) => setUrl(e.target.value)} /></Field>}
           <Field label="Daily cap" hint="max answers per day from this service (0 = no cap)"><input className={inputCls} inputMode="numeric" value={cap} onChange={(e) => setCap(e.target.value.replace(/\D/g, ''))} /></Field>
         </div>
@@ -146,7 +162,7 @@ function ProviderCard({ p, pos, last, busy, onMove, onAct, onTest, test }: { p: 
           </div>
         </div>
         {p.today.last && p.today.fail > 0 && <p className="font-mono text-[11px] text-amber-300/80">last error: {p.today.last}</p>}
-        <TestBox r={test} />
+        <TestBox r={test} onPick={(m) => { setModel(m); }} />
       </div>
     </Card>
   );

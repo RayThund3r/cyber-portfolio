@@ -160,7 +160,7 @@ export default function TicketsPanel({
             {visible.map((t, i) => {
               const urgent = needsAttention(t);
               return (
-                <li key={t.id} id={`t-${t.id}`} style={{ ['--i' as string]: Math.min(i, 10) }} className={`overflow-hidden rounded-2xl border bg-zinc-900/50 transition ${picked.has(t.id) ? 'border-accent/60' : openId === t.id ? 'border-zinc-600' : 'border-zinc-800/80 hover:border-zinc-700'}`}>
+                <li key={t.id} id={`t-${t.id}`} style={{ ['--i' as string]: Math.min(i, 10) }} className={`adm-rise overflow-hidden rounded-2xl border bg-zinc-900/50 transition ${picked.has(t.id) ? 'border-accent/60' : openId === t.id ? 'border-zinc-600' : 'border-zinc-800/80 hover:border-zinc-700'}`}>
                   <div className="flex items-stretch">
                     <label className="flex cursor-pointer items-center pl-3.5 pr-1" aria-label={`Select ${t.id}`}>
                       <input type="checkbox" checked={picked.has(t.id)} onChange={() => toggle(t.id)} className="accent-[var(--accent)]" />

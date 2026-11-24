@@ -7,16 +7,17 @@
 import 'server-only';
 import crypto from 'node:crypto';
 import { readJson, update } from './store';
+import { OLD_DEFAULTS, explainError, parseModels, pickBest, retiringNote, type ModelInfo } from './llmModels';
 import { llmConfig, llmHealth, streamCompletion, type ChatMsgIn, type Target } from './llm';
 
 export interface CatalogEntry { id: string; name: string; base: string; model: string; signup: string; keys: string; docs: string; note: string }
 /** Addresses and model names are best-known defaults: free tiers change, so the admin page tells the owner to check the provider's list. */
 export const CATALOG: CatalogEntry[] = [
-  { id: 'groq', name: 'Groq', base: 'https://api.groq.com/openai/v1', model: 'llama-3.1-8b-instant', signup: 'https://console.groq.com', keys: 'https://console.groq.com/keys', docs: 'https://console.groq.com/docs/models', note: 'Very fast. Free plan, no card at the time of writing.' },
-  { id: 'gemini', name: 'Google Gemini', base: 'https://generativelanguage.googleapis.com/v1beta/openai', model: 'gemini-2.5-flash', signup: 'https://aistudio.google.com', keys: 'https://aistudio.google.com/apikey', docs: 'https://ai.google.dev/gemini-api/docs/models', note: 'Google account only. Generous free tier, small daily request cap.' },
+  { id: 'groq', name: 'Groq', base: 'https://api.groq.com/openai/v1', model: 'openai/gpt-oss-20b', signup: 'https://console.groq.com', keys: 'https://console.groq.com/keys', docs: 'https://console.groq.com/docs/models', note: 'Very fast. Free plan, no card at the time of writing.' },
+  { id: 'gemini', name: 'Google Gemini', base: 'https://generativelanguage.googleapis.com/v1beta/openai', model: 'gemini-2.5-flash-lite', signup: 'https://aistudio.google.com', keys: 'https://aistudio.google.com/apikey', docs: 'https://ai.google.dev/gemini-api/docs/models', note: 'Google account only. Generous free tier, small daily request cap.' },
   { id: 'openrouter', name: 'OpenRouter', base: 'https://openrouter.ai/api/v1', model: 'meta-llama/llama-3.3-70b-instruct:free', signup: 'https://openrouter.ai', keys: 'https://openrouter.ai/keys', docs: 'https://openrouter.ai/models?q=free', note: 'Many models; pick one whose name ends in ":free". Low free requests per day.' },
   { id: 'mistral', name: 'Mistral', base: 'https://api.mistral.ai/v1', model: 'mistral-small-latest', signup: 'https://console.mistral.ai', keys: 'https://console.mistral.ai/api-keys', docs: 'https://docs.mistral.ai/getting-started/models/', note: 'Free "Experiment" plan (their terms allow using your prompts to improve models).' },
-  { id: 'cerebras', name: 'Cerebras', base: 'https://api.cerebras.ai/v1', model: 'llama3.1-8b', signup: 'https://cloud.cerebras.ai', keys: 'https://cloud.cerebras.ai', docs: 'https://inference-docs.cerebras.ai/models/overview', note: 'Very fast. Free tier with daily token limits.' },
+  { id: 'cerebras', name: 'Cerebras', base: 'https://api.cerebras.ai/v1', model: 'gpt-oss-120b', signup: 'https://cloud.cerebras.ai', keys: 'https://cloud.cerebras.ai', docs: 'https://inference-docs.cerebras.ai/models/overview', note: 'Very fast. Free tier with daily token limits.' },
 ];
 const CATALOG_IDS = new Set(CATALOG.map((c) => c.id));
 
@@ -63,7 +64,12 @@ const defaults = (e: CatalogEntry): ProviderCfg => ({ id: e.id, name: e.name, en
 /** All providers in priority order: saved order first, then anything not yet ordered. Catalog entries always exist (off until configured). */
 export function ordered(db: ProvDb): ProviderCfg[] {
   const all: Record<string, ProviderCfg> = {};
-  for (const e of CATALOG) all[e.id] = { ...defaults(e), ...(db.items[e.id] || {}), id: e.id, name: e.name };
+  for (const e of CATALOG) {
+    const saved = db.items[e.id];
+    all[e.id] = { ...defaults(e), ...(saved || {}), id: e.id, name: e.name };
+    // an old built-in default the owner never changed moves to the current default (those models are being retired)
+    if (saved && saved.model === OLD_DEFAULTS[e.id]) all[e.id].model = e.model;
+  }
   for (const [id, it] of Object.entries(db.items)) if (it.custom) all[id] = it;
   const ids = [...db.order.filter((i) => all[i]), ...Object.keys(all).filter((i) => !db.order.includes(i))];
   return ids.map((i) => all[i]);
@@ -177,13 +183,63 @@ export async function streamWithFallback(messages: ChatMsgIn[], signal: AbortSig
   throw lastErr;
 }
 
-/** Admin "Test" button: one short question to ONE provider; returns timings or the provider's own error text. */
-export async function testProvider(id: string): Promise<{ ok: boolean; text?: string; firstTokenMs?: number; totalMs?: number; error?: string }> {
+/* ───────── model discovery (free: never uses chat quota) ───────── */
+export interface ModelList { ok: boolean; models: ModelInfo[]; pick: string; current: string; currentOk: boolean | null; error?: string; kind?: string }
+const modelsUrl = (base: string) => `${base.replace(/\/+$/, '').replace(/\/chat\/completions$/, '')}/models`;
+/** Asks the provider which models this key may use. currentOk is null when the provider gave no usable list. */
+export async function listModels(id: string): Promise<ModelList> {
+  const db = await getDb(); const p = ordered(db).find((x) => x.id === id);
+  const empty: ModelList = { ok: false, models: [], pick: '', current: p?.model || '', currentOk: null };
+  if (!p) return { ...empty, error: 'Unknown service.' };
+  const key = p.keyEnc ? unseal(p.keyEnc) : '';
+  if (!key) return { ...empty, error: 'Add an API key first.' };
+  const ctl = new AbortController(); const timer = setTimeout(() => ctl.abort(), 10_000);
+  try {
+    const res = await fetch(modelsUrl(p.baseUrl), { headers: { Authorization: `Bearer ${key}` }, signal: ctl.signal, cache: 'no-store' });
+    if (!res.ok) { const e = explainError(res.status, (await res.text().catch(() => '')).slice(0, 400), p.model); return { ...empty, error: e.text, kind: e.kind }; }
+    const models = parseModels(id, await res.json().catch(() => null));
+    if (!models.length) return { ...empty, error: 'This service did not list any models. Type the model name from its website instead.' };
+    const pick = pickBest(id, models);
+    return { ok: true, models, pick, current: p.model, currentOk: p.model ? models.some((m) => m.id === p.model) : false };
+  } catch (e) {
+    return { ...empty, error: ctl.signal.aborted ? 'The service did not answer in 10 seconds.' : 'Could not reach the service.' };
+  } finally { clearTimeout(timer); }
+}
+/** If the saved model is not offered to this key, switch to the best one that is. Returns the model now in use. */
+export async function autoPickModel(id: string): Promise<{ model: string; changed: boolean }> {
+  const l = await listModels(id);
+  if (!l.ok || l.currentOk || !l.pick) return { model: l.current, changed: false };
+  await saveProvider({ id, model: l.pick });
+  return { model: l.pick, changed: true };
+}
+
+/* ───────── test button ───────── */
+const lastTest = new Map<string, number>(); // id → time of last chat test (in-memory): stops accidental repeat clicks burning free quota
+export const resetTestThrottle = () => lastTest.clear();
+export interface TestResult { ok: boolean; text?: string; firstTokenMs?: number; totalMs?: number; error?: string; kind?: string; suggestions?: string[]; pick?: string; warning?: string }
+/** One short question to ONE provider. The key and model are checked first through the free models list, so a retired model or a bad key
+ *  is reported without spending any chat quota. Repeat clicks within 15 seconds are refused for the same reason. */
+export async function testProvider(id: string): Promise<TestResult> {
   const db = await getDb(); const envCfg = llmConfig();
-  let target: Target | null = null;
-  if (id === 'env') target = envCfg.url ? { url: envCfg.url, model: envCfg.model, key: envCfg.key, maxTokens: 60, llamaCpp: true } : null;
-  else { const p = ordered(db).find((x) => x.id === id); const key = p?.keyEnc ? unseal(p.keyEnc) : ''; if (p && key && p.baseUrl && p.model) target = { url: chatUrl(p.baseUrl), model: p.model, key, maxTokens: 60 }; }
+  let target: Target | null = null; let warning: string | undefined;
+  if (id === 'env') target = envCfg.url ? { url: envCfg.url, model: envCfg.model, key: envCfg.key, maxTokens: 120, llamaCpp: true } : null;
+  else {
+    const p = ordered(db).find((x) => x.id === id); const key = p?.keyEnc ? unseal(p.keyEnc) : '';
+    if (p && key && p.baseUrl && p.model) {
+      target = { url: chatUrl(p.baseUrl), model: p.model, key, maxTokens: 120 };
+      const l = await listModels(id);
+      if (!l.ok && (l.kind === 'key')) return { ok: false, kind: 'key', error: l.error };
+      if (l.ok && l.currentOk === false) {
+        const alt = l.models.filter((m) => !m.retiring).slice(0, 6).map((m) => m.id);
+        return { ok: false, kind: 'model', error: `"${p.model}" is not offered to your key (retired, renamed or not on the free plan). No quota was used.`, suggestions: alt, pick: l.pick };
+      }
+      warning = retiringNote(p.model);
+    }
+  }
   if (!target) return { ok: false, error: 'Add an API key and model first.' };
+  const gap = Date.now() - (lastTest.get(id) || 0);
+  if (gap < 15_000) return { ok: false, kind: 'minute', error: `You just tested this. Wait ${Math.ceil((15_000 - gap) / 1000)} s so the free quota is not wasted.` };
+  lastTest.set(id, Date.now());
   const t0 = Date.now(); const ctl = new AbortController(); const timer = setTimeout(() => ctl.abort(), 25_000);
   try {
     const res = await streamCompletion([{ role: 'user', content: 'Say hello in one short sentence.' }], ctl.signal, target);
@@ -191,17 +247,18 @@ export async function testProvider(id: string): Promise<{ ok: boolean; text?: st
     for (;;) {
       const { done, value } = await reader.read(); if (done) break;
       buf += dec.decode(value, { stream: true }); const lines = buf.split('\n'); buf = lines.pop() || '';
-      for (const l of lines) { if (!l.startsWith('data:')) continue; const d = l.slice(5).trim(); if (d === '[DONE]') continue; try { const j = JSON.parse(d); if (j.delta) { if (!first) first = Date.now() - t0; text += j.delta; } else if (j.error) return { ok: false, error: 'The service stopped answering.' }; } catch { /* partial */ } }
+      for (const l of lines) { if (!l.startsWith('data:')) continue; const d = l.slice(5).trim(); if (d === '[DONE]') continue; try { const j = JSON.parse(d); if (j.delta) { if (!first) first = Date.now() - t0; text += j.delta; } } catch { /* partial line */ } }
     }
-    if (!text.trim()) return { ok: false, error: 'The service answered with nothing. Check the model name.' };
+    if (!text.trim()) return { ok: false, error: 'The service answered with nothing. Try Load models and pick a different model.', kind: 'model' };
     cooldown.delete(id);
-    return { ok: true, text: text.trim().slice(0, 300), firstTokenMs: first, totalMs: Date.now() - t0 };
+    return { ok: true, text: text.trim().slice(0, 300), firstTokenMs: first, totalMs: Date.now() - t0, warning };
   } catch (e) {
-    const m = (e as Error)?.message || '';
-    return { ok: false, error: ctl.signal.aborted ? 'No answer within 25 seconds.' : /upstream 401|upstream 403/.test(m) ? `The key was refused (${m.replace('upstream ', '')}).` : /upstream 404/.test(m) ? `Not found: check the model name. ${m.slice(13)}` : /upstream 429/.test(m) ? 'Rate limit or free quota reached right now.' : m.startsWith('upstream') ? `The service said: ${m.replace('upstream ', '')}` : 'Could not reach the service.' };
+    const m = (e as Error)?.message || ''; const st = Number((e as { status?: number })?.status) || 0;
+    if (ctl.signal.aborted) return { ok: false, error: 'No answer within 25 seconds.' };
+    if (st) { const x = explainError(st, m.replace(/^upstream \d+:?\s*/, ''), target.model); return { ok: false, error: x.text, kind: x.kind }; }
+    return { ok: false, error: 'Could not reach the service.' };
   } finally { clearTimeout(timer); }
 }
-
 
 /** Guess which service a pasted API key belongs to from its well-known prefix. Never logs or returns the key. */
 export function detectProvider(key: string): string | null {

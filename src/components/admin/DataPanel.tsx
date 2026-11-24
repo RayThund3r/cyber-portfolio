@@ -44,7 +44,7 @@ export default function DataPanel({ tickets }: { tickets: AdminTicket[] }) {
   };
 
   const Card = ({ icon, title, children }: { icon: string; title: string; children: React.ReactNode }) => (
-    <section className="space-y-3 rounded-2xl border border-zinc-800/80 bg-zinc-900/50 p-4 shadow-sm shadow-black/20 sm:p-5">
+    <section className="adm-rise space-y-3 rounded-2xl border border-zinc-800/80 bg-zinc-900/50 p-4 shadow-sm shadow-black/20 sm:p-5">
       <header className="flex items-center gap-3"><span className="flex h-9 w-9 flex-none items-center justify-center rounded-xl bg-accent/12 text-accent"><Icon name={icon} size={17} /></span><h3 className="text-sm font-semibold text-zinc-100">{title}</h3></header>
       {children}
     </section>

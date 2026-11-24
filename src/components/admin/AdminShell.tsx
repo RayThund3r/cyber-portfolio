@@ -166,7 +166,7 @@ function Frame({ children }: { children: ReactNode }) {
                             onClick={(e) => { if (n.tab && onDesk && !(e.metaKey || e.ctrlKey || e.shiftKey)) { e.preventDefault(); goDeskTab(n.tab); } }}
                             className={`group relative flex min-h-9 items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[13px] transition ${active ? 'bg-accent/12 font-semibold text-accent' : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-100'}`}>
                             {active && <span className="absolute -left-3 top-1.5 bottom-1.5 w-[3px] rounded-r-full bg-accent" aria-hidden />}
-                            <Icon name={n.icon} size={16} className={active ? '' : 'text-zinc-500 group-hover:text-zinc-300'} /><span className="flex-1 truncate">{n.label}</span>
+                            <Icon name={n.icon} size={16} className={`adm-nav-icon ${active ? '' : 'text-zinc-500 group-hover:text-zinc-300'}`} /><span className="flex-1 truncate">{n.label}</span>
                             {!!count && <span className="rounded-full bg-amber-500 px-1.5 text-[10px] font-bold text-zinc-950">{count}</span>}
                             {!count && n.key && <kbd className="hidden font-mono text-[9px] uppercase text-zinc-700 group-hover:text-zinc-500 lg:inline">g {n.key}</kbd>}
                           </Link>
@@ -201,7 +201,7 @@ function Frame({ children }: { children: ReactNode }) {
                   <button type="button" onClick={signOut} title="Sign out" className="flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-zinc-800 px-2.5 text-[11px] text-zinc-400 transition hover:border-rose-500/50 hover:text-rose-300"><Icon name="lock" size={14} /><span className="hidden sm:inline">Sign out</span></button>
                 </div>
               </header>
-              <main id="admin-main" className="sb-slim min-h-0 flex-1 overflow-y-auto px-3 py-5 sm:px-6 sm:py-6" tabIndex={-1}><div className="mx-auto w-full max-w-6xl">{children}</div></main>
+              <main id="admin-main" className="sb-slim min-h-0 flex-1 overflow-y-auto px-3 py-5 sm:px-6 sm:py-6" tabIndex={-1}><div key={path.startsWith('/admin/') ? path : 'desk'} className={`mx-auto w-full max-w-6xl ${path.startsWith('/admin/') ? 'adm-fade' : ''}`}>{children}</div></main>
             </div>
           </div>
         )}

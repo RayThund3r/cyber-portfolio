@@ -34,7 +34,7 @@ export default function TemplatesPanel() {
         {rows.map((t) => {
           const eff = effectiveUGX(t, rates.rates.UGX);
           return (
-            <li key={t.id} className={`space-y-3 rounded-2xl border bg-zinc-900/50 p-4 ${t.enabled ? 'border-zinc-800/80' : 'border-zinc-800/50 opacity-80'}`}>
+            <li key={t.id} className={`adm-rise space-y-3 rounded-2xl border bg-zinc-900/50 p-4 ${t.enabled ? 'border-zinc-800/80' : 'border-zinc-800/50 opacity-80'}`}>
               <div className="flex flex-wrap items-center gap-2">
                 <span className="flex h-9 w-9 flex-none items-center justify-center rounded-xl bg-sky-500/12 text-sky-300"><Icon name="cube" size={17} /></span>
                 <span className="min-w-0 flex-1 truncate text-sm font-semibold text-zinc-100">{t.name || 'Untitled template'}</span>

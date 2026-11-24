@@ -50,7 +50,7 @@ export default function PortfolioPanel() {
       ) : (
         <ul className="grid gap-3 sm:grid-cols-2">
           {items.map((p, i) => (
-            <li key={p.id} className="group flex gap-3 overflow-hidden rounded-2xl border border-zinc-800/80 bg-zinc-900/50 p-3 transition hover:border-zinc-700">
+            <li key={p.id} className="adm-rise group flex gap-3 overflow-hidden rounded-2xl border border-zinc-800/80 bg-zinc-900/50 p-3 transition hover:border-zinc-700">
               {p.image ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={p.image} alt="" className="h-20 w-20 flex-none rounded-xl bg-zinc-800 object-cover" loading="lazy" />

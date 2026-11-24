@@ -91,7 +91,7 @@ export default function AdminPage() {
 
       <PageHead icon={meta.icon} title={tab === 'overview' ? `${greeting()}, ${SITE.ownerName.split(' ')[0]}` : meta.title} sub={tab === 'overview' ? meta.sub : meta.sub} />
 
-      <div key={tab} className="ios-enter">
+      <div key={tab} className="adm-fade">
         {tab === 'overview' && <Overview tickets={live.tickets} loading={live.loading} goTab={setTab} onOpenTicket={openTicket} storageNote={storage && !storage.persistent ? storage.note : null} />}
         {tab === 'tickets' && (
           <TicketsPanel

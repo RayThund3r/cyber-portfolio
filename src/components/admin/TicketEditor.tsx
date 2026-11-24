@@ -1,6 +1,7 @@
 // src/components/admin/TicketEditor.tsx — the panel that opens under a request: contact, details, status, quote, replies, payments.
 'use client';
 
+import { SITE } from '@/utils/chatEngine/siteConfig';
 import { useState } from 'react';
 import Icon from '@/components/ui/Icon';
 import { STATUS_FLOW, STATUS_LABEL, formatUGX, type TicketStatus } from '@/lib/shared';
@@ -32,7 +33,7 @@ export default function TicketEditor({ t, onSaved }: { t: AdminTicket; onSaved: 
     };
     setStatus(st); setNote(texts[label]);
   };
-  const waText = encodeURIComponent(`Hello ${t.name}, update on ${t.id}: ${STATUS_LABEL[status]}${note ? ` — ${note}` : ''}`);
+  const waText = encodeURIComponent(`Hello ${t.name}, update on ${t.id}: ${STATUS_LABEL[status]}${note ? ` — ${note}` : ''}\nTrack it any time: ${SITE.url.replace(/\/$/, '')}/track?id=${t.id}`);
   const changed = status !== t.status || quote !== String(t.quoteUGX ?? '') || deposit !== String(t.depositUGX ?? '') || !!note || priv !== (t.adminNotes || '');
 
   return (

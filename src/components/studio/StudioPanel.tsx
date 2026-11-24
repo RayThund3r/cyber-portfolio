@@ -72,7 +72,7 @@ export default function StudioPanel({ onAuthLost }: { onAuthLost: () => void }) 
         {sites === null ? <p className="text-sm text-zinc-400">Loading…</p> : sites.length === 0 ? <p className="text-sm text-zinc-400">No websites yet. Pick a starting look above, or import one you already have.</p> : (
           <ul className="space-y-3">
             {sites.map((s) => (
-              <li key={s.slug} className="flex flex-wrap items-center gap-3 rounded-2xl border border-zinc-800/80 bg-zinc-900/50 p-4">
+              <li key={s.slug} className="adm-rise flex flex-wrap items-center gap-3 rounded-2xl border border-zinc-800/80 bg-zinc-900/50 p-4">
                 <div className="min-w-0 flex-1">
                   <div className="truncate font-semibold text-zinc-100">{s.name} {s.published && <span className="ml-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-300">LIVE</span>}</div>
                   <div className="text-xs text-zinc-500">{s.mode === 'quote' ? 'Quote site' : 'Booking site'} · {s.products} products · {s.kb} KB of pictures · edited {new Date(s.updatedAt).toLocaleDateString('en-UG')}</div>

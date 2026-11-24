@@ -67,7 +67,7 @@ export default function CustomersPanel({ tickets, onOpenTicket }: { tickets: Adm
             const wa = [...c.phones][0]?.replace(/\D/g, '');
             const isOpen = open === c.key;
             return (
-              <li key={c.key} className={`overflow-hidden rounded-2xl border bg-zinc-900/50 transition ${isOpen ? 'border-zinc-600' : 'border-zinc-800/80 hover:border-zinc-700'}`}>
+              <li key={c.key} className={`adm-rise overflow-hidden rounded-2xl border bg-zinc-900/50 transition ${isOpen ? 'border-zinc-600' : 'border-zinc-800/80 hover:border-zinc-700'}`}>
                 <button type="button" onClick={() => setOpen(isOpen ? null : c.key)} aria-expanded={isOpen} className="flex w-full cursor-pointer items-center gap-3 p-3.5 text-left">
                   <Avatar name={c.name} size={42} />
                   <span className="min-w-0 flex-1">

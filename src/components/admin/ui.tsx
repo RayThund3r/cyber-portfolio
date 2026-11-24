@@ -51,7 +51,7 @@ export function AdminProviders({ children }: { children: ReactNode }) {
 /* ------------------------------ building blocks ------------------------------ */
 export function Card({ title, icon, right, children, className = '', pad = true }: { title?: string; icon?: IconName; right?: ReactNode; children: ReactNode; className?: string; pad?: boolean }) {
   return (
-    <section className={`rounded-2xl border border-zinc-800/80 bg-zinc-900/50 shadow-sm shadow-black/20 ${className}`}>
+    <section className={`adm-rise rounded-2xl border border-zinc-800/80 bg-zinc-900/50 shadow-sm shadow-black/20 ${className}`}>
       {(title || right) && (
         <header className="flex items-center justify-between gap-3 border-b border-zinc-800/80 px-4 py-2.5">
           <h2 className="flex items-center gap-2 font-mono text-[11px] font-semibold uppercase tracking-wider text-zinc-300">{icon && <Icon name={icon} size={14} className="text-accent" />}{title}</h2>
@@ -68,21 +68,36 @@ export function Delta({ value }: { value: number | null }) {
   const up = value >= 0;
   return <span className={`font-mono text-[10px] ${value === 0 ? 'text-zinc-500' : up ? 'text-emerald-400' : 'text-rose-400'}`}>{value === 0 ? '±0%' : `${up ? '+' : ''}${value}%`}</span>;
 }
+/** A number that counts up to its value (instantly for people who prefer reduced motion). */
+export function CountUp({ value }: { value: number }) {
+  const [n, setN] = useState(0);
+  const from = useRef(0);
+  useEffect(() => {
+    const target = Number.isFinite(value) ? value : 0;
+    if (typeof window === 'undefined' || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) { setN(target); from.current = target; return; }
+    const start = from.current, t0 = performance.now(); let raf = 0;
+    const step = (t: number) => { const k = Math.min(1, (t - t0) / 800); const v = Math.round(start + (target - start) * (1 - Math.pow(1 - k, 3))); setN(v); from.current = v; if (k < 1) raf = requestAnimationFrame(step); };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [value]);
+  return <>{n.toLocaleString('en-US')}</>;
+}
+
 export function Stat({ label, value, delta, icon, hint, spark, tone = 'accent', onClick }: { label: string; value: ReactNode; delta?: number | null; icon: IconName; hint?: string; spark?: number[]; tone?: 'accent' | 'ok' | 'warn' | 'bad'; onClick?: () => void }) {
   const chip = { accent: 'bg-accent/12 text-accent', ok: 'bg-emerald-500/12 text-emerald-300', warn: 'bg-amber-500/12 text-amber-300', bad: 'bg-rose-500/12 text-rose-300' }[tone];
   const body = (
     <>
       <div className="flex items-start justify-between gap-2"><span className="text-[11px] font-medium uppercase tracking-wider text-zinc-500">{label}</span><span className={`flex h-8 w-8 flex-none items-center justify-center rounded-xl ${chip}`}><Icon name={icon} size={16} /></span></div>
       <div className="mt-2 flex items-end justify-between gap-3">
-        <span className="flex min-w-0 items-end gap-2"><span className="truncate text-2xl font-bold tabular-nums tracking-tight text-zinc-50 sm:text-[1.7rem]">{value}</span>{delta !== undefined && <Delta value={delta} />}</span>
+        <span className="flex min-w-0 items-end gap-2"><span className="truncate text-2xl font-bold tabular-nums tracking-tight text-zinc-50 sm:text-[1.7rem]">{typeof value === 'number' ? <CountUp value={value} /> : value}</span>{delta !== undefined && <Delta value={delta} />}</span>
         {spark && spark.length > 1 && <span className="mb-1 w-16 flex-none opacity-80 sm:w-20"><Spark data={spark} h={26} /></span>}
       </div>
       {hint && <div className="mt-1 truncate text-[11px] text-zinc-500">{hint}</div>}
     </>
   );
-  const cls = 'relative block w-full overflow-hidden rounded-2xl border border-zinc-800/80 bg-zinc-900/50 p-4 text-left shadow-sm shadow-black/20 transition';
+  const cls = 'adm-rise relative block w-full overflow-hidden rounded-2xl border border-zinc-800/80 bg-zinc-900/50 p-4 text-left shadow-sm shadow-black/20';
   return onClick
-    ? <button type="button" onClick={onClick} className={`${cls} cursor-pointer hover:-translate-y-0.5 hover:border-accent/40`}>{body}</button>
+    ? <button type="button" onClick={onClick} className={`${cls} adm-lift cursor-pointer hover:border-accent/40`}>{body}</button>
     : <div className={cls}>{body}</div>;
 }
 
@@ -136,7 +151,7 @@ export function PageHead({ title, sub, right, icon }: { title: string; sub?: str
 export function Empty({ icon = 'search', title, text }: { icon?: IconName; title: string; text?: string }) {
   return <div className="flex flex-col items-center gap-2 px-4 py-10 text-center"><Icon name={icon} size={26} className="text-zinc-600" /><div className="text-sm font-semibold text-zinc-300">{title}</div>{text && <p className="max-w-sm text-xs text-zinc-500">{text}</p>}</div>;
 }
-export const Skel = ({ h = 'h-24' }: { h?: string }) => <div className={`${h} animate-pulse rounded-xl bg-zinc-900/70`} aria-hidden />;
+export const Skel = ({ h = 'h-24' }: { h?: string }) => <div className={`${h} adm-skel animate-pulse rounded-xl bg-zinc-900/70`} aria-hidden />;
 export function ErrorBox({ text, retry }: { text: string; retry?: () => void }) {
   return <div className="flex items-center justify-between gap-3 rounded-xl border border-rose-500/40 bg-rose-950/30 p-4 text-sm text-rose-200"><span>{text}</span>{retry && <AButton small onClick={retry} icon="refresh">Retry</AButton>}</div>;
 }
@@ -192,7 +207,7 @@ export function Banner({ tone = 'info', icon, children, action, onAction, id }: 
   const look = { info: 'border-accent/25 bg-accent/[0.06] text-zinc-200', warn: 'border-amber-500/30 bg-amber-500/[0.07] text-amber-100', ok: 'border-emerald-500/30 bg-emerald-500/[0.07] text-emerald-100' }[tone];
   const ic = { info: 'text-accent', warn: 'text-amber-300', ok: 'text-emerald-300' }[tone];
   return (
-    <div className={`flex items-center gap-3 rounded-xl border px-3.5 py-2.5 text-[13px] ${look}`} role="note">
+    <div className={`adm-rise flex items-center gap-3 rounded-xl border px-3.5 py-2.5 text-[13px] ${look}`} role="note">
       <Icon name={icon ?? (tone === 'warn' ? 'bell' : 'lightbulb')} size={16} className={`flex-none ${ic}`} />
       <div className="min-w-0 flex-1 leading-snug">{children}</div>
       {action && <button type="button" onClick={onAction} className={`flex-none cursor-pointer rounded-lg border border-current/30 px-2.5 py-1 text-xs font-semibold hover:bg-white/5 ${ic}`}>{action}</button>}
@@ -217,7 +232,7 @@ export function Chips<T extends string>({ value, onChange, items }: { value: T; 
 
 /** Row that looks like a button: avatar/icon, title, subtitle, right-hand content. */
 export function ListRow({ lead, title, sub, right, onClick, tone }: { lead?: ReactNode; title: ReactNode; sub?: ReactNode; right?: ReactNode; onClick?: () => void; tone?: 'warn' }) {
-  const cls = `flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition ${tone === 'warn' ? 'border-amber-500/25 bg-amber-500/[0.04]' : 'border-zinc-800/80 bg-zinc-950/40'} ${onClick ? 'cursor-pointer hover:border-accent/40 hover:bg-zinc-900/70' : ''}`;
+  const cls = `flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition ${tone === 'warn' ? 'border-amber-500/25 bg-amber-500/[0.04]' : 'border-zinc-800/80 bg-zinc-950/40'} ${onClick ? 'adm-lift cursor-pointer hover:border-accent/40 hover:bg-zinc-900/70' : ''}`;
   const body = <>{lead}<span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium text-zinc-100">{title}</span>{sub && <span className="mt-0.5 block truncate text-xs text-zinc-500">{sub}</span>}</span>{right && <span className="flex-none text-right">{right}</span>}</>;
   return onClick ? <button type="button" onClick={onClick} className={cls}>{body}</button> : <div className={cls}>{body}</div>;
 }
@@ -267,8 +282,8 @@ export function AreaChart({ labels, a, b, aName, bName, height = 180 }: { labels
         onPointerMove={(e) => { const r = (e.currentTarget as unknown as Element).getBoundingClientRect(); const px = ((e.clientX - r.left) / r.width) * W; setHover(Math.max(0, Math.min(a.length - 1, Math.round(((px - pad.l) / (W - pad.l - pad.r)) * (a.length - 1))))); }}
         onPointerLeave={() => setHover(null)}>
         {[0, 1, 2, 3, 4].map((g) => { const v = (nice / 4) * g; return <g key={g}><line x1={pad.l} x2={W - pad.r} y1={y(v)} y2={y(v)} stroke="var(--color-zinc-800)" strokeWidth="1" /><text x={pad.l - 5} y={y(v) + 3} textAnchor="end" fontSize="9" fill="var(--color-zinc-500)" fontFamily="monospace">{fmtNum(Math.round(v))}</text></g>; })}
-        {b && <><path d={area(b)} fill="rgb(251 191 36 / 0.10)" /><path d={line(b)} fill="none" stroke="var(--color-amber-400)" strokeWidth="1.6" strokeLinejoin="round" /></>}
-        <path d={area(a)} fill="rgb(var(--accent-rgb) / 0.16)" /><path d={line(a)} fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinejoin="round" />
+        {b && <><path className="adm-area" d={area(b)} fill="rgb(251 191 36 / 0.10)" /><path className="adm-draw" pathLength={1} d={line(b)} fill="none" stroke="var(--color-amber-400)" strokeWidth="1.6" strokeLinejoin="round" /></>}
+        <path className="adm-area" d={area(a)} fill="rgb(var(--accent-rgb) / 0.16)" /><path className="adm-draw" pathLength={1} d={line(a)} fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinejoin="round" />
         {labels.map((l, k) => (k % Math.ceil(labels.length / (W < 420 ? 4 : 7)) === 0 ? <text key={k} x={x(k)} y={H - 5} textAnchor="middle" fontSize="9" fill="var(--color-zinc-500)" fontFamily="monospace">{l.slice(5)}</text> : null))}
         <line x1={x(i)} x2={x(i)} y1={pad.t} y2={H - pad.b} stroke="var(--accent)" strokeOpacity="0.4" strokeDasharray="3 3" />
         <circle cx={x(i)} cy={y(a[i] ?? 0)} r="3.5" fill="var(--accent)" />
@@ -284,7 +299,7 @@ export function Bars({ items, empty = 'No data yet', unit = '', ghostNames = fal
     <ul className="space-y-1.5">
       {items.map((it) => (
         <li key={it.name} className="relative overflow-hidden rounded-md">
-          <div className="absolute inset-y-0 left-0 rounded-md bg-accent/15" style={{ width: `${(it.n / max) * 100}%` }} />
+          <div className="adm-grow absolute inset-y-0 left-0 rounded-md bg-accent/15" style={{ width: `${(it.n / max) * 100}%` }} />
           <div className="relative flex items-center justify-between gap-3 px-2 py-1 font-mono text-xs"><span className="truncate text-zinc-200">{ghostNames ? <Priv>{it.name}</Priv> : it.name}</span><span className="shrink-0 tabular-nums text-zinc-400">{fmtNum(it.n)}{unit} <span className="text-zinc-600">· {Math.round((it.n / total) * 100)}%</span></span></div>
         </li>
       ))}

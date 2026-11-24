@@ -141,7 +141,7 @@ export default function Overview({ tickets, loading, onOpenTicket, goTab, storag
           ) : (
             <>
               <div className="flex h-2.5 gap-0.5 overflow-hidden rounded-full bg-zinc-800" role="img" aria-label="Requests by status">
-                {Object.entries(d.counts).filter(([, n]) => n > 0).map(([s, n]) => <div key={s} title={`${STATUS_LABEL[s as keyof typeof STATUS_LABEL]}: ${n}`} style={{ width: `${(n / total) * 100}%` }} className={`${(STATUS_STYLE[s] ?? STATUS_STYLE.CANCELLED).bar} first:rounded-l-full last:rounded-r-full`} />)}
+                {Object.entries(d.counts).filter(([, n]) => n > 0).map(([s, n]) => <div key={s} title={`${STATUS_LABEL[s as keyof typeof STATUS_LABEL]}: ${n}`} style={{ width: `${(n / total) * 100}%` }} className={`adm-grow ${(STATUS_STYLE[s] ?? STATUS_STYLE.CANCELLED).bar} first:rounded-l-full last:rounded-r-full`} />)}
               </div>
               <ul className="mt-4 grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
                 {Object.entries(d.counts).map(([s, n]) => (
