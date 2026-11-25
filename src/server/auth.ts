@@ -71,7 +71,7 @@ async function signingKey(): Promise<Buffer> {
   // cookie set by one instance is rejected by the next (login loop). Derive a stable key from the password with a slow KDF
   // instead (a cookie holder would have to brute-force scrypt per guess). Setting ADMIN_SESSION_SECRET or connecting
   // Upstash Redis is still the recommended setup and avoids this path entirely.
-  if (!storageInfo().persistent && process.env.VERCEL && adminConfigured()) {
+  if (!storageInfo().persistent && process.env.VERCEL && envPw().length >= 10) {
     cachedKey = crypto.scryptSync(process.env.ADMIN_PASSWORD as string, 'sys-portfolio/admin-cookie/v1', 32);
     return cachedKey;
   }
