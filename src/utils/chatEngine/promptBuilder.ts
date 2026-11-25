@@ -11,6 +11,10 @@ import type { ChatMsg } from './localLLM';
 import { fileContextForPrompt } from './fileInsights';
 import type { FileInsight } from './types';
 
+/** Owner-entered facts (prices, FAQ…) pushed in by SiteContentProvider; kept module-level so the chat engine needs no React. */
+let ownerFacts = '';
+export const setOwnerFacts = (text: string) => { ownerFacts = text || ''; };
+
 interface BuildArgs {
   input: string;
   mode: PersonaMode;
@@ -47,6 +51,7 @@ export function buildMessages({ input, mode, memory, hits, webContext, files }: 
     style,
     name ? `The user's name is ${name}.` : '',
     facts ? `SITE FACTS (trust these):\n${facts}` : '',
+    ownerFacts ? `OWNER FACTS (set by the owner, trust these over anything else and quote them as written):\n${ownerFacts}` : '',
     files && files.length ? fileContextForPrompt(files) : '',
     webContext ? `WEB CONTEXT (may be imperfect, use only if relevant):\n${webContext.title}: ${truncate(webContext.extract, 700)}` : '',
   ]

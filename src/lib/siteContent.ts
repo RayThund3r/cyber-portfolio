@@ -70,3 +70,16 @@ export function normalizeContent(input: unknown): SiteContent {
 }
 
 export const hasContent = (c: SiteContent) => c.reviews.some((r) => r.shown) || c.prices.some((p) => p.shown) || c.faqs.some((f) => f.shown) || c.guides.some((g) => g.published) || c.promise.enabled || c.stats.length > 0;
+
+/** The owner's real prices, FAQ, promise and service areas as short plain text, so the chat assistant quotes THEM instead of guessing. */
+export function contentFacts(c: SiteContent): string {
+  const ugx = (n: number) => `UGX ${n.toLocaleString('en-US')}`;
+  const out: string[] = [];
+  const prices = c.prices.filter((p) => p.shown && p.name).slice(0, 25);
+  if (prices.length) out.push('PRICES (real, set by the owner; say "from" for a starting price and that the final price is confirmed after a look):\n' + prices.map((p) => `- ${p.name}${p.group ? ` (${p.group})` : ''}: ${p.from ? (p.to ? `${ugx(p.from)} to ${ugx(p.to)}` : `from ${ugx(p.from)}`) : 'price on request'}${p.note ? `. ${p.note}` : ''}`).join('\n'));
+  const faqs = c.faqs.filter((f) => f.shown && f.q && f.a).slice(0, 10);
+  if (faqs.length) out.push('OWNER FAQ:\n' + faqs.map((f) => `- Q: ${f.q} A: ${f.a.replace(/\s+/g, ' ').slice(0, 280)}`).join('\n'));
+  if (c.promise.enabled && c.promise.points.length) out.push(`${c.promise.title}: ${c.promise.points.join('; ')}`);
+  if (c.local.areas) out.push(`Areas served: ${c.local.areas}`);
+  return out.join('\n').slice(0, 3500);
+}

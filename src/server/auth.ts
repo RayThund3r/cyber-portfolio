@@ -17,18 +17,22 @@ const TTL_SECONDS = 8 * 3600;
  * Each saved value remembers a fingerprint of the env variable it replaced; if you later CHANGE that variable in Vercel the
  * saved value is ignored and the env value is in charge again. So a lock-out is always fixable: edit ADMIN_PASSWORD (or
  * ADMIN_TOTP_SECRET) in Vercel and redeploy. */
-interface Creds { pw?: string; pwFp?: string; totp?: string | null; totpFp?: string; at?: string }
+interface Creds { pw?: string; pwFp?: string; totp?: string | null; totpFp?: string; rec?: string[]; at?: string }
 const fp = (v: string | undefined) => crypto.createHash('sha256').update('fp:' + (v || '')).digest('hex').slice(0, 16);
 const readCreds = () => readJson<Creds>('admin-creds', {});
 const envPw = () => process.env.ADMIN_PASSWORD || '';
 const envTotp = () => process.env.ADMIN_TOTP_SECRET || '';
 
-async function effective(): Promise<{ pwHash: string | null; totp: string }> {
+async function effective(): Promise<{ pwHash: string | null; totp: string; rec: string[] }> {
   const c = await readCreds();
   const pwHash = c.pw && c.pwFp === fp(envPw()) ? c.pw : null;
-  const totp = c.totp !== undefined && c.totpFp === fp(envTotp()) ? (c.totp || '') : envTotp();
-  return { pwHash, totp };
+  const savedTotp = c.totp !== undefined && c.totpFp === fp(envTotp());
+  const totp = savedTotp ? (c.totp || '') : envTotp();
+  return { pwHash, totp, rec: savedTotp && c.totp ? (c.rec || []) : [] };
 }
+/* One-time recovery codes ("abcd-1234"): for a lost phone. Only their hashes are stored; each works once. */
+const recHash = (code: string) => crypto.createHash('sha256').update('rec:' + code.toLowerCase().replace(/[^a-z0-9]/g, '')).digest('hex');
+const newRecoveryCodes = () => Array.from({ length: 8 }, () => { const h = crypto.randomBytes(4).toString('hex'); return `${h.slice(0, 4)}-${h.slice(4)}`; });
 const hashPw = (pw: string) => { const salt = crypto.randomBytes(16).toString('hex'); return `scrypt$${salt}$${crypto.scryptSync(pw, salt, 32).toString('hex')}`; };
 const verifyHash = (pw: string, h: string) => {
   const [, salt, hex] = h.split('$');
@@ -41,7 +45,7 @@ export async function adminConfigured(): Promise<boolean> { return envPw().lengt
 export async function totpRequired(): Promise<boolean> { return !!(await effective()).totp; }
 export async function credentialState() {
   const e = await effective();
-  return { passwordSaved: !!e.pwHash, totpEnabled: !!e.totp, totpSaved: !!e.totp && e.totp !== envTotp(), persistent: storageInfo().persistent };
+  return { passwordSaved: !!e.pwHash, totpEnabled: !!e.totp, totpSaved: !!e.totp && e.totp !== envTotp(), recoveryLeft: e.rec.length, persistent: storageInfo().persistent };
 }
 
 /** Saves a new password. Ends every other session (the caller then signs the current device in again). */
@@ -51,12 +55,23 @@ export async function savePassword(next: string) {
   await update<Creds>('admin-creds', {}, (c) => { c.pw = hashPw(next); c.pwFp = fp(envPw()); c.at = new Date().toISOString(); });
   await logoutEverywhere();
 }
-/** secret = base32 string to turn 2FA on/rotate, or null to switch it off. */
-export async function saveTotp(secret: string | null) {
+/** secret = base32 string to turn 2FA on/rotate, or null to switch it off. Returns fresh recovery codes (shown once) when turning on. */
+export async function saveTotp(secret: string | null): Promise<string[]> {
   if (!storageInfo().persistent) throw new Error('Saving needs permanent storage (connect Upstash Redis). Until then, use ADMIN_TOTP_SECRET in Vercel.');
-  await update<Creds>('admin-creds', {}, (c) => { c.totp = secret; c.totpFp = fp(envTotp()); c.at = new Date().toISOString(); });
-  lastTotpStep = 0;
+  const codes = secret ? newRecoveryCodes() : [];
+  await update<Creds>('admin-creds', {}, (c) => { c.totp = secret; c.totpFp = fp(envTotp()); c.rec = codes.map(recHash); c.at = new Date().toISOString(); });
+  lastTotpStep.clear();
   await logoutEverywhere();
+  return codes;
+}
+/** New set of recovery codes for the 2FA that is currently saved in the panel (old ones stop working). */
+export async function regenRecoveryCodes(): Promise<string[]> {
+  const e = await effective();
+  if (!e.totp) throw new Error('Turn two-factor on first.');
+  if (!storageInfo().persistent) throw new Error('Saving needs permanent storage (connect Upstash Redis).');
+  const codes = newRecoveryCodes();
+  await update<Creds>('admin-creds', {}, (c) => { c.totp = e.totp; c.totpFp = fp(envTotp()); c.rec = codes.map(recHash); });
+  return codes;
 }
 /**
  * Cookie signing key. It must NOT be derived from the admin password (anyone holding a cookie could then guess the
@@ -107,11 +122,18 @@ function hotp(key: Buffer, counter: number): string {
   const code = ((h[o] & 0x7f) << 24) | (h[o + 1] << 16) | (h[o + 2] << 8) | h[o + 3];
   return String(code % 1_000_000).padStart(6, '0');
 }
-let lastTotpStep = 0;
+const lastTotpStep = new Map<string, number>(); // replay guard, per secret
 export async function verifyTotp(code: string): Promise<boolean> {
-  const sec = (await effective()).totp;
-  if (!sec) return true;
-  return checkTotpCode(sec, code);
+  const e = await effective();
+  if (!e.totp) return true;
+  if (checkTotpCode(e.totp, code)) return true;
+  // a recovery code (lost phone): valid once, then removed
+  const raw = String(code || '').trim();
+  if (e.rec.length && /^[0-9a-f]{4}[-\s]?[0-9a-f]{4}$/i.test(raw)) {
+    const h = recHash(raw);
+    if (e.rec.includes(h)) { await update<Creds>('admin-creds', {}, (c) => { c.rec = (c.rec || []).filter((x) => x !== h); }); return true; }
+  }
+  return false;
 }
 /** Checks a code against a given base32 secret (also used to prove a NEW secret works before saving it). */
 export function checkTotpCode(sec: string, code: string): boolean {
@@ -121,8 +143,8 @@ export function checkTotpCode(sec: string, code: string): boolean {
   const step = Math.floor(Date.now() / 30000);
   for (const d of [-1, 0, 1]) {
     if (safeEq(hotp(key, step + d), c)) {
-      if (step + d <= lastTotpStep) return false; // a code can only be used once
-      lastTotpStep = step + d;
+      if (step + d <= (lastTotpStep.get(sec) || 0)) return false; // a code can only be used once
+      lastTotpStep.set(sec, step + d);
       return true;
     }
   }

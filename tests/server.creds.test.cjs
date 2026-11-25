@@ -24,5 +24,21 @@ let fail = 0; const ok = (n, c, x = '') => { console.log((c ? 'PASS ' : 'FAIL ')
   ok('env 2FA applies again after the saved "off" no longer matches', await A.totpRequired());
   const st = await A.credentialState();
   ok('state reports', st.passwordSaved && st.totpEnabled && st.persistent);
+  // ── 2FA with a real code, recovery codes, replay guard
+  delete process.env.ADMIN_TOTP_SECRET;
+  const crypto = require('crypto');
+  const B = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'; const key = (() => { let bits = ''; for (const c of SEC) bits += B.indexOf(c).toString(2).padStart(5, '0'); const o = []; for (let i = 0; i + 8 <= bits.length; i += 8) o.push(parseInt(bits.slice(i, i + 8), 2)); return Buffer.from(o); })();
+  const code = (step) => { const b = Buffer.alloc(8); b.writeBigUInt64BE(BigInt(step)); const h = crypto.createHmac('sha1', key).update(b).digest(); const o = h[19] & 15; return String((((h[o] & 0x7f) << 24) | (h[o + 1] << 16) | (h[o + 2] << 8) | h[o + 3]) % 1e6).padStart(6, '0'); };
+  const step = Math.floor(Date.now() / 30000);
+  const rc = await A.saveTotp(SEC);
+  ok('8 recovery codes issued, formatted', rc.length === 8 && rc.every((c) => /^[0-9a-f]{4}-[0-9a-f]{4}$/.test(c)));
+  ok('good current code accepted once; replay refused', await A.verifyTotp(code(step)) && !(await A.verifyTotp(code(step))));
+  ok('a code for a DIFFERENT secret does not disturb this one (per-secret replay guard)', A.checkTotpCode('KRSXG5CTMVRXEZLU', '000000') === false && await A.verifyTotp(code(step + 1)));
+  ok('recovery code works once, then is gone', await A.verifyTotp(rc[0]) && !(await A.verifyTotp(rc[0])) && (await A.credentialState()).recoveryLeft === 7);
+  ok('random recovery-looking code refused', !(await A.verifyTotp('dead-beef')));
+  const rc2 = await A.regenRecoveryCodes();
+  ok('regenerating invalidates the old codes', !(await A.verifyTotp(rc[1])) && await A.verifyTotp(rc2[0]));
+  const Q = H.req('lib/qr'); const m = Q.qrMatrix('otpauth://totp/SYS_PORTFOLIO:admin?secret=JBSWY3DPEHPK3PXP&issuer=SYS_PORTFOLIO');
+  ok('QR matrix is square with finder squares', m.length === m[0].length && m[0][0] && m[3][3] && m[0][m.length - 1] && m[m.length - 1][0] && !m[1][1]);
   process.exit(fail ? 1 : 0);
 })().catch((e) => { console.error(e); process.exit(1); });

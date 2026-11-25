@@ -314,3 +314,9 @@ Verified: full suite ALL GREEN. Not verified: real `next build`; the new tabs/ma
 - Admin → Security → "Change your login": change password and turn 2FA on/rotate/off, saved in storage (password as scrypt hash). Every change needs the current password (+ current 2FA code); other devices are signed out, this one stays in; owner is notified.
 - Saved values beat the Vercel variables, EXCEPT: if ADMIN_PASSWORD / ADMIN_TOTP_SECRET is later edited in Vercel, the saved value is ignored (fingerprint of the env value is stored) → lock-out recovery is always "edit the variable + redeploy". Needs permanent storage (Upstash), otherwise the panel says so.
 - server/auth.ts: checkPassword/verifyTotp/totpRequired/adminConfigured are now async. New tests/server.creds.test.cjs. Unverified: `next build`, live UI.
+
+## Round 34 — authenticator system + AI admin fixes
+- Security → Two-factor: real QR code (new dependency-free `lib/qr.ts`, decode-verified for versions 1–10), manual setup key, Microsoft Authenticator instructions, test code, confirm password, then 8 one-time recovery codes (hashed; usable in the login code box; regenerate/turn off need password). Replay guard is now per secret. Login code box accepts recovery codes.
+- Admin → Chat → "Cloud AI" card now reflects the whole provider chain (Groq/Gemini/… + own server) and its Test uses the real fallback chain (was only LLM_ENDPOINT, so it said NOT SET UP while providers worked).
+- Chat assistant now receives the owner's prices/FAQ/promise/areas (Admin → Content) via `contentFacts()` → `setOwnerFacts()` → prompt "OWNER FACTS". LLM path only; the offline rules engine is unchanged.
+- Unverified: `next build`, live UI of the Security page.

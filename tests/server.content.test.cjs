@@ -25,5 +25,8 @@ let fail = 0; const ok = (n, c, x = '') => { console.log((c ? 'PASS ' : 'FAIL ')
   const back = await St.getSiteContent();
   ok('save → read round-trips', back.reviews[0].name === 'Amina' && back.prices[0].from === 80000 && back.reviews[0].shown === true);
   ok('hasContent reflects what is shown', C.hasContent(back) && !C.hasContent(C.DEFAULT_CONTENT));
+  const f = C.contentFacts(C.normalizeContent({ prices: [{ name: 'Screen', group: 'Phones', from: 50000, to: 80000, note: 'same day' }, { name: 'Hidden', from: 1, shown: false }, { name: 'Logo', from: 0 }], faqs: [{ q: 'Do you deliver?', a: 'Yes, in Ndejje.' }], promise: { enabled: true, points: ['30-day warranty'] }, local: { areas: 'Ndejje, Ssabagabo' } }));
+  ok('assistant facts: prices with UGX range, hidden skipped, on-request, FAQ, promise, areas', f.includes('Screen (Phones): UGX 50,000 to UGX 80,000. same day') && !f.includes('Hidden') && f.includes('price on request') && f.includes('Q: Do you deliver? A: Yes') && f.includes('30-day warranty') && f.includes('Areas served: Ndejje'));
+  ok('empty content gives no facts', C.contentFacts(C.DEFAULT_CONTENT) === '');
   process.exit(fail ? 1 : 0);
 })().catch((e) => { console.error(e); process.exit(1); });

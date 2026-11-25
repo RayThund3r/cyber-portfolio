@@ -145,7 +145,8 @@ function Login({ onDone, totp, configured }: { onDone: () => void; totp: boolean
             </span></label>
           {totp && <label className="block"><span className="mb-1.5 block text-xs font-medium text-zinc-400">Authenticator code</span>
             <span className="relative block"><Icon name="shield" size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
-            <input inputMode="numeric" autoComplete="one-time-code" maxLength={7} className={`${box} !min-h-11 pl-9 font-mono tracking-[0.3em]`} placeholder="000000" value={code} onChange={(e) => setCode(e.target.value)} aria-label="Authenticator code" /></span></label>}
+            <input inputMode="text" autoComplete="one-time-code" maxLength={10} className={`${box} !min-h-11 pl-9 font-mono tracking-[0.2em]`} placeholder="000000" value={code} onChange={(e) => setCode(e.target.value)} aria-label="Authenticator code" /></span></label>}
+          {totp && <p className="-mt-1 text-[11px] leading-relaxed text-zinc-500">Use the current 6-digit code from your authenticator app (it changes every 30 seconds, so wait for a fresh one if it fails). Lost your phone? Type one of your recovery codes instead.</p>}
           {err && <p role="alert" className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-300">{err}</p>}
           <button className={`${primary} w-full !min-h-11 !text-sm`} disabled={busy || !pw || (totp && code.replace(/\s/g, '').length < 6)}>{busy ? 'Signing in…' : 'Sign in'}</button>
         </form>

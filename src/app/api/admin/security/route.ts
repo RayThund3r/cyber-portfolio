@@ -3,7 +3,7 @@ import { adminEnv, clientInfo } from '@/lib/admin/auth';
 import { audit as myAudit } from '@/lib/admin/auth';
 import { db, getStore } from '@/lib/admin/store';
 import { newTotpSecret, otpauthUri, verifyTotp } from '@/lib/admin/totp';
-import { logoutEverywhere, readAudit, checkPassword, verifyTotp as verifyLoginCode, checkTotpCode, savePassword, saveTotp, credentialState, createSession, noteFailure, lockedOut } from '@/server/auth';
+import { logoutEverywhere, readAudit, checkPassword, verifyTotp as verifyLoginCode, checkTotpCode, savePassword, saveTotp, regenRecoveryCodes, credentialState, createSession, noteFailure, lockedOut } from '@/server/auth';
 import { notify } from '@/lib/admin/auth';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -47,11 +47,15 @@ export const POST = admin(async ({ body, req }) => {
       if (!/^[A-Z2-7]{16,64}$/.test(secret)) return fail(400, 'That secret does not look right.');
       if (!checkTotpCode(secret, String(body.code || ''))) return fail(400, 'That 6-digit code is not right. Check the app and try again; nothing was changed.');
       if (!(await proveYou())) return fail(403, WRONG);
-      try { await saveTotp(secret); } catch (e) { return fail(400, e instanceof Error ? e.message : 'Could not save.'); }
+      let codes: string[]; try { codes = await saveTotp(secret); } catch (e) { return fail(400, e instanceof Error ? e.message : 'Could not save.'); }
       await createSession();
       await myAudit({ kind: 'totp-enabled', ok: true, who: who.ipHash });
       await notify('Two-factor sign-in was turned on / rotated from the admin panel.');
-      return { ok: true };
+      return { ok: true, recoveryCodes: codes };
+    }
+    case 'recovery-new': {
+      if (!(await proveYou())) return fail(403, WRONG);
+      try { const codes = await regenRecoveryCodes(); await myAudit({ kind: 'recovery-codes-new', ok: true, who: who.ipHash }); return { ok: true, recoveryCodes: codes }; } catch (e) { return fail(400, e instanceof Error ? e.message : 'Could not save.'); }
     }
     case 'totp-disable': {
       if (!(await proveYou())) return fail(403, WRONG);
