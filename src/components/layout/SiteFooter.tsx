@@ -13,6 +13,7 @@ import { NodeFooter } from '@/components/site/VisitorNode';
 /** Pages that aren't in the main menu but should always be one click away. */
 const EXTRA_LINKS = [
   { path: '/builder', label: 'TEMPLATES' },
+  { path: '/guides', label: 'GUIDES' },
   { path: '/track', label: 'TRACK_REQUEST' },
   { path: '/privacy', label: 'PRIVACY' },
 ];

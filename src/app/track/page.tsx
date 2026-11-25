@@ -9,6 +9,7 @@ import { hasWhatsApp, whatsappLink } from '@/utils/chatEngine/siteConfig';
 import { trackEvent } from '@/utils/analytics';
 import { buildIcs, downloadIcs } from '@/lib/calendar';
 import Icon from '@/components/ui/Icon';
+import { withGsap } from '@/lib/motion';
 
 const fmtDate = (iso: string) => new Date(iso).toLocaleString('en-UG', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Africa/Kampala' });
 const SHORT: Record<string, string> = { RECEIVED: 'Received', QUOTED: 'Quoted', AWAITING_DEPOSIT: 'Deposit', IN_PROGRESS: 'Working', READY: 'Ready', COMPLETED: 'Done' };
@@ -59,6 +60,7 @@ function TrackInner() {
   const [dlBusy, setDlBusy] = useState(false);
   const [checkedAt, setCheckedAt] = useState<number | null>(null);
   const polls = useRef(0);
+  const stepsRef = useRef<HTMLDivElement>(null);
   const auto = useRef(false);
 
   const lookup = useCallback(async (e?: React.FormEvent, override?: { id: string; contact: string }, silent = false) => {
@@ -110,6 +112,19 @@ function TrackInner() {
     const t = setInterval(() => { if (document.visibilityState === 'visible' && polls.current < 8) { polls.current++; void lookup(undefined, undefined, true); } }, 180_000);
     return () => clearInterval(t);
   }, [ticket?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // The progress line fills step by step and the dots pop in when a request opens or its stage changes (skipped for reduced motion).
+  useEffect(() => {
+    if (!ticket || ticket.status === 'CANCELLED') return;
+    return withGsap(stepsRef.current, ({ gsap }) => {
+      const fill = stepsRef.current?.querySelector<HTMLElement>('[data-fill]'); const dots = Array.from(stepsRef.current?.querySelectorAll<HTMLElement>('[data-dot]') || []);
+      const idx = STATUS_FLOW.indexOf(ticket.status); const target = idx <= 0 ? 0 : (idx / (STATUS_FLOW.length - 1)) * 100;
+      const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
+      if (fill) tl.fromTo(fill, { width: '0%' }, { width: `${target}%`, duration: 1.1, ease: 'power2.inOut' }, 0);
+      tl.fromTo(dots, { scale: 0.4, opacity: 0.4 }, { scale: 1, opacity: 1, duration: 0.45, stagger: 0.09, clearProps: 'transform,opacity' }, 0.05);
+      const cur = dots[idx]; if (cur) tl.fromTo(cur, { boxShadow: '0 0 0 0 rgba(var(--accent-rgb), 0.55)' }, { boxShadow: '0 0 0 10px rgba(var(--accent-rgb), 0)', duration: 1.1, repeat: 1, ease: 'power1.out', clearProps: 'boxShadow' }, 0.9);
+    });
+  }, [ticket?.id, ticket?.status]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const downloadSite = async () => {
     if (!ticket) return;
@@ -200,11 +215,11 @@ function TrackInner() {
               )}
 
               {!cancelled && (
-                <div className="mb-1" role="img" aria-label={`Progress: step ${stepIndex + 1} of ${STATUS_FLOW.length}, ${STATUS_LABEL[ticket.status]}`}>
+                <div ref={stepsRef} className="mb-1" role="img" aria-label={`Progress: step ${stepIndex + 1} of ${STATUS_FLOW.length}, ${STATUS_LABEL[ticket.status]}`}>
                   <div className="relative mx-2 h-1.5 rounded-full bg-zinc-800">
-                    <div className="absolute inset-y-0 left-0 rounded-full bg-accent-strong transition-[width] duration-1000 ease-out" style={{ width: `${pct}%` }} />
+                    <div data-fill className="absolute inset-y-0 left-0 rounded-full bg-accent-strong" style={{ width: `${pct}%` }} />
                     <ol className="absolute inset-0 flex items-center justify-between">
-                      {STATUS_FLOW.map((s, i) => <li key={s} className={`-mx-2 h-4 w-4 rounded-full border-2 transition-colors duration-500 ${i < stepIndex ? 'border-accent-strong bg-accent-strong' : i === stepIndex ? 'border-accent-strong bg-zinc-950 ring-4 ring-accent/20' : 'border-zinc-700 bg-zinc-950'}`} />)}
+                      {STATUS_FLOW.map((s, i) => <li key={s} data-dot className={`-mx-2 h-4 w-4 rounded-full border-2 transition-colors duration-500 ${i < stepIndex ? 'border-accent-strong bg-accent-strong' : i === stepIndex ? 'border-accent-strong bg-zinc-950 ring-4 ring-accent/20' : 'border-zinc-700 bg-zinc-950'}`} />)}
                     </ol>
                   </div>
                   <div className="mt-3 hidden justify-between text-[10px] text-zinc-500 sm:flex">{STATUS_FLOW.map((s, i) => <span key={s} className={`w-16 text-center first:text-left last:text-right ${i === stepIndex ? 'font-semibold text-accent' : ''}`}>{SHORT[s] || STATUS_LABEL[s]}</span>)}</div>

@@ -8,6 +8,7 @@ import PageMotion from '@/components/motion/PageMotion';
 import PressFeedback from '@/components/motion/PressFeedback';
 import OfflineNotice from '@/components/ui/OfflineNotice';
 import BackgroundFX from '@/components/fx/BackgroundFX';
+import ScrollScene from '@/components/fx/ScrollScene';
 import SiteNav from '@/components/layout/SiteNav';
 import SiteFooter from '@/components/layout/SiteFooter';
 import ChromeGate from '@/components/layout/ChromeGate';
@@ -19,7 +20,9 @@ import BackToTop from '@/components/site/BackToTop';
 import AnnouncementBar from '@/components/layout/AnnouncementBar';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { ProjectsProvider } from '@/context/ProjectsContext';
-import { getProjects, getSiteSettings } from '@/server/store';
+import { getProjects, getSiteContent, getSiteSettings } from '@/server/store';
+import { DEFAULT_CONTENT } from '@/lib/siteContent';
+import { SiteContentProvider } from '@/context/SiteContentContext';
 import { DEFAULT_SETTINGS } from '@/lib/siteSettings';
 import { SiteSettingsProvider } from '@/context/SiteSettingsContext';
 import MaintenanceGate from '@/components/layout/MaintenanceGate';
@@ -97,6 +100,23 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   // Admin edits call revalidatePath('/', 'layout'), so pages stay static between edits.
   const projects = await getProjects();
   const settings = await getSiteSettings().catch(() => null);
+  const content = await getSiteContent().catch(() => null);
+  // Local-business markup follows what the owner typed in Admin → Settings (address, phone, hours, social profiles).
+  const ld: Record<string, unknown> = { ...jsonLd };
+  if (settings) {
+    const b = settings.business;
+    if (b.name) ld.name = b.name;
+    if (b.address) ld.address = { '@type': 'PostalAddress', streetAddress: b.address, addressCountry: 'UG' };
+    const tel = b.phone || (b.whatsapp ? `+${b.whatsapp}` : '');
+    if (tel) ld.telephone = tel;
+    if (b.email) ld.email = b.email;
+    if (b.hours) ld.openingHours = b.hours;
+    const base: Record<string, string> = { instagram: 'https://instagram.com/', facebook: 'https://facebook.com/', tiktok: 'https://tiktok.com/@', youtube: 'https://youtube.com/@', x: 'https://x.com/' };
+    const same = Object.entries(settings.social).filter(([, v]) => v).map(([k, v]) => (/^https:\/\//i.test(v) ? v : (base[k] || '') + v));
+    if (same.length) ld.sameAs = same;
+  }
+  if (content?.local.mapsUrl) ld.hasMap = content.local.mapsUrl;
+  if (content?.local.areas) ld.areaServed = content.local.areas.split(/[,;]/).map((x) => x.trim()).filter(Boolean);
   const chatOn = settings ? settings.features.chat : true;
   return (
     <html
@@ -113,12 +133,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           // Hide the hero intro only when motion is allowed (see globals.css). Runs before first paint.
           dangerouslySetInnerHTML={{ __html: "try{if(!matchMedia('(prefers-reduced-motion: reduce)').matches)document.documentElement.classList.add('motion-ready')}catch(e){}" }}
         />
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ld).replace(/</g, '\\u003c') }} />
       </head>
       <body className="min-h-full flex flex-col bg-zinc-950 text-zinc-100 font-sans selection:bg-accent-strong selection:text-black">
         <ThemeProvider>
           <ProjectsProvider projects={projects}>
             <SiteSettingsProvider settings={settings ?? DEFAULT_SETTINGS}>
+            <SiteContentProvider content={content ?? DEFAULT_CONTENT}>
             <a
               href="#main"
               className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[200] focus:rounded focus:bg-accent-strong focus:px-4 focus:py-2 focus:font-mono focus:text-xs focus:font-semibold focus:text-black"
@@ -126,6 +147,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               SKIP_TO_CONTENT
             </a>
             <BackgroundFX />
+            <ChromeGate><ScrollScene /></ChromeGate>
             {/* /admin and the template editor are full-screen tools with their own toolbars */}
             <ChromeGate>
               <AnnouncementBar />
@@ -151,6 +173,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <PageMotion />
             <PressFeedback />
             <OfflineNotice />
+            </SiteContentProvider>
             </SiteSettingsProvider>
           </ProjectsProvider>
         </ThemeProvider>

@@ -593,3 +593,14 @@ export async function saveRateCard(input: unknown): Promise<RateCard> {
   await update<{ card: unknown }>('pricing', { card: null }, (d) => { d.card = card; });
   return card;
 }
+
+import { DEFAULT_CONTENT, normalizeContent, type SiteContent } from '@/lib/siteContent';
+export async function getSiteContent(): Promise<SiteContent> {
+  const stored = await readJson<{ v: unknown }>('site-content', { v: null });
+  return stored.v ? normalizeContent(stored.v) : DEFAULT_CONTENT;
+}
+export async function saveSiteContent(input: unknown): Promise<SiteContent> {
+  const v = normalizeContent(input);
+  await update<{ v: unknown }>('site-content', { v: null }, (d) => { d.v = v; });
+  return v;
+}

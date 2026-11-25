@@ -6,7 +6,7 @@ import { genPassword, passwordStrength } from '@/lib/admin/derive';
 import { AButton, Badge, Card, CopyBtn, ErrorBox, Field, inputCls, Notice, PageHead, Priv, Skel, useToast } from '@/components/admin/ui';
 import { useAdmin } from '@/components/admin/AdminShell';
 
-interface Sec { expiresAt: number; allowList: boolean; audit: Array<{ t: number; kind: string; ok: boolean; who: string; country?: string; city?: string; ua?: string; note?: string }>; totpEnabled: boolean; passwordLength: number; separateSecret: boolean }
+interface Sec { expiresAt: number; allowList: boolean; audit: Array<{ t: number; kind: string; ok: boolean; who: string; country?: string; city?: string; ua?: string; note?: string }>; totpEnabled: boolean; passwordLength: number; separateSecret: boolean; creds?: { passwordSaved: boolean; totpEnabled: boolean; totpSaved: boolean; persistent: boolean } }
 const device = (ua: string) => `${/Edg\//.test(ua) ? 'Edge' : /Firefox/.test(ua) ? 'Firefox' : /Chrome/.test(ua) ? 'Chrome' : /Safari/.test(ua) ? 'Safari' : 'Browser'} on ${/Android/.test(ua) ? 'Android' : /iPhone|iPad/.test(ua) ? 'iOS' : /Windows/.test(ua) ? 'Windows' : /Mac/.test(ua) ? 'macOS' : /Linux/.test(ua) ? 'Linux' : 'unknown OS'}`;
 
 export default function SecurityPage() {
@@ -18,6 +18,18 @@ export default function SecurityPage() {
   const [code, setCode] = useState('');
   const [valid, setValid] = useState<boolean | null>(null);
   const strength = useMemo(() => passwordStrength(pw), [pw]);
+  const [cur, setCur] = useState(''); const [curCode, setCurCode] = useState(''); const [next, setNext] = useState(''); const [next2, setNext2] = useState(''); const [show, setShow] = useState(false); const [busy, setBusy] = useState(false);
+  const proof = { current: cur, currentCode: curCode };
+  const needCode = !!data?.totpEnabled;
+  const ready = cur.length > 0 && (!needCode || curCode.replace(/\s/g, '').length === 6);
+  const nextStrength = useMemo(() => passwordStrength(next), [next]);
+  const changePw = async () => {
+    if (next !== next2) { toast('The two new passwords do not match.', 'err'); return; }
+    setBusy(true); const r = await act({ action: 'password-change', ...proof, next }, 'Password changed. Other devices were signed out.'); setBusy(false);
+    if (r) { setCur(''); setCurCode(''); setNext(''); setNext2(''); }
+  };
+  const saveTotpNow = async () => { setBusy(true); const r = await act({ action: 'totp-enable', ...proof, secret: totp?.secret, code }, 'Two-factor is on. Other devices were signed out.'); setBusy(false); if (r) { setTotp(null); setCode(''); setCur(''); setCurCode(''); } };
+  const disableTotp = async () => { if (!window.confirm('Turn two-factor sign-in off?')) return; setBusy(true); const r = await act({ action: 'totp-disable', ...proof }, 'Two-factor is off.'); setBusy(false); if (r) { setCur(''); setCurCode(''); } };
 
   const act = async (body: Record<string, unknown>, ok: string) => { try { const r = await api<Record<string, unknown>>('/api/admin/security', { method: 'POST', body }); if (ok) toast(ok); reload(); return r; } catch (e) { toast(e instanceof Error ? e.message : 'Failed', 'err'); return null; } };
   const newTotp = async () => { const r = await act({ action: 'totp-new' }, ''); if (r) { setTotp({ secret: String(r.secret), uri: String(r.uri) }); setValid(null); setCode(''); } };
@@ -34,6 +46,18 @@ export default function SecurityPage() {
           <Card title="Hardening score" icon="shield" right={<Badge tone={score === 3 ? 'ok' : score >= 1 ? 'warn' : 'bad'}>{score}/3</Badge>}>
             <ul className="grid gap-2 sm:grid-cols-3">{[['Long password (12+ characters)', data.passwordLength >= 12], ['Two-factor codes on', data.totpEnabled], ['Separate signing secret (ADMIN_SESSION_SECRET)', data.separateSecret]].map(([t, ok]) => <li key={String(t)} className={`rounded-lg border p-3 text-xs ${ok ? 'border-emerald-500/30 text-emerald-200' : 'border-amber-500/30 text-amber-200'}`}>{ok ? 'Done · ' : 'To do · '}{t}</li>)}</ul>
           </Card>
+          <Card title="Change your login" icon="key" right={<Badge tone={data.creds?.passwordSaved ? 'ok' : 'default'}>{data.creds?.passwordSaved ? 'saved in panel' : 'from Vercel'}</Badge>}>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Current password"><input type={show ? 'text' : 'password'} autoComplete="current-password" value={cur} onChange={(e) => setCur(e.target.value)} className={inputCls} /></Field>
+              {needCode && <Field label="Current authenticator code"><input inputMode="numeric" value={curCode} onChange={(e) => setCurCode(e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="000000" className={`${inputCls} tracking-[0.3em]`} /></Field>}
+              <Field label="New password (10+ characters)"><input type={show ? 'text' : 'password'} autoComplete="new-password" value={next} onChange={(e) => setNext(e.target.value)} className={inputCls} /></Field>
+              <Field label="Repeat new password"><input type={show ? 'text' : 'password'} autoComplete="new-password" value={next2} onChange={(e) => setNext2(e.target.value)} className={inputCls} /></Field>
+            </div>
+            {next && <div className="mt-3 flex items-center gap-2"><div className="h-1.5 flex-1 overflow-hidden rounded bg-zinc-800"><div className={`h-full ${nextStrength.tone === 'ok' ? 'bg-emerald-400' : nextStrength.tone === 'warn' ? 'bg-amber-400' : 'bg-rose-400'}`} style={{ width: `${Math.min(100, nextStrength.bits)}%` }} /></div><Badge tone={nextStrength.tone}>{nextStrength.label}</Badge></div>}
+            <div className="mt-3 flex flex-wrap items-center gap-2"><AButton variant="solid" icon="check" onClick={changePw} disabled={busy || !ready || next.length < 10 || next !== next2}>{busy ? 'Saving…' : 'Save new password'}</AButton><AButton small onClick={() => setShow((v) => !v)}>{show ? 'Hide' : 'Show'} passwords</AButton></div>
+            {data.creds && !data.creds.persistent && <div className="mt-3"><Notice tone="warn" title="Needs permanent storage">Saving from the panel needs Upstash Redis connected (see Launch Pad). Until then, change ADMIN_PASSWORD in Vercel.</Notice></div>}
+            <p className="mt-3 text-[11px] leading-relaxed text-zinc-500">Saved securely (hashed, never stored as plain text) and used from the next sign-in. Your other devices are signed out; this one stays in. <b className="text-zinc-400">Locked out?</b> Edit <code className="text-zinc-300">ADMIN_PASSWORD</code> (or <code className="text-zinc-300">ADMIN_TOTP_SECRET</code>) in Vercel and redeploy: a changed variable always overrides what was saved here, so you can never be shut out for good.</p>
+          </Card>
           <div className="grid gap-4 lg:grid-cols-2">
             <Card title="This session" icon="key" right={<AButton small danger icon="lock" onClick={async () => { if (window.confirm('Sign out every device, including this one?')) { await act({ action: 'signout-all' }, ''); void signOut(); } }}>Sign out everywhere</AButton>}>
               <ul className="space-y-2 text-sm text-zinc-300">
@@ -46,18 +70,18 @@ export default function SecurityPage() {
               <div className="space-y-3"><div className="flex gap-2"><input readOnly value={pw} aria-label="Generated password" className={`${inputCls} select-all`} /><AButton icon="refresh" onClick={() => setPw(genPassword())} title="New password" /></div>
                 <div className="flex items-center gap-2"><div className="h-1.5 flex-1 overflow-hidden rounded bg-zinc-800"><div className={`h-full ${strength.tone === 'ok' ? 'bg-emerald-400' : strength.tone === 'warn' ? 'bg-amber-400' : 'bg-rose-400'}`} style={{ width: `${Math.min(100, strength.bits)}%` }} /></div><Badge tone={strength.tone}>{strength.label} · ~{strength.bits} bits</Badge></div>
                 <div className="flex gap-2"><CopyBtn text={pw} label="Copy" /></div>
-                <p className="text-[11px] leading-relaxed text-zinc-500">Created in your browser and never sent anywhere. To use it, set it as <code className="text-zinc-300">ADMIN_PASSWORD</code> in Vercel and redeploy: that also signs out every session.</p></div>
+                <p className="text-[11px] leading-relaxed text-zinc-500">Created in your browser and never sent anywhere. Like it? Type it into “Change your login” above.</p></div>
             </Card>
           </div>
           <Card title="Two-factor sign-in (authenticator app)" icon="shield" right={<Badge tone={data.totpEnabled ? 'ok' : 'warn'}>{data.totpEnabled ? 'enabled' : 'off'}</Badge>}>
             {!totp ? (
-              <div className="flex flex-wrap items-center justify-between gap-3"><p className="max-w-xl text-sm text-zinc-400">{data.totpEnabled ? 'A code from your authenticator app is required at sign-in. You can generate a new secret to rotate it.' : 'Adds a 6-digit code (Google Authenticator, Authy, 1Password, Aegis…) on top of your password, so a leaked password alone cannot get in.'}</p><AButton variant="solid" icon="key" onClick={newTotp}>{data.totpEnabled ? 'Rotate secret' : 'Set up'}</AButton></div>
+              <><div className="flex flex-wrap items-center justify-between gap-3"><p className="max-w-xl text-sm text-zinc-400">{data.totpEnabled ? 'A code from your authenticator app is required at sign-in. You can generate a new secret to rotate it.' : 'Adds a 6-digit code (Google Authenticator, Authy, 1Password, Aegis…) on top of your password, so a leaked password alone cannot get in.'}</p><div className="flex gap-2">{data.totpEnabled && <AButton danger icon="lock" onClick={disableTotp} disabled={busy || !ready}>Turn off</AButton>}<AButton variant="solid" icon="key" onClick={newTotp}>{data.totpEnabled ? 'Rotate secret' : 'Set up'}</AButton></div></div>{data.totpEnabled && <p className="mt-2 text-[11px] text-zinc-500">To turn off, first fill “Current password” and code in “Change your login” above.</p>}</>
             ) : (
               <ol className="space-y-4 text-sm text-zinc-300">
                 <li><b className="text-accent">1.</b> In your authenticator app choose “enter a setup key” (or open the link on your phone) and add:<div className="mt-2 flex flex-wrap items-center gap-2"><code className="select-all break-all rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 font-mono text-sm tracking-wider text-accent">{totp.secret.match(/.{1,4}/g)?.join(' ')}</code><CopyBtn text={totp.secret} /><a href={totp.uri} className="font-mono text-[11px] text-zinc-400 underline decoration-dotted hover:text-accent">open in app</a></div></li>
                 <li><b className="text-accent">2.</b> Type the 6-digit code it shows to prove it works:<div className="mt-2 flex flex-wrap items-center gap-2"><div className="w-36"><Field label="Code"><input value={code} onChange={(e) => { setCode(e.target.value.replace(/\D/g, '').slice(0, 6)); setValid(null); }} inputMode="numeric" placeholder="000000" className={`${inputCls} tracking-[0.3em]`} /></Field></div><AButton icon="check" onClick={test} disabled={code.length !== 6}>Test</AButton>{valid === true && <Badge tone="ok">correct</Badge>}{valid === false && <Badge tone="bad">wrong code</Badge>}</div></li>
-                <li><b className="text-accent">3.</b> Add this environment variable in Vercel (Settings → Environment Variables) and redeploy:<pre className="mt-2 overflow-x-auto rounded-lg border border-zinc-800 bg-zinc-950 p-3 font-mono text-xs text-emerald-200">ADMIN_TOTP_SECRET={totp.secret}</pre><div className="mt-1.5"><CopyBtn text={`ADMIN_TOTP_SECRET=${totp.secret}`} label="Copy line" /></div></li>
-                <li><Notice tone="warn" title="Keep a way back in">Do step 3 only after step 2 shows “correct”. If you lose the authenticator app, delete the variable in Vercel and redeploy to get back in with the password alone.</Notice></li>
+                <li><b className="text-accent">3.</b> Confirm with your current password{needCode ? ' and current code' : ''} to save it:<div className="mt-2 flex flex-wrap items-end gap-2"><div className="w-48"><Field label="Current password"><input type="password" autoComplete="current-password" value={cur} onChange={(e) => setCur(e.target.value)} className={inputCls} /></Field></div>{needCode && <div className="w-36"><Field label="Current code"><input inputMode="numeric" value={curCode} onChange={(e) => setCurCode(e.target.value.replace(/\D/g, '').slice(0, 6))} className={`${inputCls} tracking-[0.3em]`} /></Field></div>}<AButton variant="solid" icon="check" onClick={saveTotpNow} disabled={busy || !ready || code.length !== 6}>{busy ? 'Saving…' : 'Turn on'}</AButton><AButton small onClick={() => setTotp(null)}>Cancel</AButton></div></li>
+                <li><Notice tone="warn" title="Keep a way back in">Make sure the app shows the right code first (step 2). If you ever lose the app, change or delete ADMIN_TOTP_SECRET in Vercel and redeploy to get back in with the password.</Notice></li>
               </ol>
             )}
           </Card>

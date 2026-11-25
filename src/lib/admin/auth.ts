@@ -49,7 +49,7 @@ export const jsonResponse = json;
 
 /** Gate for every extra /api/admin/* route. Returns the session, or a ready-made error Response. */
 export async function requireAdmin(req: Request, mutating = false): Promise<{ session: Session } | { error: Response }> {
-  if (!adminConfigured()) return { error: json({ error: 'Admin is disabled: set ADMIN_PASSWORD (10+ characters) in your environment.' }, 503) };
+  if (!(await adminConfigured())) return { error: json({ error: 'Admin is disabled: set ADMIN_PASSWORD (10+ characters) in your environment.' }, 503) };
   const found = await adminSession(req);
   if (!found) return { error: json({ error: 'Not signed in.' }, 401) };
   if (mutating) {

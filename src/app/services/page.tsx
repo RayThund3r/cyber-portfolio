@@ -10,7 +10,9 @@ import RepairShowcase from '@/components/RepairShowcase';
 import { PROCESS_STEPS, SERVICES } from '@/data/servicesData';
 import { contactUrl, portfolioUrl } from '@/lib/siteUrls';
 import { openChat } from '@/lib/chatBus';
-import { useTilt } from '@/lib/useGsapEffects';
+import { FaqJsonLd, PriceList, PromiseCard, useExtraFaqs } from '@/components/site/Trust';
+import { useSiteContent } from '@/context/SiteContentContext';
+import { useStaggerIn, useTilt } from '@/lib/useGsapEffects';
 
 /** Which contact form best fits each service (so DEPLOY_REQUEST opens the right one). */
 const CONTACT_KIND: Record<string, 'design' | 'repair'> = { '01': 'repair', '02': 'design', '03': 'design', '04': 'design' };
@@ -38,8 +40,12 @@ const FAQS: { q: string; a: React.ReactNode }[] = [
 ];
 
 export default function ServicesPage() {
+  const extraFaqs = useExtraFaqs();
+  const hasPrices = useSiteContent().prices.some((p) => p.shown);
+  const allFaqs = [...FAQS, ...extraFaqs.map((f) => ({ q: f.q, a: <span className="whitespace-pre-line">{f.a}</span> }))];
   const pageRef = useRef<HTMLDivElement>(null);
   useTilt(pageRef);
+  useStaggerIn(pageRef);
 
   return (
     <div ref={pageRef} className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-8 sm:py-16">
@@ -140,20 +146,23 @@ export default function ServicesPage() {
         ))}
       </div>
 
-      {/* Pricing: no invented numbers. Add real "from UGX ..." lines here once you've decided them. */}
-      <p data-reveal className="mt-10 text-center font-mono text-xs text-zinc-400">
-        PRICING // Cost depends on the device, the fault and the parts needed. Send the model and a short
-        description (or a photo on WhatsApp) and we&apos;ll quote before any work starts.
-      </p>
+      {/* Pricing: the owner's price list (Admin → Content → Prices); the plain note shows until prices are added. */}
+      {hasPrices ? <PriceList /> : (
+        <p data-reveal className="mt-10 text-center font-mono text-xs text-zinc-400">
+          PRICING // Cost depends on the device, the fault and the parts needed. Send the model and a short
+          description (or a photo on WhatsApp) and we&apos;ll quote before any work starts.
+        </p>
+      )}
+      <PromiseCard className="mt-10" />
 
       {/* Real hardware restoration showcase (component lives in your repo; import left as it was) */}
       <RepairShowcase />
 
       {/* How it works */}
-      <section data-reveal className="mt-12 sm:mt-16" aria-labelledby="process-heading">
+      <section className="mt-12 sm:mt-16" aria-labelledby="process-heading">
         <div className="mb-2 font-mono text-[10px] uppercase tracking-widest text-accent sm:text-xs">[SECTION // WORKFLOW]</div>
         <h2 id="process-heading" className="mb-6 text-2xl font-bold text-zinc-100 sm:text-3xl">How it works</h2>
-        <ol className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <ol data-stagger className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {PROCESS_STEPS.map((step) => (
             <li key={step.id} className="relative rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-5">
               <span className="font-mono text-xs text-accent">STEP_{step.id}</span>
@@ -167,9 +176,10 @@ export default function ServicesPage() {
       {/* FAQ: native <details>, so it needs no JavaScript and works with the keyboard out of the box */}
       <section data-reveal className="mt-12 sm:mt-16" aria-labelledby="faq-heading">
         <div className="mb-2 font-mono text-[10px] uppercase tracking-widest text-accent sm:text-xs">[SECTION // QUERY_LOG]</div>
+        <FaqJsonLd items={extraFaqs.map((f) => ({ q: f.q, a: f.a }))} />
         <h2 id="faq-heading" className="mb-6 text-2xl font-bold text-zinc-100 sm:text-3xl">Common questions</h2>
         <div className="divide-y divide-zinc-800/80 overflow-hidden rounded-xl border border-zinc-800/80 bg-zinc-900/40">
-          {FAQS.map((item) => (
+          {allFaqs.map((item) => (
             <details key={item.q} className="group">
               <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-4 px-5 py-3 text-sm font-semibold text-zinc-100 transition-colors hover:text-accent [&::-webkit-details-marker]:hidden">
                 {item.q}

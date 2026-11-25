@@ -16,11 +16,12 @@ import SitesPanel from '@/components/admin/SitesPanel';
 import InsightsPanel from '@/components/admin/InsightsPanel';
 import DataPanel from '@/components/admin/DataPanel';
 import CustomersPanel from '@/components/admin/CustomersPanel';
+import ContentPanel from '@/components/admin/ContentPanel';
 import SettingsPanel from '@/components/admin/SettingsPanel';
 import StudioPanel from '@/components/studio/StudioPanel';
 
 import Icon, { type IconName } from '@/components/ui/Icon';
-type Tab = 'overview' | 'tickets' | 'customers' | 'settings' | 'studio' | 'templates' | 'sites' | 'portfolio' | 'insights' | 'data';
+type Tab = 'overview' | 'tickets' | 'customers' | 'content' | 'settings' | 'studio' | 'templates' | 'sites' | 'portfolio' | 'insights' | 'data';
 const TAB_META: Record<Tab, { label: string; icon: IconName; title: string; sub: string }> = {
   overview: { label: 'Overview', icon: 'home', title: 'Overview', sub: 'What needs you now, and how the business is doing.' },
   tickets: { label: 'Requests', icon: 'mail', title: 'Requests', sub: 'Repairs, design briefs and website orders: search, update and reply.' },
@@ -29,6 +30,7 @@ const TAB_META: Record<Tab, { label: string; icon: IconName; title: string; sub:
   templates: { label: 'Templates', icon: 'cube', title: 'Website templates', sub: 'The starting points customers pick in the builder, and their prices.' },
   sites: { label: 'Customer sites', icon: 'globe', title: 'Customer sites', sub: 'Sites customers are building or have ordered.' },
   portfolio: { label: 'Portfolio', icon: 'star', title: 'Portfolio', sub: 'The projects shown on your public site.' },
+  content: { label: 'Content', icon: 'lightbulb', title: 'Site content', sub: 'Reviews, prices, FAQ, guides, your repair promise and map: what visitors see and trust.' },
   settings: { label: 'Settings', icon: 'wrench', title: 'Site settings', sub: 'Business details, maintenance mode and optional features.' },
   insights: { label: 'Activity', icon: 'compass', title: 'Activity log', sub: 'Visits, unanswered chat questions, errors and sign-ins.' },
   data: { label: 'Data', icon: 'disk', title: 'Backup & data', sub: 'Download a backup, restore one, or export your requests.' },
@@ -101,6 +103,7 @@ export default function AdminPage() {
           />
         )}
         {tab === 'customers' && <CustomersPanel tickets={live.tickets} onOpenTicket={openTicket} />}
+        {tab === 'content' && <ContentPanel />}
         {tab === 'settings' && <SettingsPanel />}
         {tab === 'studio' && <StudioPanel onAuthLost={onAuthLost} />}
         {tab === 'templates' && <TemplatesPanel />}

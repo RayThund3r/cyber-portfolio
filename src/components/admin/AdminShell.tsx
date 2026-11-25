@@ -34,6 +34,7 @@ export const NAV_GROUPS: Array<{ label: string; items: NavItem[] }> = [
     { href: '/admin?tab=portfolio', tab: 'portfolio', label: 'Portfolio', icon: 'star', hint: 'Your projects on the public site' },
   ] },
   { label: 'Website', items: [
+    { href: '/admin?tab=content', tab: 'content', label: 'Content', icon: 'lightbulb', hint: 'Reviews, prices, FAQ, guides, promise and map' },
     { href: '/admin?tab=settings', tab: 'settings', label: 'Settings', icon: 'wrench', hint: 'Business details, maintenance mode, optional features' },
     { href: '/admin/site', label: 'Banner & content', icon: 'flag', key: 's', hint: 'Announcement bar, availability, content check' },
     { href: '/admin/events', label: 'Events', icon: 'bell', key: 'v', hint: 'Holidays, national days, surprise banners' },

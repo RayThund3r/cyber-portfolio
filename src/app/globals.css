@@ -873,3 +873,6 @@ html {
   .group:hover .adm-nav-icon { transform: translateX(2px) scale(1.08); }
   .adm-pulse-dot { animation: ringPulse 2s ease-out infinite; }
 }
+
+/* scroll-driven background (components/fx/ScrollScene.tsx): calmer on light backgrounds */
+:root[data-mode='light'] .scroll-scene { opacity: 0.55; }

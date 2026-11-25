@@ -291,3 +291,26 @@ Verified: full suite ALL GREEN. Not verified: real `next build`; the new tabs/ma
 ## Round 29 — /track overhaul
 - Restyled tracking page: plain-language 'what happens now' per stage, stepper, numbered mobile-money steps with copy buttons, payments list, update timeline, silent refresh every 3 min (max 8), remembers recent references (and phone only if ticked) on the device, auto-opens from ?id= when a phone is remembered.
 - Admin 'Reply on WhatsApp' text now includes the /track?id= link (emails already did).
+
+## Round 30 — Trust content (Admin → Content)
+- New lib/siteContent.ts + server store key `site-content`; admin actions content.get / content.save (revalidates the site); tests/server.content.test.cjs.
+- Admin → Content tab (ContentPanel): Reviews, Prices (starter list), FAQ, Guides (draft/publish, mini-markdown), Promise & headline numbers, Local & map (areas, directions, Google Maps + review links).
+- Public: StatsStrip + ReviewsSection on home; PriceList, PromiseCard and owner FAQ (+ FAQPage JSON-LD) on /services; MapCard + PromiseCard on /contact; /guides and /guides/[slug] (server-rendered, 404 for drafts), added to sitemap and footer.
+- Layout JSON-LD LocalBusiness now follows Settings (address, phone, hours, social sameAs) plus hasMap/areaServed.
+- Everything is hidden until the owner adds content; nothing is invented.
+
+## Round 31 — more GSAP (all via lib/useGsapEffects.ts, lazy, reduced-motion safe)
+- New hooks: useStaggerIn (children of [data-stagger] rise in on scroll), useCountUp ([data-count] numbers), useParallax ([data-parallax] drift, mouse devices only).
+- Used on: Trust sections (stats count-up, reviews/prices/promise stagger), home hero grid parallax, services "How it works" steps, /track stepper (line fill + dot pop + current-step pulse).
+- Portfolio grid left on framer-motion (already animates filtering; mixing both would fight over transforms).
+- Verified wiring with a GSAP stub in a real browser (no errors, nothing left hidden); real GSAP timing/feel not verified here.
+
+## Round 32 — scroll-driven background
+- New `components/fx/ScrollScene.tsx`, mounted in `app/layout.tsx` inside `ChromeGate` (so not on /admin, builder edit/view). Two soft accent orbs drift on slow loops tied to scroll position; faint dashed "data stream" lines at the page edges flow with scroll (down when scrolling down, back up when scrolling up); everything brightens while scrolling fast and settles when still.
+- Transform/opacity only, a single rAF loop that sleeps when the page is still, no GSAP dependency, renders nothing under prefers-reduced-motion. Calmer in light mode (globals.css).
+- Verified in the harness only (movement, boost decay, no errors). Real-device feel and `next build` not verified.
+
+## Round 33 — change login from the panel
+- Admin → Security → "Change your login": change password and turn 2FA on/rotate/off, saved in storage (password as scrypt hash). Every change needs the current password (+ current 2FA code); other devices are signed out, this one stays in; owner is notified.
+- Saved values beat the Vercel variables, EXCEPT: if ADMIN_PASSWORD / ADMIN_TOTP_SECRET is later edited in Vercel, the saved value is ignored (fingerprint of the env value is stored) → lock-out recovery is always "edit the variable + redeploy". Needs permanent storage (Upstash), otherwise the panel says so.
+- server/auth.ts: checkPassword/verifyTotp/totpRequired/adminConfigured are now async. New tests/server.creds.test.cjs. Unverified: `next build`, live UI.

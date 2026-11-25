@@ -12,8 +12,52 @@ import { clientIp } from './util';
 const COOKIE = 'sys_admin';
 const TTL_SECONDS = 8 * 3600;
 
-export const adminConfigured = () => (process.env.ADMIN_PASSWORD || '').length >= 10;
-export const totpRequired = () => !!process.env.ADMIN_TOTP_SECRET;
+/* ───────── credentials: saved in the panel, with the Vercel variables as the reset switch ─────────
+ * Passwords/2FA changed inside the panel are stored (scrypt hash for the password) and win over the environment variables.
+ * Each saved value remembers a fingerprint of the env variable it replaced; if you later CHANGE that variable in Vercel the
+ * saved value is ignored and the env value is in charge again. So a lock-out is always fixable: edit ADMIN_PASSWORD (or
+ * ADMIN_TOTP_SECRET) in Vercel and redeploy. */
+interface Creds { pw?: string; pwFp?: string; totp?: string | null; totpFp?: string; at?: string }
+const fp = (v: string | undefined) => crypto.createHash('sha256').update('fp:' + (v || '')).digest('hex').slice(0, 16);
+const readCreds = () => readJson<Creds>('admin-creds', {});
+const envPw = () => process.env.ADMIN_PASSWORD || '';
+const envTotp = () => process.env.ADMIN_TOTP_SECRET || '';
+
+async function effective(): Promise<{ pwHash: string | null; totp: string }> {
+  const c = await readCreds();
+  const pwHash = c.pw && c.pwFp === fp(envPw()) ? c.pw : null;
+  const totp = c.totp !== undefined && c.totpFp === fp(envTotp()) ? (c.totp || '') : envTotp();
+  return { pwHash, totp };
+}
+const hashPw = (pw: string) => { const salt = crypto.randomBytes(16).toString('hex'); return `scrypt$${salt}$${crypto.scryptSync(pw, salt, 32).toString('hex')}`; };
+const verifyHash = (pw: string, h: string) => {
+  const [, salt, hex] = h.split('$');
+  if (!salt || !hex) return false;
+  const a = crypto.scryptSync(pw, salt, 32), b = Buffer.from(hex, 'hex');
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+};
+
+export async function adminConfigured(): Promise<boolean> { return envPw().length >= 10 || !!(await effective()).pwHash; }
+export async function totpRequired(): Promise<boolean> { return !!(await effective()).totp; }
+export async function credentialState() {
+  const e = await effective();
+  return { passwordSaved: !!e.pwHash, totpEnabled: !!e.totp, totpSaved: !!e.totp && e.totp !== envTotp(), persistent: storageInfo().persistent };
+}
+
+/** Saves a new password. Ends every other session (the caller then signs the current device in again). */
+export async function savePassword(next: string) {
+  if (!storageInfo().persistent) throw new Error('Saving needs permanent storage (connect Upstash Redis). Until then, change ADMIN_PASSWORD in Vercel.');
+  if (next.length < 10) throw new Error('Use at least 10 characters.');
+  await update<Creds>('admin-creds', {}, (c) => { c.pw = hashPw(next); c.pwFp = fp(envPw()); c.at = new Date().toISOString(); });
+  await logoutEverywhere();
+}
+/** secret = base32 string to turn 2FA on/rotate, or null to switch it off. */
+export async function saveTotp(secret: string | null) {
+  if (!storageInfo().persistent) throw new Error('Saving needs permanent storage (connect Upstash Redis). Until then, use ADMIN_TOTP_SECRET in Vercel.');
+  await update<Creds>('admin-creds', {}, (c) => { c.totp = secret; c.totpFp = fp(envTotp()); c.at = new Date().toISOString(); });
+  lastTotpStep = 0;
+  await logoutEverywhere();
+}
 /**
  * Cookie signing key. It must NOT be derived from the admin password (anyone holding a cookie could then guess the
  * password offline). Use ADMIN_SESSION_SECRET when set (16+ chars), otherwise a random key created once and kept in the data folder.
@@ -39,9 +83,11 @@ const sign = async (v: string) => crypto.createHmac('sha256', await signingKey()
 const sha = (s: string) => crypto.createHash('sha256').update(s).digest();
 const safeEq = (a: string, b: string) => { const x = sha(a), y = sha(b); return crypto.timingSafeEqual(x, y); };
 
-export function checkPassword(pw: string): boolean {
-  if (!adminConfigured()) return false;
-  return crypto.timingSafeEqual(sha(pw), sha(process.env.ADMIN_PASSWORD as string));
+export async function checkPassword(pw: string): Promise<boolean> {
+  const { pwHash } = await effective();
+  if (pwHash) return verifyHash(pw, pwHash);
+  if (envPw().length < 10) return false;
+  return crypto.timingSafeEqual(sha(pw), sha(envPw()));
 }
 
 /* ───────── 2FA (TOTP, RFC 6238) ───────── */
@@ -62,9 +108,13 @@ function hotp(key: Buffer, counter: number): string {
   return String(code % 1_000_000).padStart(6, '0');
 }
 let lastTotpStep = 0;
-export function verifyTotp(code: string): boolean {
-  const sec = process.env.ADMIN_TOTP_SECRET;
+export async function verifyTotp(code: string): Promise<boolean> {
+  const sec = (await effective()).totp;
   if (!sec) return true;
+  return checkTotpCode(sec, code);
+}
+/** Checks a code against a given base32 secret (also used to prove a NEW secret works before saving it). */
+export function checkTotpCode(sec: string, code: string): boolean {
   const c = String(code || '').replace(/\s/g, '');
   if (!/^\d{6}$/.test(c)) return false;
   const key = b32decode(sec);
@@ -114,7 +164,7 @@ export async function destroySession() { (await cookies()).delete(COOKIE); }
 export interface AdminSession { exp: number; epoch: number }
 /** Verifies a raw `sys_admin` cookie value. Shared by isAdmin() (server components / actions) and adminSession() (route handlers). */
 async function verifyRaw(raw: string | undefined | null): Promise<AdminSession | null> {
-  if (!adminConfigured() || !raw) return null;
+  if (!raw || !(await adminConfigured())) return null;
   const [exp, ep, sig] = raw.split('.');
   if (!exp || ep === undefined || !sig || Number(exp) < Date.now() / 1000) return null;
   const expected = await sign(`${exp}.${ep}`);

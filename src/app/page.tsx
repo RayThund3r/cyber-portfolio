@@ -1,6 +1,8 @@
 // src/app/page.tsx
 'use client';
 
+import { ReviewsSection, StatsStrip } from '@/components/site/Trust';
+
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -10,7 +12,7 @@ import ProjectImage from '@/components/ProjectImage';
 import { THEMES, Theme, useTheme } from '@/context/ThemeContext';
 import { openChat } from '@/lib/chatBus';
 import { portfolioUrl } from '@/lib/siteUrls';
-import { useScramble, useTilt } from '@/lib/useGsapEffects';
+import { useParallax, useScramble, useTilt } from '@/lib/useGsapEffects';
 import Icon from '@/components/ui/Icon';
 import StatusTicker from '@/components/site/StatusTicker';
 import { useNetStatus } from '@/lib/useNetStatus';
@@ -76,6 +78,7 @@ export default function HomePage() {
   // GSAP: scroll reveals + card tilt (no-ops with reduced motion / if GSAP can't load)
   useTilt(pageRef);
   useScramble(pageRef);
+  useParallax(pageRef);
 
   const later = (fn: () => void, ms: number) => {
     timers.current.push(window.setTimeout(fn, ms));
@@ -165,7 +168,7 @@ export default function HomePage() {
 
       {/* Hero */}
       <header className="relative mx-auto max-w-7xl px-4 pb-12 pt-12 sm:px-8 sm:pt-20">
-        <div className="pointer-events-none absolute inset-0 -z-0 bg-grid mask-fade-b opacity-60" aria-hidden="true" />
+        <div data-parallax="0.18" className="pointer-events-none absolute inset-0 -z-0 bg-grid mask-fade-b opacity-60" aria-hidden="true" />
         <div className="relative grid grid-cols-1 items-center gap-10 lg:grid-cols-12">
           <div className="max-w-2xl lg:col-span-7">
             <div
@@ -352,7 +355,9 @@ export default function HomePage() {
         </div>
       </section>
 
+      <StatsStrip />
       <FeatureShowcase />
+      <ReviewsSection />
       <DevSection />
     </div>
   );

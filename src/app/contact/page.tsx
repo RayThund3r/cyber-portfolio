@@ -7,6 +7,7 @@
 //   * the shared SiteNav replaces the page-level nav; errors scroll into view on phones
 'use client';
 
+import { MapCard, PromiseCard } from '@/components/site/Trust';
 import { Suspense, useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -562,6 +563,10 @@ function ContactInner() {
             </form>
           )}
         </div>
+      </div>
+      <div className="mx-auto w-full max-w-3xl space-y-5 px-4 pb-16 sm:px-6">
+        <PromiseCard />
+        <MapCard />
       </div>
     </div>
   );

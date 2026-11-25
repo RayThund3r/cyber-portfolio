@@ -116,3 +116,64 @@ export function useMagnetic(scope: RefObject<HTMLElement | null>, deps: unknown[
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
 }
+
+/**
+ * Children of anything marked `data-stagger` slide up one after another as it scrolls into view (once).
+ * Items already on screen at load are left alone (no hide-then-show flash). Inline styles are cleared afterwards so hover effects keep working.
+ */
+export function useStaggerIn(scope: RefObject<HTMLElement | null>, deps: unknown[] = []) {
+  useEffect(() => {
+    return withGsap(scope.current, ({ gsap, ScrollTrigger }) => {
+      const root = scope.current; if (!root || !ScrollTrigger) return;
+      const boxes = [root, ...Array.from(root.querySelectorAll<HTMLElement>('[data-stagger]'))].filter((el) => el.hasAttribute('data-stagger'));
+      boxes.forEach((box) => {
+        const kids = Array.from(box.children) as HTMLElement[];
+        if (!kids.length || box.getBoundingClientRect().top < window.innerHeight * 0.85) return;
+        gsap.set(kids, { opacity: 0, y: 26 });
+        ScrollTrigger.create({
+          trigger: box, start: 'top 88%', once: true,
+          onEnter: () => gsap.to(kids, { opacity: 1, y: 0, duration: 0.7, stagger: 0.09, ease: 'power3.out', clearProps: 'opacity,transform' }),
+        });
+      });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
+}
+
+/** Numbers in `data-count` (like "250+", "4.9", "1,200 jobs") count up from zero when they scroll into view. */
+export function useCountUp(scope: RefObject<HTMLElement | null>, deps: unknown[] = []) {
+  useEffect(() => {
+    const els = Array.from(scope.current?.querySelectorAll<HTMLElement>('[data-count]') || []);
+    const originals = els.map((el) => el.textContent || '');
+    const stop = withGsap(scope.current, ({ gsap, ScrollTrigger }) => {
+      els.forEach((el, i) => {
+        const m = /^(\D*?)(\d[\d,]*(?:\.\d+)?)(.*)$/.exec(originals[i].trim());
+        if (!m) return;
+        const target = parseFloat(m[2].replace(/,/g, '')); if (!Number.isFinite(target)) return;
+        const dec = (m[2].split('.')[1] || '').length, grouped = m[2].includes(',');
+        const fmt = (v: number) => `${m[1]}${grouped ? Math.round(v).toLocaleString('en-US') : v.toFixed(dec)}${m[3]}`;
+        const state = { v: 0 };
+        const play = () => gsap.to(state, { v: target, duration: 1.4, ease: 'power2.out', onUpdate: () => { el.textContent = fmt(state.v); }, onComplete: () => { el.textContent = originals[i]; } });
+        el.textContent = fmt(0);
+        if (ScrollTrigger) ScrollTrigger.create({ trigger: el, start: 'top 92%', once: true, onEnter: play }); else play();
+      });
+    });
+    return () => { stop(); els.forEach((el, i) => { el.textContent = originals[i]; }); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
+}
+
+/** Elements marked `data-parallax="0.15"` drift slower than the page while their section scrolls past (mouse/trackpad devices only). */
+export function useParallax(scope: RefObject<HTMLElement | null>, deps: unknown[] = []) {
+  useEffect(() => {
+    if (isCoarsePointer()) return;
+    return withGsap(scope.current, ({ gsap, ScrollTrigger }) => {
+      if (!ScrollTrigger) return;
+      (gsap.utils.toArray('[data-parallax]') as HTMLElement[]).forEach((el) => {
+        const speed = Number(el.getAttribute('data-parallax')) || 0.15;
+        gsap.fromTo(el, { y: 0 }, { y: () => speed * 260, ease: 'none', scrollTrigger: { trigger: el.parentElement || el, start: 'top top', end: 'bottom top', scrub: 0.6 } });
+      });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
+}

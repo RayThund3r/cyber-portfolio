@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { adminConfigured, checkPassword, createSession, destroySession, isAdmin, ipAllowed, lockedOut, noteFailure, totpRequired, verifyTotp, logoutEverywhere, audit, readAudit, clearAudit } from '@/server/auth';
 import { clean, clientIp, rateLimit, readJsonLimited, safeLink, sameOrigin, toWaNumber } from '@/server/util';
-import { listTickets, mutateTicket, getProjects, saveProjects, readStats, storageInfo, bulkSetStatus, deleteTickets, importTickets, getSiteSettings, saveSiteSettings, getRateCard, saveRateCard, type Ticket } from '@/server/store';
+import { listTickets, mutateTicket, getProjects, saveProjects, readStats, storageInfo, bulkSetStatus, deleteTickets, importTickets, getSiteSettings, getSiteContent, saveSiteContent, saveSiteSettings, getRateCard, saveRateCard, type Ticket } from '@/server/store';
 import { notifyCustomer, notifyOwner, reportServerError } from '@/server/mail';
 import { esc } from '@/server/util';
 import { assetDataUrls, deleteProject, listProjects, loadProject } from '@/server/projects';
@@ -99,26 +99,26 @@ export async function POST(req: Request) {
   const action = String(body?.action || '');
 
   if (action === 'login') {
-    if (!adminConfigured()) return bad('Admin is not configured. Set ADMIN_PASSWORD (10+ characters) in your environment.', 503);
+    if (!(await adminConfigured())) return bad('Admin is not configured. Set ADMIN_PASSWORD (10+ characters) in your environment.', 503);
     if (lockedOut()) return bad('Admin sign-in is temporarily locked after repeated failures. Try again in 15 minutes.', 429);
     if (rateLimit(`login:${clientIp(req)}`, 6, 15 * 60_000)) return bad('Too many attempts. Try again in 15 minutes.', 429);
     // Password AND (if enabled) the authenticator code must both be right; the error never says which part failed.
-    const passOk = checkPassword(String(body?.password || ''));
-    const codeOk = verifyTotp(String(body?.code || ''));
+    const passOk = await checkPassword(String(body?.password || ''));
+    const codeOk = await verifyTotp(String(body?.code || ''));
     if (!passOk || !codeOk) {
       noteFailure();
       await audit(req, 'login', false);
       await new Promise((r) => setTimeout(r, 600));
-      return bad(totpRequired() ? 'Wrong password or code.' : 'Wrong password.', 401);
+      return bad((await totpRequired()) ? 'Wrong password or code.' : 'Wrong password.', 401);
     }
     await createSession();
     const entry = await audit(req, 'login', true);
-    await notifyOwner('[admin] New sign-in to your admin panel', `<p>Signed in at ${esc(entry.at)}<br/>IP: ${esc(entry.ip)}<br/>Device: ${esc(entry.ua)}</p><p>If this wasn't you, open /admin → Insights → "Log out all devices" and change ADMIN_PASSWORD.</p>`);
+    await notifyOwner('[admin] New sign-in to your admin panel', `<p>Signed in at ${esc(entry.at)}<br/>IP: ${esc(entry.ip)}<br/>Device: ${esc(entry.ua)}</p><p>If this wasn't you, open /admin → Insights → "Log out all devices" and change your password (Admin → Security).</p>`);
     return ok();
   }
   if (action === 'logout') { await destroySession(); return ok(); }
 
-  if (!(await isAdmin())) return NextResponse.json({ error: 'Not signed in.', totp: totpRequired(), configured: adminConfigured() }, { status: 401 });
+  if (!(await isAdmin())) return NextResponse.json({ error: 'Not signed in.', totp: await totpRequired(), configured: await adminConfigured() }, { status: 401 });
 
   try {
     switch (action) {
@@ -217,6 +217,15 @@ export async function POST(req: Request) {
         revalidatePath('/', 'layout');
         await audit(req, `settings-saved${settings.maintenance.enabled ? ':maintenance-ON' : ''}`, true);
         return ok({ settings });
+      }
+
+      // Trust content: reviews, price list, FAQ, repair promise, headline numbers, local-search details, guides
+      case 'content.get': return ok({ content: await getSiteContent() });
+      case 'content.save': {
+        const content = await saveSiteContent(body?.content);
+        revalidatePath('/', 'layout'); revalidatePath('/guides', 'layout');
+        await audit(req, `content-saved:${content.reviews.length}r/${content.prices.length}p/${content.faqs.length}f/${content.guides.length}g`, true);
+        return ok({ content });
       }
 
       case 'projects':
