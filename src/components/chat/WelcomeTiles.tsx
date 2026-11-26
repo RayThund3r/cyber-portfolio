@@ -4,7 +4,7 @@
 // sees what the assistant can do at a glance. Each tile sends its prompt as if typed.
 'use client';
 
-const TILES: Array<{ icon: string; // SVG path title: string; hint: string; send: string }> = [
+const TILES: Array<{ icon: string; title: string; hint: string; send: string }> = [
   { icon: 'M14.7 6.3a4 4 0 0 0-5 5L4 17l3 3 5.7-5.7a4 4 0 0 0 5-5l-2.4 2.4-2.3-.7-.7-2.3z', title: 'Fix my device', hint: 'Describe the problem', send: 'My device has a problem' },
   { icon: 'M3 7h6l2 2h10v10H3z', title: 'See the work', hint: 'Browse projects', send: 'Show me your projects' },
   { icon: 'M4 5h16v11H9l-5 4z', title: 'Get a quote', hint: 'Price and timing', send: 'Get a quote' },

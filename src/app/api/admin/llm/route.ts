@@ -46,6 +46,6 @@ export const POST = admin(async ({ body }) => {
     const words = text.split(/\s+/).filter(Boolean).length;
     return { ok: true, via: list.find((x) => x.id === via)?.label || via, text: text.trim(), firstTokenMs: first, totalMs: total, wordsPerSec: total > first ? Math.round((words / ((total - first) / 1000)) * 10) / 10 : 0 };
   } catch {
-    throw Object.assign(new Error('No provider answered in time (or all of them refused). Open AI Providers and use each one's Test to see why.'), { status: 502 });
+    throw Object.assign(new Error('No provider answered in time (or all of them refused). Open AI Providers and use the Test button on each to see why.'), { status: 502 });
   } finally { clearTimeout(timer); }
 }, true);
