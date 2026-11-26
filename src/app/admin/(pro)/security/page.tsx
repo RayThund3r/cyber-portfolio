@@ -12,7 +12,7 @@ interface SpamCfgT { enabled: boolean; level: 'relaxed' | 'normal' | 'strict'; b
 interface Sec { spam?: { cfg: SpamCfgT; log: SpamEntry[] }; expiresAt: number; allowList: boolean; audit: Array<{ t: number; kind: string; ok: boolean; who: string; country?: string; city?: string; ua?: string; note?: string }>; totpEnabled: boolean; passwordLength: number; separateSecret: boolean; creds?: { passwordSaved: boolean; totpEnabled: boolean; totpSaved: boolean; recoveryLeft?: number; persistent: boolean } }
 const device = (ua: string) => `${/Edg\//.test(ua) ? 'Edge' : /Firefox/.test(ua) ? 'Firefox' : /Chrome/.test(ua) ? 'Chrome' : /Safari/.test(ua) ? 'Safari' : 'Browser'} on ${/Android/.test(ua) ? 'Android' : /iPhone|iPad/.test(ua) ? 'iOS' : /Windows/.test(ua) ? 'Windows' : /Mac/.test(ua) ? 'macOS' : /Linux/.test(ua) ? 'Linux' : 'unknown OS'}`;
 
-function SpamCard({ spam, act }: { spam: { cfg: SpamCfgT; log: SpamEntry[] }; act: (b: Record<string, unknown>, ok: string) => Promise<Record<string, unknown> | undefined | void> }) {
+function SpamCard({ spam, act }: { spam: { cfg: SpamCfgT; log: SpamEntry[] }; act: (b: Record<string, unknown>, ok: string) => Promise<Record<string, unknown> | undefined | null | void> }) {
   const [cfg, setCfg] = useState<SpamCfgT>(spam.cfg);
   const [block, setBlock] = useState(spam.cfg.blockWords.join(', '));
   const [topic, setTopic] = useState(spam.cfg.topicWords.join(', '));
@@ -59,6 +59,8 @@ export default function SecurityPage() {
   const [valid, setValid] = useState<boolean | null>(null);
   const strength = useMemo(() => passwordStrength(pw), [pw]);
   const [cur, setCur] = useState(''); const [curCode, setCurCode] = useState(''); const [next, setNext] = useState(''); const [next2, setNext2] = useState(''); const [show, setShow] = useState(false); const [busy, setBusy] = useState(false);
+  const [rec, setRec] = useState<string[] | null>(null);
+  const qr = useMemo(() => { try { return totp ? qrPath(totp.uri) : null; } catch { return null; } }, [totp]);
   const proof = { current: cur, currentCode: curCode };
   const needCode = !!data?.totpEnabled;
   const ready = cur.length > 0 && (!needCode || curCode.replace(/\s/g, '').length === 6);

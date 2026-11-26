@@ -45,9 +45,9 @@ export default function PageMotion() {
 
     // ── magnetic buttons (pointer-driven, so only ever runs after the page is interactive) ──
     const fine = window.matchMedia('(pointer: fine)').matches;
-    let gsap: Awaited<ReturnType<typeof loadGsap>>['gsap'] | null = null; // loaded lazily, only for mouse users: keeps GSAP out of the first-paint bundle
+    let gsap: NonNullable<Awaited<ReturnType<typeof loadGsap>>>['gsap'] | null = null; // loaded lazily, only for mouse users: keeps GSAP out of the first-paint bundle
     let gone = false;
-    if (fine) loadGsap().then((m) => { if (!gone) gsap = m.gsap; }).catch(() => {});
+    if (fine) loadGsap().then((m) => { if (!gone && m) gsap = m.gsap; }).catch(() => {});
     const onMove = (e: PointerEvent) => {
       const el = (e.target as Element | null)?.closest('[data-magnetic]') as HTMLElement | null;
       if (!el || !gsap) return;
