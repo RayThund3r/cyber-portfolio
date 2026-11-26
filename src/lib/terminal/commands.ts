@@ -1,7 +1,7 @@
 // src/lib/terminal/commands.ts
 //
 // The terminal's brain: a PURE function from a typed line to output lines + side effects. No React,
-// no DOM, so it is unit-testable. The component (components/terminal/Terminal.tsx) renders the lines
+// no DOM, so it is unit-testable. The component (the home-page terminal in app/page.tsx) renders the lines
 // and performs the effects (navigate, open chat, change theme...).
 import { ALL_PROJECTS, TECH_STACK } from '@/data/portfolioData';
 import { SERVICES } from '@/data/servicesData';

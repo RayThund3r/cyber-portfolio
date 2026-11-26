@@ -29,7 +29,7 @@ export async function POST(req: Request) {
   const c = llmConfig();
   if (rateLimit(`llm:${clientIp(req)}`, c.ratePerMin, 60_000)) return NextResponse.json({ error: 'slow-down' }, { status: 429, headers: H });
 
-  const parsed = await readJsonLimited(req, 24_000);
+  const parsed = await readJsonLimited(req, 80_000);
   if (!parsed.ok) return NextResponse.json({ error: 'bad-request' }, { status: parsed.status || 400, headers: H });
   const messages = sanitizeMessages(parsed.body?.messages);
   if (!messages) return NextResponse.json({ error: 'bad-messages' }, { status: 400, headers: H });

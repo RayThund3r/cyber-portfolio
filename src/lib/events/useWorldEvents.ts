@@ -10,7 +10,7 @@ let cfgAsked: Promise<EventsConfig> | null = null;
 export function loadEventsCfg(): Promise<EventsConfig> {
   if (cfgCache) return Promise.resolve(cfgCache);
   if (typeof window === 'undefined') return Promise.resolve(DEFAULT_EVENTS_CFG);
-  cfgAsked ||= fetch('/api/events').then((r) => (r.ok ? r.json() : DEFAULT_EVENTS_CFG)).then((d) => (cfgCache = sanitizeEventsCfg(d))).catch(() => DEFAULT_EVENTS_CFG);
+  cfgAsked ||= fetch(`/api/events?_=${Date.now()}`, { cache: 'no-store' }).then((r) => (r.ok ? r.json() : DEFAULT_EVENTS_CFG)).then((d) => (cfgCache = sanitizeEventsCfg(d))).catch(() => DEFAULT_EVENTS_CFG);
   return cfgAsked;
 }
 export const cachedEventsCfg = (): EventsConfig => cfgCache || DEFAULT_EVENTS_CFG;
@@ -24,7 +24,9 @@ export function useWorldEvents(): { events: WorldEvent[]; fxOn: boolean; preview
     if (pv) { setState({ events: [pv], fxOn: true, preview: true }); return; }
     setState({ events: eventsNow(DEFAULT_EVENTS_CFG), fxOn: true, preview: false }); // instant, offline
     void loadEventsCfg().then((cfg) => { if (alive) setState({ events: eventsNow(cfg), fxOn: cfg.fx, preview: false }); });
-    return () => { alive = false; };
+    const again = () => { cfgCache = null; cfgAsked = null; void loadEventsCfg().then((cfg) => { if (alive) setState({ events: eventsNow(cfg), fxOn: cfg.fx, preview: false }); }); };
+    window.addEventListener('site:updated', again); // owner changed Admin → Events
+    return () => { alive = false; window.removeEventListener('site:updated', again); };
   }, []);
   return state;
 }

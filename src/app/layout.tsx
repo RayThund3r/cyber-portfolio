@@ -9,6 +9,8 @@ import PressFeedback from '@/components/motion/PressFeedback';
 import OfflineNotice from '@/components/ui/OfflineNotice';
 import BackgroundFX from '@/components/fx/BackgroundFX';
 import ScrollScene from '@/components/fx/ScrollScene';
+import LiveUpdates from '@/components/site/LiveUpdates';
+import { getSiteVersion } from '@/server/liveVersion';
 import SiteNav from '@/components/layout/SiteNav';
 import SiteFooter from '@/components/layout/SiteFooter';
 import ChromeGate from '@/components/layout/ChromeGate';
@@ -101,6 +103,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const projects = await getProjects();
   const settings = await getSiteSettings().catch(() => null);
   const content = await getSiteContent().catch(() => null);
+  const siteVersion = await getSiteVersion();
   // Local-business markup follows what the owner typed in Admin → Settings (address, phone, hours, social profiles).
   const ld: Record<string, unknown> = { ...jsonLd };
   if (settings) {
@@ -146,6 +149,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             >
               SKIP_TO_CONTENT
             </a>
+            <LiveUpdates version={siteVersion} />
             <BackgroundFX />
             <ChromeGate><ScrollScene /></ChromeGate>
             {/* /admin and the template editor are full-screen tools with their own toolbars */}

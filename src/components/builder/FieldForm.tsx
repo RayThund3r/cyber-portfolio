@@ -8,7 +8,7 @@ import { useSiteSettings } from '@/context/SiteSettingsContext';
 import { useSortable } from './useSortable';
 import { cloudToken, cloudVerifier, hashPass } from '@/lib/builder/sha256';
 
-import { IconCart, IconCheck, IconCheckCircle, IconClose, IconCode, IconCopy, IconDesktop, IconEye, IconEyeOff, IconImage, IconLayers, IconLock, IconPalette, IconPaperclip, IconPencil, IconPhone, IconPlus, IconSettings, IconSparkle, IconTablet, IconTrash, IconWarn, IconBulb, IconFolder } from './icons';
+import { IconCart, IconCheck, IconCheckCircle, IconClose, IconCode, IconCopy, IconDesktop, IconEye, IconEyeOff, IconImage, IconLayers, IconLock, IconPalette, IconPaperclip, IconPencil, IconPhone, IconPlus, IconSettings, IconSparkle, IconTablet, IconTrash, IconWarn, IconBulb, IconFolder, IconArrowUp, IconArrowDown, IconExternal } from './icons';
 export interface FormCtx {
   sections: { id: string; label: string }[];          // for "link to a section" pickers
   assets: Record<string, string>;                      // asset id → data URL (preview)
@@ -169,8 +169,8 @@ function ListField({ f, items, set, ctx, tag }: { f: Field; items: Record<string
               <button type="button" className="flex-1 text-left text-xs text-zinc-200 truncate cursor-pointer" onClick={() => setOpenIdx(openIdx === i ? null : i)} aria-expanded={openIdx === i}>
                 {openIdx === i ? '▾' : '▸'} {titleOf(it, i)}
               </button>
-              <button type="button" aria-label="Move up" disabled={ctx.disabled || i === 0} className={small} onClick={() => move(i, -1)}>↑</button>
-              <button type="button" aria-label="Move down" disabled={ctx.disabled || i === items.length - 1} className={small} onClick={() => move(i, 1)}>↓</button>
+              <button type="button" aria-label="Move up" disabled={ctx.disabled || i === 0} className={small} onClick={() => move(i, -1)}><IconArrowUp size={14} /></button>
+              <button type="button" aria-label="Move down" disabled={ctx.disabled || i === items.length - 1} className={small} onClick={() => move(i, 1)}><IconArrowDown size={14} /></button>
               <button type="button" aria-label="Remove" disabled={ctx.disabled} className={small} onClick={() => { set(items.filter((_, k) => k !== i), `${tag}.del`); setOpenIdx(null); }}><IconTrash size={14} /></button>
             </div>
             {openIdx === i && (

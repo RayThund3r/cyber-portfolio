@@ -5,6 +5,7 @@ import { db, getStore } from '@/lib/admin/store';
 import { newTotpSecret, otpauthUri, verifyTotp } from '@/lib/admin/totp';
 import { logoutEverywhere, readAudit, checkPassword, verifyTotp as verifyLoginCode, checkTotpCode, savePassword, saveTotp, regenRecoveryCodes, credentialState, createSession, noteFailure, lockedOut } from '@/server/auth';
 import { notify } from '@/lib/admin/auth';
+import { getSpamCfg, saveSpamCfg, getSpamLog, clearSpamLog } from '@/server/spam';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
@@ -14,6 +15,7 @@ export const GET = admin(async ({ session }) => {
   const cs = await credentialState();
   return {
     creds: cs,
+    spam: { cfg: await getSpamCfg(), log: await getSpamLog() },
     expiresAt: session.exp * 1000,
     audit: log.slice(0, 100).map((a) => ({ t: Date.parse(a.at) || 0, kind: a.event, ok: a.ok, who: a.ip, ua: a.ua })),
     totpEnabled: cs.totpEnabled, passwordLength: adminEnv().password.length, separateSecret: adminEnv().secret.length >= 16,
@@ -32,6 +34,8 @@ export const POST = admin(async ({ body, req }) => {
   };
   const WRONG = 'Your current password or code is wrong.';
   switch (body.action) {
+    case 'spam-save': { const cfg = await saveSpamCfg(body.cfg); await myAudit({ kind: 'spam-settings', ok: true, who: who.ipHash }); return { ok: true, cfg }; }
+    case 'spam-clear': { await clearSpamLog(); return { ok: true }; }
     case 'password-change': {
       const next = String(body.next || '');
       if (next.length < 10) return fail(400, 'Use at least 10 characters (12+ is better).');

@@ -29,6 +29,7 @@ function ContactInner() {
   const nonce = params.get('k'); // changes every time the chat re-opens the form
 
   const [formType, setFormType] = useState<'design' | 'repair'>(urlType ?? 'design');
+  const openedAt = useRef(Date.now()); // how long the form was open: bots submit instantly
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -193,6 +194,7 @@ function ContactInner() {
           serviceType: formType === 'design' ? 'UI/UX & Design Inquiry' : 'Hardware Repair Booking',
           details: formData.details,
           telemetry: scannedData,
+          elapsedMs: Date.now() - openedAt.current,
         }),
       });
 

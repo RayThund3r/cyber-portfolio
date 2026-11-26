@@ -5,7 +5,7 @@ import type { Message, ResponseSource } from '@/utils/chatEngine/types';
 import { FALLBACK_SUGGESTIONS } from '@/utils/chatEngine/siteConfig';
 
 export const WELCOME_TEXT =
-  "Hey there! 👋 I'm your interactive assistant. Ask me about phone & PC repairs, brand design or web projects — or tell me where to go (\"show me your projects\", \"book a repair\") and I'll take you there.";
+  "Hi, I'm your interactive assistant. Ask me about phone & PC repairs, brand design or web projects — or tell me where to go (\"show me your projects\", \"book a repair\") and I'll take you there.";
 
 export const WELCOME: Message = { id: 'welcome', sender: 'bot', text: WELCOME_TEXT, time: '' };
 
@@ -27,7 +27,7 @@ export function startersFor(path: string | null): string[] {
 }
 
 export const HELP_HUMAN = [
-  '**Here’s what I can do** ✨',
+  '**Here’s what I can do**',
   '- **Walk you through a problem** — “my phone won’t charge”, “my laptop is overheating”. I ask a few questions, then rank the likely causes.',
   '- **Scope a project** — “I need a logo” or “build me a website”, and I’ll draft a brief.',
   '- **Help you decide** — “repair or replace my laptop?”',
@@ -35,7 +35,7 @@ export const HELP_HUMAN = [
   '- **Give you a tour** — say “give me a tour”, then “next stop”. Or “run neofetch in the terminal”.',
   '- **Play games** — “play chess”, “play sudoku”, or “which game should I play?”.',
   '- **Recap** — “recap” sums up what we have covered so far.',
-  '- **Read your files** — tap 📎 or drop a file in. It stays on your device.',
+  '- **Read your files** — tap + or drop a file in. I read its text to answer; sensitive numbers are masked.',
   '- **Pass things to the owner** — say “send this to the owner”; nothing is sent until you press Send.',
   '',
   'Handy shortcuts: type **/** for commands · **Ctrl+K** opens and closes me · say **why?** and I’ll show my reasoning.',
@@ -48,7 +48,7 @@ export const HELP_EXPERT = [
   'DECIDE    "repair or replace my laptop"',
   'NAVIGATE  "show branding projects" | "open services" | "go amber"',
   'TOUR      "give me a tour" -> "next stop" | "run neofetch in the terminal" | "recap"',
-  'FILES     attach (📎) or drop; parsed locally',
+  'FILES     attach (+) or drop; text is read to answer',
   'DISPATCH  "send this to the owner" (confirm required)',
   'KEYS      "/" commands | Ctrl+K toggle | "why?" reasoning',
 ].join('\n');

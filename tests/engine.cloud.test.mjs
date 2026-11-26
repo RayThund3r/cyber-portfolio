@@ -3,6 +3,9 @@
 import { createRequire } from 'node:module';
 import assert from 'node:assert/strict';
 const require = createRequire(import.meta.url);
+// The booking scenarios need open slots "today", which do not exist late in the evening: run them as if it were 10:00 local time (the clock still ticks).
+{ const RD = Date, n = new RD(), t = new RD(n); t.setHours(10, 0, 0, 0); const off = t.getTime() - n.getTime();
+  globalThis.Date = class extends RD { constructor(...a) { a.length ? super(...a) : super(RD.now() + off); } static now() { return RD.now() + off; } }; }
 process.env.CONTACT_FROM = ''; // no e-mail in these tests
 const H = require('./server-setup.cjs'); const { makeEnv } = require('./dom.js'); const Core = require('../engine/core.js');
 const C = H.req('server/cloud'); const route = H.req('app/api/site/route');

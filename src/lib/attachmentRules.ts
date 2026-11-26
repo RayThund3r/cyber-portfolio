@@ -13,6 +13,10 @@ export const ATTACH = {
   maxFileBytes: 2 * 1024 * 1024,
   /** All files in one message to the owner (base64 inflates by ~33%, Vercel allows ~4.5 MB bodies). */
   maxTotalBytes: Math.floor(2.5 * 1024 * 1024),
+  /** READING (in the visitor's browser, for the assistant) is more generous than SENDING to the owner by e-mail. */
+  maxReadBytes: 12 * 1024 * 1024,
+  maxReadFiles: 5,
+  maxReadTotalBytes: 30 * 1024 * 1024,
   /** How much of a text file the assistant reads. */
   maxTextChars: 30_000,
 } as const;
@@ -59,7 +63,7 @@ export function sanitizeFilename(name: string): string {
 export function validateFile(file: { name: string; size: number }): string | null {
   if (!kindOfName(file.name)) return `"${file.name}" isn't a supported type. Allowed: ${ALLOWED_LABEL}.`;
   if (file.size <= 0) return `"${file.name}" is empty.`;
-  if (file.size > ATTACH.maxFileBytes) return `"${file.name}" is too large (max ${formatBytes(ATTACH.maxFileBytes)} per file).`;
+  if (file.size > ATTACH.maxReadBytes) return `"${file.name}" is too large for me to read (max ${formatBytes(ATTACH.maxReadBytes)} per file).`;
   return null;
 }
 

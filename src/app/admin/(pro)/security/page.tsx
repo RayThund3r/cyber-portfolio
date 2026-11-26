@@ -1,14 +1,53 @@
 // src/app/admin/security/page.tsx — sessions, sign-in history, two-factor setup and a password generator.
 'use client';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { api, relTime, useApi } from '@/lib/admin/client';
 import { genPassword, passwordStrength } from '@/lib/admin/derive';
 import { AButton, Badge, Card, CopyBtn, ErrorBox, Field, inputCls, Notice, PageHead, Priv, Skel, useToast } from '@/components/admin/ui';
 import { useAdmin } from '@/components/admin/AdminShell';
 import { qrPath } from '@/lib/qr';
 
-interface Sec { expiresAt: number; allowList: boolean; audit: Array<{ t: number; kind: string; ok: boolean; who: string; country?: string; city?: string; ua?: string; note?: string }>; totpEnabled: boolean; passwordLength: number; separateSecret: boolean; creds?: { passwordSaved: boolean; totpEnabled: boolean; totpSaved: boolean; recoveryLeft?: number; persistent: boolean } }
+interface SpamEntry { at: string; action: 'blocked' | 'held' | 'bot'; score: number; reasons: string[]; who: string; snippet: string; form: string }
+interface SpamCfgT { enabled: boolean; level: 'relaxed' | 'normal' | 'strict'; blockWords: string[]; topicWords: string[] }
+interface Sec { spam?: { cfg: SpamCfgT; log: SpamEntry[] }; expiresAt: number; allowList: boolean; audit: Array<{ t: number; kind: string; ok: boolean; who: string; country?: string; city?: string; ua?: string; note?: string }>; totpEnabled: boolean; passwordLength: number; separateSecret: boolean; creds?: { passwordSaved: boolean; totpEnabled: boolean; totpSaved: boolean; recoveryLeft?: number; persistent: boolean } }
 const device = (ua: string) => `${/Edg\//.test(ua) ? 'Edge' : /Firefox/.test(ua) ? 'Firefox' : /Chrome/.test(ua) ? 'Chrome' : /Safari/.test(ua) ? 'Safari' : 'Browser'} on ${/Android/.test(ua) ? 'Android' : /iPhone|iPad/.test(ua) ? 'iOS' : /Windows/.test(ua) ? 'Windows' : /Mac/.test(ua) ? 'macOS' : /Linux/.test(ua) ? 'Linux' : 'unknown OS'}`;
+
+function SpamCard({ spam, act }: { spam: { cfg: SpamCfgT; log: SpamEntry[] }; act: (b: Record<string, unknown>, ok: string) => Promise<Record<string, unknown> | undefined | void> }) {
+  const [cfg, setCfg] = useState<SpamCfgT>(spam.cfg);
+  const [block, setBlock] = useState(spam.cfg.blockWords.join(', '));
+  const [topic, setTopic] = useState(spam.cfg.topicWords.join(', '));
+  useEffect(() => { setCfg(spam.cfg); setBlock(spam.cfg.blockWords.join(', ')); setTopic(spam.cfg.topicWords.join(', ')); }, [spam.cfg]);
+  const save = () => act({ action: 'spam-save', cfg: { ...cfg, blockWords: block, topicWords: topic } }, 'Spam filter saved.');
+  const lv: Array<[SpamCfgT['level'], string, string]> = [['relaxed', 'Relaxed', 'Only obvious spam'], ['normal', 'Normal', 'Recommended'], ['strict', 'Strict', 'Also holds doubtful messages']];
+  return (
+    <Card title="Spam & nonsense filter" icon="shield" right={<Badge tone={cfg.enabled ? 'ok' : 'warn'}>{cfg.enabled ? 'on' : 'off'}</Badge>}>
+      <p className="max-w-2xl text-sm leading-relaxed text-zinc-400">Checks every contact, repair-booking and chat hand-off message for ads, scams, random typing, fake details and messages that have nothing to do with your business. Clear spam is refused, doubtful messages are saved as a request marked <b className="text-zinc-300">[Possible spam]</b> without emailing you, and everything is listed below with the reason.</p>
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <label className="flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-zinc-800 px-3 text-sm text-zinc-200"><input type="checkbox" checked={cfg.enabled} onChange={(e) => setCfg({ ...cfg, enabled: e.target.checked })} /> Filter on</label>
+        {lv.map(([id, label, hint]) => (
+          <button key={id} type="button" onClick={() => setCfg({ ...cfg, level: id })} aria-pressed={cfg.level === id} className={`min-h-11 cursor-pointer rounded-lg border px-3 text-left text-sm ${cfg.level === id ? 'border-accent bg-accent/10 text-accent' : 'border-zinc-800 text-zinc-300 hover:border-zinc-600'}`}>{label}<span className="block text-[11px] text-zinc-500">{hint}</span></button>
+        ))}
+      </div>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <Field label="Always refuse messages containing (comma separated)"><textarea rows={2} value={block} onChange={(e) => setBlock(e.target.value)} placeholder="e.g. betting, free followers" className={inputCls} /></Field>
+        <Field label="Extra words that mean “on topic” for your business"><textarea rows={2} value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="e.g. tailoring, catering" className={inputCls} /></Field>
+      </div>
+      <div className="mt-3"><AButton variant="solid" icon="check" onClick={save}>Save filter settings</AButton></div>
+      <div className="mt-5 flex items-center justify-between"><h3 className="text-sm font-semibold text-zinc-200">Recently caught ({spam.log.length})</h3>{spam.log.length > 0 && <AButton small onClick={() => act({ action: 'spam-clear' }, 'Cleared.')}>Clear list</AButton>}</div>
+      {spam.log.length === 0 ? <p className="mt-2 text-xs text-zinc-500">Nothing caught yet. If a real customer is ever refused, they are told to use WhatsApp, and lowering the strictness fixes it.</p> : (
+        <ul className="mt-2 max-h-72 space-y-1.5 overflow-y-auto pr-1">
+          {spam.log.slice(0, 40).map((e, i) => (
+            <li key={i} className="rounded-lg border border-zinc-800 bg-zinc-950/60 px-3 py-2 text-xs">
+              <div className="flex flex-wrap items-center gap-2"><Badge tone={e.action === 'held' ? 'warn' : 'bad'}>{e.action === 'held' ? 'held for review' : e.action === 'bot' ? 'bot, ignored' : 'refused'}</Badge><span className="text-zinc-500">{relTime(new Date(e.at).getTime())} · {e.form} · score {e.score}</span></div>
+              <p className="mt-1 truncate text-zinc-300">{e.snippet || '(empty)'}</p>
+              <p className="text-zinc-500">{e.reasons.join(' · ')}</p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
+  );
+}
 
 export default function SecurityPage() {
   const toast = useToast();
@@ -101,6 +140,7 @@ export default function SecurityPage() {
               </ol>
             )}
           </Card>
+          {data.spam && <SpamCard spam={data.spam} act={act} />}
           <Card title="Sign-in history" icon="clock" right={<AButton small danger onClick={() => act({ action: 'clear-audit' }, 'History cleared')}>Clear</AButton>} pad={false}>
             {data.audit.length === 0 ? <p className="p-6 text-center text-sm text-zinc-500">No sign-ins recorded yet.</p> : <ul className="max-h-80 divide-y divide-zinc-800/70 overflow-y-auto">{data.audit.map((a, i) => <li key={a.t + ':' + i} className="flex flex-wrap items-center gap-2 px-4 py-2 text-xs"><Badge tone={a.ok ? 'ok' : 'bad'}>{a.kind}{a.ok ? '' : ' failed'}</Badge><span className="text-zinc-400">{[a.city, a.country].filter(Boolean).join(', ') || 'unknown place'}</span>{a.ua && <span className="min-w-0 flex-1 truncate text-zinc-600"><Priv>{device(a.ua)}</Priv></span>}{a.note && <span className="text-amber-300">{a.note}</span>}<span className="ml-auto font-mono text-[10px] text-zinc-600">{relTime(a.t)}</span></li>)}</ul>}
           </Card>

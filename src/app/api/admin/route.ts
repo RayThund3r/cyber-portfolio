@@ -1,6 +1,6 @@
 // src/app/api/admin/route.ts — one authenticated endpoint, action-based (POST only).
 import { NextResponse } from 'next/server';
-import { revalidatePath } from 'next/cache';
+import { publishChange } from '@/server/liveVersion';
 import { adminConfigured, checkPassword, createSession, destroySession, isAdmin, ipAllowed, lockedOut, noteFailure, totpRequired, verifyTotp, logoutEverywhere, audit, readAudit, clearAudit } from '@/server/auth';
 import { clean, clientIp, rateLimit, readJsonLimited, safeLink, sameOrigin, toWaNumber } from '@/server/util';
 import { listTickets, mutateTicket, getProjects, saveProjects, readStats, storageInfo, bulkSetStatus, deleteTickets, importTickets, getSiteSettings, getSiteContent, saveSiteContent, saveSiteSettings, getRateCard, saveRateCard, type Ticket } from '@/server/store';
@@ -200,7 +200,7 @@ export async function POST(req: Request) {
             have.add(id);
             pAdded++;
           }
-          if (pAdded) { await saveProjects(items); revalidatePath('/', 'layout'); }
+          if (pAdded) { await saveProjects(items); await publishChange(); }
         }
         await audit(req, `restore:${tRes.added}t/${pAdded}p`, true);
         return ok({ tickets: { ...tRes, invalid: rawTickets.length - tickets.length }, projects: { added: pAdded } });
@@ -214,7 +214,7 @@ export async function POST(req: Request) {
       case 'settings.get': return ok({ settings: await getSiteSettings() });
       case 'settings.save': {
         const settings = await saveSiteSettings(body?.settings);
-        revalidatePath('/', 'layout');
+        await publishChange();
         await audit(req, `settings-saved${settings.maintenance.enabled ? ':maintenance-ON' : ''}`, true);
         return ok({ settings });
       }
@@ -223,7 +223,7 @@ export async function POST(req: Request) {
       case 'content.get': return ok({ content: await getSiteContent() });
       case 'content.save': {
         const content = await saveSiteContent(body?.content);
-        revalidatePath('/', 'layout'); revalidatePath('/guides', 'layout');
+        await publishChange('/guides');
         await audit(req, `content-saved:${content.reviews.length}r/${content.prices.length}p/${content.faqs.length}f/${content.guides.length}g`, true);
         return ok({ content });
       }
@@ -241,7 +241,7 @@ export async function POST(req: Request) {
         const i = items.findIndex((p) => p.id === id);
         if (i >= 0) items[i] = proj; else items.push(proj);
         await saveProjects(items);
-        revalidatePath('/', 'layout');
+        await publishChange();
         return ok({ projects: items });
       }
 
@@ -250,7 +250,7 @@ export async function POST(req: Request) {
         const items = (await getProjects()).filter((p) => p.id !== id);
         if (!items.length) return bad('Keep at least one project (an empty list restores the defaults).');
         await saveProjects(items);
-        revalidatePath('/', 'layout');
+        await publishChange();
         return ok({ projects: items });
       }
 
@@ -261,7 +261,7 @@ export async function POST(req: Request) {
         if (i < 0 || j < 0 || j >= items.length) return ok({ projects: items });
         [items[i], items[j]] = [items[j], items[i]];
         await saveProjects(items);
-        revalidatePath('/', 'layout');
+        await publishChange();
         return ok({ projects: items });
       }
 

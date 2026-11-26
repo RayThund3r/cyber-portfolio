@@ -320,3 +320,24 @@ Verified: full suite ALL GREEN. Not verified: real `next build`; the new tabs/ma
 - Admin → Chat → "Cloud AI" card now reflects the whole provider chain (Groq/Gemini/… + own server) and its Test uses the real fallback chain (was only LLM_ENDPOINT, so it said NOT SET UP while providers worked).
 - Chat assistant now receives the owner's prices/FAQ/promise/areas (Admin → Content) via `contentFacts()` → `setOwnerFacts()` → prompt "OWNER FACTS". LLM path only; the offline rules engine is unchanged.
 - Unverified: `next build`, live UI of the Security page.
+
+## Round 35 — stress audit fixes
+- PageMotion no longer imports GSAP statically (lazy via loadGsap, mouse users only); magnet no longer jitters over child elements.
+- BackgroundFX: removed the duplicate scroll-progress bar (SiteNav has the real one) and its per-scroll layout read.
+- No background-tab polling: useNetStatus (/api/health) and useAiStatus (/api/llm) only poll while the tab is visible.
+- Chat "run in terminal" now actually works: the home-page terminal listens to the terminal bus (queued commands run on arrival). Removed the unused components/terminal/Terminal.tsx.
+- Admin Board: edits made <500 ms before leaving the page are flushed instead of lost.
+- .env.example documents the previously undocumented optional variables.
+- tests/engine.cloud.test.mjs runs on a pinned 10:00 clock: the three booking scenarios failed after ~22:00 only because no slots remain "today" (confirmed by re-running at a faked 07:00).
+- NOT changed (needs a real build to verify): layout reads (getProjects/getSiteSettings/getSiteContent) use uncached Upstash fetches, which likely makes every public page dynamic. Check the Vercel build output: "○" = static, "ƒ" = dynamic.
+
+## Round 36 — live updates + spam filter
+- Live updates: `server/liveVersion.ts` (version stamp, `publishChange()`), `/api/version`, `components/site/LiveUpdates.tsx` mounted in the root layout. Every owner save (admin() wrapper for all mutating admin routes, plus publishChange in the main admin + studio routes) bumps the stamp. Open pages check on load, tab visible, Safari `pageshow` (bfcache), focus, online and every 20 s while visible → `router.refresh()` + a `site:updated` event (announcement bar, events and games refetch). `useApi` also reloads on visible/pageshow. Cause on iPhone: Safari restores pages from bfcache and pauses timers, so nothing asked for new data.
+- Spam filter: `lib/spamFilter.ts` (scored, each point has a reason), `server/spam.ts` (settings + log), applied in `/api/contact` (contact form, repair booking, chat hand-off): clear spam refused (422, friendly message; bots get a silent OK), doubtful messages saved as "[Possible spam]" without emailing the owner. Admin → Security → "Spam & nonsense filter": on/off, Relaxed/Normal/Strict, blocked words, extra on-topic words, list of what was caught. Contact form sends `elapsedMs`. Shop-site (cloud) orders/bookings are NOT filtered (the offline-first engine retries errors).
+- Tests: tests/server.live.test.cjs, tests/spam.test.cjs. Unverified: `next build`, real iPhone behaviour.
+
+## Round 37 — chat redesign, voice mode, file reading, builder polish
+- Chat: slim header (no scanline); the "⋯" menu now holds voice conversation, WhatsApp hand-off, reply style, help, export, size, clear, and the AI status. Composer: "+" menu (photo/file), mic swaps to send when you type, no hint clutter. Emojis replaced by icons in chat.
+- New `VoiceMode.tsx` (orb states, live captions, tap to interrupt, settings sheet) driven by `startSession/endSession/tapOrb` in `useVoiceChat.ts`. `VoicePanel.tsx` removed. Not tested on a real device/microphone.
+- File reading: cloud/remote AI now receive file text (redacted, ~10k chars); images use OCR text only (no vision). Attachment tray now says file text is read to answer.
+- Builder editor: icon top bar, grouped zoom/device controls, wider panels, save status inline. Template/content emojis (generated site cards) intentionally unchanged.

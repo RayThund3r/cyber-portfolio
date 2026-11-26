@@ -55,7 +55,7 @@ const ChatLauncher = forwardRef<HTMLButtonElement, Props>(function ChatLauncher(
       {nudge && (
         <div role="status" className="animate-nudge-in relative max-w-[16rem] rounded-2xl rounded-br-md border border-accent/30 bg-zinc-900/95 py-3 pl-4 pr-9 font-sans text-xs leading-relaxed text-zinc-200 shadow-2xl backdrop-blur-xl">
           <button type="button" onClick={open} className="cursor-pointer text-left">
-            👋 Need a hand? Ask me anything — or tell me where to go and I’ll take you there.
+            Need a hand? Ask me anything — or tell me where to go and I’ll take you there.
           </button>
           <button
             type="button"

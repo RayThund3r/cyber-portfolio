@@ -1,5 +1,6 @@
 // src/lib/admin/api.ts — wraps an admin route handler with the auth gate, JSON body parsing and uniform errors.
 import { jsonResponse, requireAdmin, type Session } from './auth';
+import { bumpSiteVersion } from '@/server/liveVersion';
 
 export interface Ctx { session: Session; req: Request; url: URL; body: Record<string, unknown> }
 type Handler = (ctx: Ctx) => Promise<unknown>;
@@ -22,6 +23,7 @@ export function admin(handler: Handler, mutating = false) {
     try {
       const body = mutating ? await readBody(req) : {};
       const out = await handler({ session: gate.session, req, url: new URL(req.url), body });
+      if (mutating) await bumpSiteVersion(); // any owner save: open pages refresh themselves
       return out instanceof Response ? out : jsonResponse(out ?? { ok: true }, 200);
     } catch (e) {
       const status = (e as { status?: number })?.status || 500;

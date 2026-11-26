@@ -22,14 +22,16 @@ export default function BoardPage() {
   const [over, setOver] = useState<Col | null>(null);
   const loaded = useRef(false);
   const timer = useRef<number | null>(null);
+  const pending = useRef<CardT[] | null>(null); // edits not yet sent
   useEffect(() => { if (data && !loaded.current) { loaded.current = true; setCards(data.cards); } }, [data]);
 
   const persist = (next: CardT[]) => {
-    setCards(next);
+    setCards(next); pending.current = next;
     if (timer.current) window.clearTimeout(timer.current);
-    timer.current = window.setTimeout(() => { api('/api/admin/board', { method: 'PUT', body: { cards: next } }).catch((e) => toast(e instanceof Error ? e.message : 'Could not save the board', 'err')); }, 500);
+    timer.current = window.setTimeout(() => { pending.current = null; api('/api/admin/board', { method: 'PUT', body: { cards: next } }).catch((e) => toast(e instanceof Error ? e.message : 'Could not save the board', 'err')); }, 500);
   };
-  useEffect(() => () => { if (timer.current) window.clearTimeout(timer.current); }, []);
+  // leaving the page within the 500 ms save delay must not lose the last edit: send it right away
+  useEffect(() => () => { if (timer.current) window.clearTimeout(timer.current); if (pending.current) { const body = { cards: pending.current }; pending.current = null; api('/api/admin/board', { method: 'PUT', body }).catch(() => {}); } }, []);
   const add = (e: React.FormEvent) => { e.preventDefault(); const t = text.trim(); if (!t || !cards) return; persist([{ id: uid(), text: t.slice(0, 300), col: 'todo', tag, ts: Date.now() }, ...cards]); setText(''); };
   const move = (id: string, col: Col) => cards && persist(cards.map((c) => (c.id === id ? { ...c, col } : c)));
   const del = (id: string) => cards && persist(cards.filter((c) => c.id !== id));

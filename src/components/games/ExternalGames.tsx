@@ -10,8 +10,10 @@ export function useExternalGames(): ExtGame[] {
   const [games, setGames] = useState<ExtGame[]>([]);
   useEffect(() => {
     let alive = true;
-    fetch('/api/games', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : { games: [] })).then((d) => { if (alive && Array.isArray(d.games)) setGames(d.games); }).catch(() => undefined);
-    return () => { alive = false; };
+    const load = () => fetch(`/api/games?_=${Date.now()}`, { cache: 'no-store' }).then((r) => (r.ok ? r.json() : { games: [] })).then((d) => { if (alive && Array.isArray(d.games)) setGames(d.games); }).catch(() => undefined);
+    void load();
+    window.addEventListener('site:updated', load);
+    return () => { alive = false; window.removeEventListener('site:updated', load); };
   }, []);
   return games;
 }

@@ -27,8 +27,8 @@ import AttachmentTray from './AttachmentTray';
 import ChatHeader from './ChatHeader';
 import ChatLauncher from './ChatLauncher';
 import Composer from './Composer';
-import VoicePanel from './VoicePanel';
 import { useVoiceChat } from './useVoiceChat';
+import VoiceMode from './VoiceMode';
 import { VoiceUiContext } from './VoiceContext';
 import MessageList from './MessageList';
 import { loadBrain } from '@/utils/chatEngine/brain';
@@ -210,7 +210,8 @@ export default function ChatWidget() {
   };
 
   // What "Continue on WhatsApp" and the contact page get: a short summary of the job, never the raw chat unless the visitor ticks it.
-  const [waHistory, setWaHistory] = useState(false);
+  const [waHistory] = useState(false);
+  const [voiceMode, setVoiceMode] = useState(false);
   const waSummary = useMemo(() => chatSummary(ctl.messages, ctl.brief), [ctl.messages, ctl.brief]);
   const waText = useMemo(() => whatsappMessage({ messages: ctl.messages, brief: ctl.brief, includeHistory: waHistory, owner: SITE.ownerName.split(' ')[0] }), [ctl.messages, ctl.brief, waHistory]);
   useEffect(() => {
@@ -297,33 +298,15 @@ export default function ChatWidget() {
         onClear={ctl.reset}
         onExpand={() => setWide((w) => !w)}
         onClose={closeChat}
+        onVoice={vc.voice.supported ? () => { setVoiceMode(true); vc.startSession(); } : undefined}
+        whatsappHref={hasWhatsApp() && ctl.messages.length >= 2 ? whatsappLink(waText) : undefined}
+        onWhatsApp={() => trackEvent('chat_handoff')}
+        aiPanel={<AiPanel llm={ai.llm} modelId={ai.modelId} setModelId={ai.setModelId} remote={ai.remote} cloud={ai.cloud} compact />}
       />
 
       {!online && (
         <div role="status" className="border-b border-amber-500/20 bg-amber-500/10 px-4 py-1.5 font-mono text-[11px] text-amber-300">
           You&apos;re offline — I can still answer from what I know. Web lookups and “send to owner” need a connection.
-        </div>
-      )}
-
-      <AiPanel llm={ai.llm} modelId={ai.modelId} setModelId={ai.setModelId} remote={ai.remote} cloud={ai.cloud} compact />
-
-      {/* Hand the conversation to the owner on WhatsApp (shown once it has some substance) */}
-      {hasWhatsApp() && ctl.messages.length >= 3 && (
-        <div className="flex flex-wrap items-center gap-2 border-b border-zinc-800 bg-zinc-900/60 px-4 py-2 font-mono text-[11px]">
-          <span className="text-zinc-400">Need a person?</span>
-          <a
-            href={whatsappLink(waText)}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={() => trackEvent('chat_handoff')}
-            className="rounded border border-emerald-500/50 px-2 py-1 text-emerald-400 transition-colors hover:bg-emerald-500/10"
-          >
-            Continue on WhatsApp
-          </a>
-          <label className="flex min-h-8 cursor-pointer items-center gap-1.5 text-zinc-400">
-            <input type="checkbox" checked={waHistory} onChange={(e) => setWaHistory(e.target.checked)} className="accent-[var(--accent)]" />
-            include chat history
-          </label>
         </div>
       )}
 
@@ -374,7 +357,17 @@ export default function ChatWidget() {
         onDismissError={ctl.att.clearError}
       />
 
-      <VoicePanel vc={vc} />
+      {voiceMode && (
+        <VoiceMode
+          vc={vc}
+          messages={ctl.messages}
+          isThinking={ctl.isThinking}
+          onClose={() => {
+            vc.endSession();
+            setVoiceMode(false);
+          }}
+        />
+      )}
 
       <Composer
         value={draft}

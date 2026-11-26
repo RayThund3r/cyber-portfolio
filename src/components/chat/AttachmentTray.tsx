@@ -9,7 +9,7 @@ import type { FileInsight } from '@/utils/chatEngine/types';
 import type { SharedFile } from './useAttachments';
 import ImageLightbox from './ImageLightbox';
 
-const ICON = { image: '🖼️', pdf: '📄', text: '📝', doc: '📑' } as const;
+const ICON_PATH = { image: 'M4 5h16v14H4zM4 16l5-5 4 4 3-3 4 4M9 9h.01', pdf: 'M6 3h8l4 4v14H6zM14 3v4h4', text: 'M6 3h8l4 4v14H6zM9 12h6M9 16h6', doc: 'M6 3h8l4 4v14H6zM9 12h6M9 16h4' } as const;
 
 export function FileChip({ name, size, kind, previewUrl, onRemove, onOpen }: { name: string; size: number; kind: 'image' | 'pdf' | 'text' | 'doc'; previewUrl?: string; onRemove?: () => void; onOpen?: () => void }) {
   const body = (
@@ -18,14 +18,14 @@ export function FileChip({ name, size, kind, previewUrl, onRemove, onOpen }: { n
         // eslint-disable-next-line @next/next/no-img-element
         <img src={previewUrl} alt="" className="h-5 w-5 rounded-sm object-cover" />
       ) : (
-        <span aria-hidden>{ICON[kind]}</span>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 text-zinc-400"><path d={ICON_PATH[kind]} /></svg>
       )}
       <span className="max-w-[9rem] truncate" title={name}>{name}</span>
       <span className="text-zinc-500">{formatBytes(size)}</span>
     </>
   );
   return (
-    <span className="inline-flex max-w-full items-center gap-1.5 rounded border border-zinc-700 bg-zinc-900 py-1 pl-1.5 pr-1 font-mono text-[10px] text-zinc-300">
+    <span className="inline-flex max-w-full items-center gap-1.5 rounded-lg border border-white/10 bg-zinc-900 py-1 pl-2 pr-1 font-sans text-[11px] text-zinc-300">
       {onOpen ? (
         <button type="button" onClick={onOpen} aria-label={`Preview ${name}`} className="inline-flex min-w-0 cursor-pointer items-center gap-1.5 hover:text-accent">{body}</button>
       ) : (
@@ -33,7 +33,7 @@ export function FileChip({ name, size, kind, previewUrl, onRemove, onOpen }: { n
       )}
       {onRemove && (
         <button type="button" onClick={onRemove} aria-label={`Remove ${name}`} className="hit flex h-5 w-5 cursor-pointer items-center justify-center rounded text-zinc-500 hover:text-zinc-100">
-          ✕
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
         </button>
       )}
     </span>
@@ -94,7 +94,7 @@ export default function AttachmentTray({
   const asks = last ? quickAsks(last.insight) : [];
   const previewing = pending.find((f) => f.insight.id === open);
   return (
-    <div className="border-t border-zinc-800 bg-zinc-900/90 px-3 pt-2">
+    <div className="border-t border-white/5 bg-zinc-950 px-3 pt-2">
       {shared.length > 0 && onRemoveShared && (
         <div className="flex flex-wrap items-center gap-1.5 pb-1" aria-label="Files the assistant is using">
           <span className="font-mono text-[10px] text-zinc-500">In this chat:</span>
@@ -117,9 +117,9 @@ export default function AttachmentTray({
       {onReadText && pending.some((f) => f.insight.kind === 'image' && !f.insight.text) && (
         <div className="pb-1.5">
           <button type="button" disabled={busy} onClick={() => onReadText(pending.filter((f) => f.insight.kind === 'image' && !f.insight.text).slice(-1)[0].insight.id)} className="min-h-8 cursor-pointer rounded-full border border-zinc-600 bg-zinc-800 px-2.5 font-sans text-[11px] text-zinc-200 hover:border-accent/60 disabled:opacity-50">
-            🔎 Read the text in this picture
+            Read the text in this picture
           </button>
-          <span className="ml-2 font-mono text-[10px] text-zinc-600">Runs on your device. First time may download a small reading tool.</span>
+          <span className="ml-2 font-mono text-[10px] text-zinc-600">Runs on your device; the first time it may download a small reading tool.</span>
         </div>
       )}
       {asks.length > 0 && onAsk && (
@@ -137,7 +137,7 @@ export default function AttachmentTray({
           <button type="button" onClick={onDismissError} aria-label="Dismiss" className="cursor-pointer text-zinc-500 hover:text-zinc-200">✕</button>
         </p>
       )}
-      {pending.length > 0 && <p className="pb-1 font-mono text-[10px] text-zinc-600">Read on your device. Nothing is uploaded unless you press SEND in the “send to owner” card.</p>}
+      {pending.length > 0 && <p className="pb-1 font-mono text-[10px] text-zinc-600">The assistant reads the text of attached files to answer you (sensitive numbers are masked). Don’t attach IDs or passwords.</p>}
       {previewing && <Preview f={previewing} onClose={() => setOpen(null)} />}
     </div>
   );

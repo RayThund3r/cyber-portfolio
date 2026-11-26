@@ -41,7 +41,11 @@ export function useApi<T>(path: string | null, opts: { every?: number } = {}) {
   useEffect(() => {
     if (!opts.every || !path) return;
     const id = window.setInterval(() => { if (document.visibilityState === 'visible') load(); }, opts.every);
-    return () => window.clearInterval(id);
+    // iPhone Safari throttles timers and restores pages from its cache: refresh the moment the page is looked at again
+    const wake = () => { if (document.visibilityState === 'visible') load(); };
+    document.addEventListener('visibilitychange', wake);
+    window.addEventListener('pageshow', wake);
+    return () => { window.clearInterval(id); document.removeEventListener('visibilitychange', wake); window.removeEventListener('pageshow', wake); };
   }, [opts.every, load, path]);
   return { data, error, loading, reload: load, setData };
 }

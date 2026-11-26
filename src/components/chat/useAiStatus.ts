@@ -20,7 +20,7 @@ export function useAiStatus() {
     const sync = () => setCloud({ ready: isCloudReady(), off: cloudUserOff(), label: cloudLabel(), limited: isCloudLimited(), quota: cloudQuota() });
     const unCloud = subscribeCloud(sync);
     checkCloud();
-    const t = window.setInterval(() => checkCloud(), 60_000);
+    const t = window.setInterval(() => { if (document.visibilityState === 'visible') checkCloud(); }, 60_000);
     autoLoadIfPreviouslyEnabled();
     return () => {
       unsub();

@@ -3,7 +3,7 @@
 //   GET  ?download=<slug>  → the finished website as a .zip
 //   GET  ?backup=<slug>    → everything needed to restore the site later (settings + pictures)
 import { NextResponse } from 'next/server';
-import { revalidatePath } from 'next/cache';
+import { publishChange } from '@/server/liveVersion';
 import { audit, ipAllowed, isAdmin } from '@/server/auth';
 import { readJsonLimited, sameOrigin } from '@/server/util';
 import { getProjects, saveProjects } from '@/server/store';
@@ -113,7 +113,7 @@ export async function POST(req: Request) {
           items.push(entry(next)); await patchStudio(slug, (d) => { d.portfolioId = next; });
         }
         await saveProjects(items);
-        revalidatePath('/', 'layout');
+        await publishChange();
         return ok({ updated: existing >= 0 });
       }
       default:

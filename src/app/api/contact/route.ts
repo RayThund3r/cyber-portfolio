@@ -4,6 +4,8 @@ import { esc, oneLine, clean, EMAIL_RE, PHONE_RE, clientIp, mailBudget, rateLimi
 import { resend, FROM, TO, BACKUP_TO, CAN_EMAIL_CUSTOMERS, trackLink, reportServerError } from '@/server/mail';
 import { createTicket, newTicketId } from '@/server/store';
 import { validateSlot } from '@/server/booking';
+import { judgeMessage, BLOCK_MESSAGE } from '@/lib/spamFilter';
+import { getSpamCfg, logSpam } from '@/server/spam';
 import { ATTACH, extOf, kindOfName, matchesSignature, sanitizeFilename } from '@/lib/attachmentRules';
 
 export const runtime = 'nodejs';
@@ -106,6 +108,15 @@ export async function POST(request: Request) {
   if (email && !EMAIL_RE.test(email)) return failure(400, 'That email address does not look valid.');
   if (phone && !PHONE_RE.test(phone)) return failure(400, 'That phone number does not look valid.');
   if (!(await turnstileOk(clean(body?.turnstile, 3000), ip))) return failure(400, 'Verification failed. Please refresh and try again.');
+  // Spam / nonsense filter (Admin → Security → Spam filter). Clear bots get a quiet "ok"; people get a clear message; doubtful ones are saved but not emailed.
+  const verdict = judgeMessage({ name, email, phone, details, elapsedMs: typeof body?.elapsedMs === 'number' ? body.elapsedMs : undefined }, await getSpamCfg());
+  if (verdict.level === 'block') {
+    await logSpam(verdict, ip, details, isChat ? 'chat' : kind);
+    if (verdict.bot) return NextResponse.json({ success: true, ...(isChat ? {} : { ticket: newTicketId() }) });
+    return failure(422, BLOCK_MESSAGE, { spam: true });
+  }
+  const held = verdict.level === 'hold';
+  if (held) await logSpam(verdict, ip, details, isChat ? 'chat' : kind);
   const parsedFiles = parseAttachments(body?.attachments);
   if ('error' in parsedFiles) return failure(400, parsedFiles.error);
   const attachments = isChat ? parsedFiles.files : [];
@@ -124,12 +135,14 @@ export async function POST(request: Request) {
   // lose a lead. The chat is not given the ticket id, so its replies are unchanged.
   let stored = true;
   try {
-    await createTicket({ id: ticketId, kind, name, email, phone, details: isChat ? `[Chat hand-off] ${details}` : details, slot });
+    await createTicket({ id: ticketId, kind, name, email, phone, details: `${held ? '[Possible spam] ' : ''}${isChat ? '[Chat hand-off] ' : ''}${details}`, slot });
   } catch (e) {
     stored = false;
     await reportServerError('contact:createTicket', e);
   }
   console.info('[contact] new lead', JSON.stringify({ ticketId, kind: isChat ? 'chat' : kind, name, email, phone, slot, stored, files: attachments.length, at: new Date().toISOString() }));
+
+  if (held) return NextResponse.json({ success: true, ...(isChat ? {} : { ticket: ticketId }), emailed: false }); // saved for review, owner not emailed
 
   const r = resend();
   if (!r) {

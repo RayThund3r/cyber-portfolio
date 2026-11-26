@@ -10,7 +10,7 @@
 //   LLM_MODEL      model name sent upstream (default "qwen2.5-1.5b-instruct"; llama.cpp ignores it)
 //   LLM_API_KEY    optional bearer token if your server requires one
 //   LLM_LABEL      what the chat panel shows, e.g. "BALANCED (cloud)"
-//   LLM_MAX_TOKENS cap per answer (default 400)
+//   LLM_MAX_TOKENS cap per answer (default 700)
 //   LLM_RATE_PER_MIN per-visitor requests per minute (default 12)
 import 'server-only';
 
@@ -34,7 +34,7 @@ export function llmConfig() {
     model: env('LLM_MODEL') || 'qwen2.5-1.5b-instruct',
     key: env('LLM_API_KEY'),
     label: env('LLM_LABEL') || 'CLOUD',
-    maxTokens: num('LLM_MAX_TOKENS', 400, 32, 1024),
+    maxTokens: num('LLM_MAX_TOKENS', 700, 32, 1500),
     ratePerMin: num('LLM_RATE_PER_MIN', 12, 1, 120),
   };
 }
@@ -78,11 +78,12 @@ export function sanitizeMessages(input: unknown): ChatMsgIn[] | null {
       systems++;
       if (systems > 1 || out.length > 0) return null; // one system message, first
     }
-    const cut = content.slice(0, role === 'system' ? 6000 : 1500);
+    const last = m === input[input.length - 1];
+    const cut = content.slice(0, role === 'system' ? 22000 : last ? 4000 : 1500); // system carries site facts + the visitor's file excerpts
     total += cut.length;
     out.push({ role, content: cut });
   }
-  if (total > 14000 || out[out.length - 1].role !== 'user') return null;
+  if (total > 36000 || out[out.length - 1].role !== 'user') return null;
   return out;
 }
 

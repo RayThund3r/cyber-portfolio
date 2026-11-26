@@ -10,8 +10,8 @@
 
 import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
-import gsap from 'gsap';
 import { createRevealer, playHeroIntro } from '@/lib/reveal';
+import { loadGsap } from '@/lib/motion';
 
 export default function PageMotion() {
   const pathname = usePathname();
@@ -45,15 +45,18 @@ export default function PageMotion() {
 
     // ── magnetic buttons (pointer-driven, so only ever runs after the page is interactive) ──
     const fine = window.matchMedia('(pointer: fine)').matches;
+    let gsap: Awaited<ReturnType<typeof loadGsap>>['gsap'] | null = null; // loaded lazily, only for mouse users: keeps GSAP out of the first-paint bundle
+    let gone = false;
+    if (fine) loadGsap().then((m) => { if (!gone) gsap = m.gsap; }).catch(() => {});
     const onMove = (e: PointerEvent) => {
       const el = (e.target as Element | null)?.closest('[data-magnetic]') as HTMLElement | null;
-      if (!el) return;
+      if (!el || !gsap) return;
       const r = el.getBoundingClientRect();
       gsap.to(el, { x: (e.clientX - (r.left + r.width / 2)) * 0.18, y: (e.clientY - (r.top + r.height / 2)) * 0.28, duration: 0.3, ease: 'power2.out', overwrite: 'auto' });
     };
     const onLeave = (e: PointerEvent) => {
       const el = (e.target as Element | null)?.closest('[data-magnetic]') as HTMLElement | null;
-      if (el) gsap.to(el, { x: 0, y: 0, duration: 0.6, ease: 'elastic.out(1, 0.45)', overwrite: 'auto' });
+      if (el && gsap && !(e.relatedTarget instanceof Node && el.contains(e.relatedTarget))) gsap.to(el, { x: 0, y: 0, duration: 0.6, ease: 'elastic.out(1, 0.45)', overwrite: 'auto' });
     };
     if (fine) {
       document.addEventListener('pointermove', onMove);
@@ -61,6 +64,7 @@ export default function PageMotion() {
     }
 
     return () => {
+      gone = true;
       clearTimeout(failsafe);
       cancelAnimationFrame(raf);
       mo.disconnect();

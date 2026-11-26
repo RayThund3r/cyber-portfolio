@@ -49,7 +49,8 @@ export function useNetStatus(): NetState {
       if (online) ok = await probe();
       if (!alive) return;
       setPing(online ? (ok ? 'ok' : 'fail') : 'unknown');
-      timer = setTimeout(run, ok ? OK_EVERY : RETRY_EVERY);
+      // no background-tab polling: when the tab is hidden the next check happens when it becomes visible again (onVisible below)
+      timer = setTimeout(() => { if (document.visibilityState === 'visible') void run(); }, ok ? OK_EVERY : RETRY_EVERY);
     };
     const onNet = () => { void run(); };
     const onVisible = () => { if (document.visibilityState === 'visible') void run(); };

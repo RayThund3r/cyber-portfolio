@@ -33,18 +33,20 @@ export default function AnnouncementBar() {
   useEffect(() => {
     if (location.pathname.startsWith('/admin')) return;
     let off = false;
-    fetch('/api/site-config', { cache: 'no-store' })
+    const load = () => fetch(`/api/site-config?_=${Date.now()}`, { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : null))
       .then((d: { announce?: BarData | null } | null) => {
         const a = d?.announce;
-        if (off || !a || typeof a.text !== 'string') return;
+        if (off) return;
+        if (!a || typeof a.text !== 'string') { setBar(null); return; } // switched off in the admin
         let dismissed = '';
         try { dismissed = sessionStorage.getItem('sys_bar_dismissed') || ''; } catch { /* ignore */ }
-        if (a.dismissible && dismissed === a.id) return;
-        setBar(a);
+        setBar(a.dismissible && dismissed === a.id ? null : a);
       })
       .catch(() => undefined);
-    return () => { off = true; };
+    void load();
+    window.addEventListener('site:updated', load); // LiveUpdates: the owner just saved something
+    return () => { off = true; window.removeEventListener('site:updated', load); };
   }, []);
   if (!bar) return null;
   return <Bar data={bar} onDismiss={() => { try { sessionStorage.setItem('sys_bar_dismissed', bar.id); } catch { /* ignore */ } setBar(null); }} />;

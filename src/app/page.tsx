@@ -16,6 +16,7 @@ import { useParallax, useScramble, useTilt } from '@/lib/useGsapEffects';
 import Icon from '@/components/ui/Icon';
 import StatusTicker from '@/components/site/StatusTicker';
 import { useNetStatus } from '@/lib/useNetStatus';
+import { TERMINAL_RUN_EVENT, takePendingTerminalCommand, clearPendingTerminalCommand } from '@/lib/terminalBus';
 import FeatureShowcase from '@/components/site/FeatureShowcase';
 import DevSection from '@/components/site/DevSection';
 
@@ -141,6 +142,17 @@ export default function HomePage() {
       setTerminalOutput(`ERR: "${cmd.slice(0, 40)}" NOT RECOGNIZED. TYPE "help" FOR COMMAND LIST.`);
     }
   };
+
+  // The chat can type a command into this terminal ("open the terminal and run …"); commands queued before it mounted run on arrival.
+  const runRef = useRef(runCommand);
+  runRef.current = runCommand;
+  useEffect(() => {
+    const onRun = (e: Event) => { const c = (e as CustomEvent<string>).detail; if (c) { clearPendingTerminalCommand(); setCommandInput(c); runRef.current(c); setCommandInput(''); } };
+    window.addEventListener(TERMINAL_RUN_EVENT, onRun);
+    const queued = takePendingTerminalCommand();
+    if (queued) { const t = window.setTimeout(() => runRef.current(queued), 400); timers.current.push(t); }
+    return () => window.removeEventListener(TERMINAL_RUN_EVENT, onRun);
+  }, []);
 
   const handleCommandSubmit = (e: React.FormEvent) => {
     e.preventDefault();

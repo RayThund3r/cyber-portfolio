@@ -351,8 +351,8 @@ async function route(
     return finish(memory, raw, mode === 'EXPERT' ? exact.replace(/\*\*/g, '') : exact, 'system', { topic: 'SYSTEM', suggestions: ['Send this to the owner', 'What else is in it?'], fileHandled: true });
   }
   const fileTurn = hasFiles && (fileQuestion(raw) || (!!options.filesAreNew && wordCount <= 6));
-  // File text is only ever given to the ON-DEVICE model; a self-hosted remote endpoint never receives it.
-  if (fileTurn && !isLocalLLMReady()) {
+  // With any AI model on, the normal LLM step below receives the (relevant parts of the) file text; otherwise the local analysis answers.
+  if (fileTurn && !isAIAvailable()) {
     const fr = buildFileReply(files, raw, mode, !!options.filesAreNew);
     return finish(memory, raw || '[shared files]', fr.reply, 'system', { topic: 'SYSTEM', suggestions: fr.suggestions, fileHandled: true });
   }
@@ -532,7 +532,10 @@ async function route(
       if (web && !web.blockedReply && (web.confidence ?? 1) >= 0.6) webContext = { title: web.title, extract: web.extract };
     }
 
-    const messages = buildMessages({ input: raw, mode, memory, hits, webContext, files: isLocalLLMReady() ? files : [] });
+    // The small on-device model gets a short excerpt; a hosted model gets the relevant parts of up to ~10k characters, with
+    // card numbers / passwords / API keys / ID numbers masked first because that text leaves the visitor's browser.
+    const fileOpts = isLocalLLMReady() ? { budget: 2500 } : { budget: 10_000, redact: true };
+    const messages = buildMessages({ input: raw, mode, memory, hits, webContext, files, fileOpts });
     let partial = '';
     const onToken = (t: string) => {
       partial = t;

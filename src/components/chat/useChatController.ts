@@ -114,7 +114,7 @@ export function useChatController({ pathname, isOpen, isMobile, runCommand, requ
           id: uid(),
           ts: Date.now(),
           sender: 'bot',
-          text: 'Welcome back! 👋 Want to pick up where we left off, or start something new?',
+          text: 'Welcome back! Want to pick up where we left off, or start something new?',
           time: nowTime(),
           source: 'system',
         });
@@ -215,7 +215,7 @@ export function useChatController({ pathname, isOpen, isMobile, runCommand, requ
         pushBot(
           next === 'EXPERT'
             ? 'SYS_MODE: [EXPERT] // Technical, compact responses enabled.'
-            : 'Human mode on! 😊 Warm, conversational and simple.'
+            : 'Friendly mode on. Warm, conversational and simple.'
         );
       }
     },
@@ -361,7 +361,7 @@ export function useChatController({ pathname, isOpen, isMobile, runCommand, requ
       } catch (error) {
         console.error('Engine execution error:', error);
         pushBot(
-          curMode === 'EXPERT' ? 'SYS_ERR // Engine fault. Retry.' : 'Oops — something went wrong on my side. 🙏',
+          curMode === 'EXPERT' ? 'SYS_ERR // Engine fault. Retry.' : 'Oops — something went wrong on my side.',
           'system',
           { retryText: text }
         );

@@ -33,6 +33,15 @@ export default function Composer(p: Props) {
   const camRef = useRef<HTMLInputElement>(null);
   const [sel, setSel] = useState(0);
   const [paletteOff, setPaletteOff] = useState(false);
+  const [plus, setPlus] = useState(false);
+  const plusRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!plus) return;
+    const off = (e: Event) => { if (plusRef.current && !plusRef.current.contains(e.target as Node)) setPlus(false); };
+    document.addEventListener('mousedown', off);
+    document.addEventListener('touchstart', off);
+    return () => { document.removeEventListener('mousedown', off); document.removeEventListener('touchstart', off); };
+  }, [plus]);
   const voice = p.vc.voice;
 
   // Grow with the content (up to ~5 lines), shrink back when cleared.
@@ -150,31 +159,39 @@ export default function Composer(p: Props) {
             e.target.value = '';
           }}
         />
-        <button
-          type="button"
-          onClick={() => camRef.current?.click()}
-          aria-label="Take a photo"
-          title="Take a photo"
-          className="hidden h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl text-zinc-400 transition-colors hover:bg-white/5 hover:text-accent [@media(pointer:coarse)]:flex"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z" /><circle cx="12" cy="13" r="3.5" /></svg>
-        </button>
-        <button
-          type="button"
-          onClick={() => fileRef.current?.click()}
-          aria-label="Attach a file"
-          title="Attach a file (images, PDF, text, CSV, JSON, logs)"
-          className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl text-lg text-zinc-400 transition-colors hover:bg-white/5 hover:text-accent"
-        >
-          📎
-        </button>
+        <div ref={plusRef} className="relative shrink-0 self-end">
+          <button
+            type="button"
+            onClick={() => setPlus((v) => !v)}
+            aria-haspopup="menu"
+            aria-expanded={plus}
+            aria-label="Add a photo or file"
+            title="Add a photo or file"
+            className={`flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl text-zinc-400 transition-colors hover:bg-white/5 hover:text-zinc-100 ${plus ? 'bg-white/5 text-zinc-100' : ''}`}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true" className={`transition-transform ${plus ? 'rotate-45' : ''}`}><path d="M12 5v14M5 12h14" /></svg>
+          </button>
+          {plus && (
+            <div role="menu" aria-label="Add" className="animate-nudge-in absolute bottom-full left-0 z-30 mb-2 w-48 origin-bottom-left rounded-xl border border-white/10 bg-zinc-900/95 p-1.5 shadow-2xl backdrop-blur-xl">
+              <button role="menuitem" type="button" onClick={() => { setPlus(false); camRef.current?.click(); }} className="flex min-h-10 w-full cursor-pointer items-center gap-3 rounded-lg px-3 text-left text-xs text-zinc-200 hover:bg-white/5">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="text-zinc-400"><path d="M4 8h3l2-3h6l2 3h3v11H4zM12 17a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z" /></svg>
+                Take a photo
+              </button>
+              <button role="menuitem" type="button" onClick={() => { setPlus(false); fileRef.current?.click(); }} className="flex min-h-10 w-full cursor-pointer items-center gap-3 rounded-lg px-3 text-left text-xs text-zinc-200 hover:bg-white/5">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="text-zinc-400"><path d="M20 12l-8 8a5 5 0 0 1-7-7l9-9a3.5 3.5 0 0 1 5 5l-9 9a2 2 0 0 1-3-3l8-8" /></svg>
+                Attach a file
+              </button>
+              <p className="px-3 pb-1 pt-1.5 text-[10px] leading-snug text-zinc-500">Photos, PDF, text, CSV, logs. Don’t share IDs or passwords.</p>
+            </div>
+          )}
+        </div>
 
         <textarea
           ref={p.inputRef}
           rows={1}
           aria-label="Message"
           aria-autocomplete={paletteOpen ? 'list' : undefined}
-          placeholder={p.expert ? 'ENTER_QUERY…' : 'Ask or say where to go…'}
+          placeholder={p.expert ? 'Ask a technical question…' : 'Message'}
           value={p.value}
           maxLength={p.max}
           autoComplete="off"
@@ -197,44 +214,34 @@ export default function Composer(p: Props) {
           className="max-h-[124px] min-h-10 min-w-0 flex-1 resize-none self-center bg-transparent px-1.5 py-2 font-sans text-sm leading-5 text-zinc-100 placeholder-zinc-600 focus:outline-none"
         />
 
-        {voice.supported && (
-          <>
-            <button
-              type="button"
-              onClick={() => p.vc.setPanelOpen(!p.vc.panelOpen)}
-              aria-label="Voice settings"
-              aria-expanded={p.vc.panelOpen}
-              title="Voice settings"
-              className="flex h-10 w-6 shrink-0 cursor-pointer items-center justify-center rounded-lg text-zinc-600 transition-colors hover:text-accent sm:w-7"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 15l6-6 6 6" /></svg>
-            </button>
-            <button
-              type="button"
-              onClick={p.vc.toggleMic}
-              aria-pressed={voice.listening}
-              aria-label={voice.listening ? 'Stop voice input' : 'Speak your message'}
-              title={voice.listening ? 'Stop listening' : 'Speak your message'}
-              className={`flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl text-base transition-colors ${
-                voice.listening ? 'animate-ring bg-red-500/20 text-red-300' : 'text-zinc-400 hover:bg-white/5 hover:text-accent'
-              }`}
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <rect x="9" y="3" width="6" height="11" rx="3" />
-                <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
-              </svg>
-            </button>
-          </>
-        )}
-
         {p.isThinking && p.canStop ? (
           <button
             type="button"
             onClick={p.onStop}
             aria-label="Stop generating"
-            className="flex h-10 shrink-0 cursor-pointer items-center justify-center rounded-xl bg-zinc-700 px-3.5 font-mono text-[11px] font-bold text-zinc-100 transition-colors hover:bg-zinc-600"
+            className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center self-end rounded-xl bg-zinc-700 text-zinc-100 transition-colors hover:bg-zinc-600"
           >
-            ■ STOP
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2" /></svg>
+          </button>
+        ) : voice.supported && !canSend && !voice.listening ? (
+          <button
+            type="button"
+            onClick={p.vc.toggleMic}
+            aria-label="Dictate a message"
+            title="Dictate a message"
+            className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center self-end rounded-xl text-zinc-400 transition-colors hover:bg-white/5 hover:text-accent"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" /></svg>
+          </button>
+        ) : voice.supported && voice.listening && !canSend ? (
+          <button
+            type="button"
+            onClick={p.vc.toggleMic}
+            aria-pressed
+            aria-label="Stop dictating"
+            className="flex h-10 w-10 shrink-0 animate-ring cursor-pointer items-center justify-center self-end rounded-xl bg-red-500/20 text-red-300"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2" /></svg>
           </button>
         ) : (
           <button
@@ -242,17 +249,18 @@ export default function Composer(p: Props) {
             onClick={submit}
             disabled={!canSend || p.isThinking}
             aria-label="Send message"
-            className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl bg-gradient-to-br from-accent to-accent-strong text-lg font-bold text-black transition-all hover:brightness-110 active:scale-95 disabled:cursor-not-allowed disabled:opacity-35 disabled:grayscale"
+            className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center self-end rounded-xl bg-accent text-black transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-30"
           >
-            ↑
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7" /></svg>
           </button>
         )}
       </div>
 
-      <div className="flex items-center justify-between px-2 pt-1 font-mono text-[10px] text-zinc-600" aria-hidden={!near}>
-        <span className="hidden sm:inline">Enter to send · Shift+Enter for a new line · / for commands</span>
-        {near && <span className={p.value.length >= p.max ? 'text-amber-400' : ''}>{p.value.length}/{p.max}</span>}
-      </div>
+      {near && (
+        <div className="px-2 pt-1 text-right font-mono text-[10px] text-zinc-600">
+          <span className={p.value.length >= p.max ? 'text-amber-400' : ''}>{p.value.length}/{p.max}</span>
+        </div>
+      )}
     </div>
   );
 }

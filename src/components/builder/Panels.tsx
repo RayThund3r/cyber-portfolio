@@ -6,7 +6,7 @@ import { PALETTES, SECTION_DEFS, SECTION_ORDER, SITE_FIELDS, type SectionInstanc
 import { FieldForm } from './FieldForm';
 import type { EditorApi } from './editorApi';
 
-import { SectionIcon, IconCart, IconCheck, IconCheckCircle, IconClose, IconCode, IconCopy, IconDesktop, IconEye, IconEyeOff, IconImage, IconLayers, IconLock, IconPalette, IconPaperclip, IconPencil, IconPhone, IconPlus, IconSettings, IconSparkle, IconTablet, IconTrash, IconWarn, IconBulb, IconFolder } from './icons';
+import { SectionIcon, IconCart, IconCheck, IconCheckCircle, IconClose, IconCode, IconCopy, IconDesktop, IconEye, IconEyeOff, IconImage, IconLayers, IconLock, IconPalette, IconPaperclip, IconPencil, IconPhone, IconPlus, IconSettings, IconSparkle, IconTablet, IconTrash, IconWarn, IconBulb, IconFolder, IconArrowUp, IconArrowDown, IconExternal } from './icons';
 const ib = 'w-8 h-8 rounded flex items-center justify-center text-sm text-zinc-300 hover:bg-zinc-700/70 disabled:opacity-30 cursor-pointer shrink-0';
 const secTitle = (s: SectionInstance) => (s.data.title ? String(s.data.title).slice(0, 30) : s.data.navLabel || '');
 
@@ -49,8 +49,8 @@ export function LayersPanel({ api, goAdd }: { api: EditorApi; goAdd: () => void 
                   <span className="min-w-0"><span className="block text-[13px] truncate">{def.label}</span>{secTitle(s) && <span className="block text-[10px] text-zinc-500 truncate">{secTitle(s)}</span>}</span>
                 </button>
                 {!def.fixed && <>
-                  <button className={ib} aria-label="Move up" disabled={api.locked || i <= 1} onClick={() => api.ops.move(s.id, -1)}>↑</button>
-                  <button className={ib} aria-label="Move down" disabled={api.locked || i >= n - 2} onClick={() => api.ops.move(s.id, 1)}>↓</button>
+                  <button className={ib} aria-label="Move up" disabled={api.locked || i <= 1} onClick={() => api.ops.move(s.id, -1)}><IconArrowUp size={14} /></button>
+                  <button className={ib} aria-label="Move down" disabled={api.locked || i >= n - 2} onClick={() => api.ops.move(s.id, 1)}><IconArrowDown size={14} /></button>
                   <button className={ib} aria-label={s.visible ? 'Hide' : 'Show'} disabled={api.locked} onClick={() => api.ops.toggle(s.id)}>{s.visible ? <IconEye size={15} /> : <IconEyeOff size={15} />}</button>
                 </>}
               </div>
@@ -170,7 +170,7 @@ export function SettingsPanel({ api, onNew, onDuplicate, onBackup, onFullPreview
           <h3 className="text-xs font-mono text-cyan-300">PROJECT</h3>
           <button className={btn} onClick={onNew}>＋ New project…</button>
           <button className={btn} onClick={onDuplicate}>⧉ Duplicate this project</button>
-          <button className={btn} onClick={onFullPreview}>↗ Open full preview in a new tab</button>
+          <button className={btn} onClick={onFullPreview}><IconExternal size={14} /> Open full preview in a new tab</button>
           <button className={btn} onClick={onBackup}>⬇ Download a backup file (.json)</button>
         </section>
       )}

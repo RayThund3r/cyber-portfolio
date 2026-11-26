@@ -13,7 +13,7 @@ import SiteViewer from '@/components/builder/SiteViewer';
 import Portal from '@/components/ui/Portal';
 import { post, lsGet, lsSet, fetchStatus, downloadProject, type OrderStatus } from '@/components/builder/lib';
 import PurchasePanel from '@/components/builder/PurchaseFlow';
-import { CategoryIcon, IconCart, IconCheckCircle, IconClock, IconClose, IconDownload, IconEye, IconPencil, IconSearch, IconSparkle, IconWhatsApp } from '@/components/builder/icons';
+import { CategoryIcon, IconCart, IconCheckCircle, IconClock, IconClose, IconDownload, IconEye, IconPencil, IconSearch, IconSparkle, IconWhatsApp, IconBack } from '@/components/builder/icons';
 import { CardSkeleton } from '@/components/builder/ui';
 import { dropCopy } from '@/lib/builder/localCopy';
 import ImportBackup from '@/components/builder/ImportBackup';
@@ -173,7 +173,7 @@ export default function Showcase() {
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans">
       <main className="max-w-7xl mx-auto px-4 sm:px-8 py-8 space-y-10">
-        <Link href="/" className="hit font-mono text-xs text-cyan-400 hover:opacity-80">← Home</Link>
+        <Link href="/" className="hit font-mono text-xs text-cyan-400 hover:opacity-80"><IconBack size={14} /> Home</Link>
 
         <header data-hero className="max-w-3xl">
           <div data-hero-item className="font-mono text-xs text-cyan-400 mb-3">// WEBSITE_SHOWCASE</div>

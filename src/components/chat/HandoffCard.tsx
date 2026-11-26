@@ -49,7 +49,9 @@ export default function HandoffCard({ files, messages, prefill, expert, onCancel
     return () => window.clearTimeout(t);
   }, []);
 
-  const picked = files.filter((f) => chosen[f.insight.id] !== false).slice(0, ATTACH.maxFiles);
+  // E-mail has tighter limits than the assistant's reading: big files stay readable by the assistant but are not sent
+  const fits = (f: SharedFile) => f.file.size <= ATTACH.maxFileBytes;
+  const picked = (() => { const out: SharedFile[] = []; let total = 0; for (const f of files) { if (chosen[f.insight.id] === false || !fits(f) || out.length >= ATTACH.maxFiles || total + f.file.size > ATTACH.maxTotalBytes) continue; out.push(f); total += f.file.size; } return out; })();
   const transcript = withChat ? buildTranscript(messages) : '';
 
   const submit = async (e: FormEvent) => {
@@ -87,7 +89,7 @@ export default function HandoffCard({ files, messages, prefill, expert, onCancel
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error || 'Could not send. Please try again.');
       onSent(
-        `Sent to the owner ✅${picked.length ? ` (${picked.length} file${picked.length > 1 ? 's' : ''} included)` : ''}. They'll reply to ${email.trim()}.`
+        `Sent to the owner.${picked.length ? ` (${picked.length} file${picked.length > 1 ? 's' : ''} included)` : ''}. They'll reply to ${email.trim()}.`
       );
     } catch (err) {
       setState('error');
@@ -99,7 +101,7 @@ export default function HandoffCard({ files, messages, prefill, expert, onCancel
 
   return (
     <form ref={formRef} onSubmit={submit} className="space-y-2 rounded-lg border border-accent/40 bg-zinc-900/80 p-3 font-sans text-xs" aria-label="Send to the owner">
-      <p className="font-mono text-[11px] font-bold text-accent">{expert ? 'DISPATCH // SEND_TO_OWNER' : '📨 Send to the owner'}</p>
+      <p className="font-mono text-[11px] font-bold text-accent">{expert ? 'DISPATCH // SEND_TO_OWNER' : 'Send to the owner'}</p>
 
       <input ref={nameRef} className={field} type="text" required maxLength={120} placeholder="Your name" aria-label="Your name" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} />
       <input className={field} type="email" required maxLength={200} placeholder="Your email (so they can reply)" aria-label="Your email" autoComplete="email" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} />
@@ -118,8 +120,8 @@ export default function HandoffCard({ files, messages, prefill, expert, onCancel
         </label>
         {files.map((f) => (
           <label key={f.insight.id} className="flex min-h-8 cursor-pointer items-center gap-2 text-zinc-300">
-            <input type="checkbox" checked={chosen[f.insight.id] !== false} onChange={(e) => setChosen((c) => ({ ...c, [f.insight.id]: e.target.checked }))} className="accent-[var(--accent)]" />
-            <span className="truncate">{f.insight.name}</span>
+            <input type="checkbox" disabled={!fits(f)} checked={fits(f) && chosen[f.insight.id] !== false} onChange={(e) => setChosen((c) => ({ ...c, [f.insight.id]: e.target.checked }))} className="accent-[var(--accent)]" />
+            <span className="truncate">{f.insight.name}</span>{!fits(f) && <span className="shrink-0 text-[10px] text-amber-400">too big to e-mail</span>}
           </label>
         ))}
       </fieldset>

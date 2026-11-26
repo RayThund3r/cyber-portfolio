@@ -54,7 +54,7 @@ function Bubble({ msg, first, last, showActions, onRevealDone, onTick, onRate, o
     <div className={`group/msg flex gap-2 ${isUser ? 'justify-end' : 'justify-start'} ${first ? 'mt-3' : 'mt-1'} animate-msg-in`}>
       {!isUser && (
         <div className="w-7 shrink-0 pt-0.5" aria-hidden="true">
-          {first && <div className="flex h-7 w-7 items-center justify-center rounded-full border border-accent/40 bg-accent/10 font-mono text-[11px] text-accent">◈</div>}
+          {first && <div className="flex h-7 w-7 items-center justify-center rounded-full bg-accent/15 text-accent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z" /></svg></div>}
         </div>
       )}
 
@@ -127,7 +127,7 @@ function Bubble({ msg, first, last, showActions, onRevealDone, onTick, onRate, o
 
         {msg.commandLabel && (
           <span className="mt-1 inline-flex items-center gap-1 rounded-full border border-accent/30 bg-accent/10 px-2 py-0.5 font-mono text-[10px] text-accent">
-            ↗ {msg.commandLabel}
+            {msg.commandLabel}
           </span>
         )}
 
@@ -188,19 +188,19 @@ function Bubble({ msg, first, last, showActions, onRevealDone, onTick, onRate, o
                 )}
                 {msg.retryText && (
                   <button type="button" onClick={() => onRetry(msg)} className="flex min-h-8 cursor-pointer items-center rounded-lg px-2 text-amber-300 hover:bg-white/5">
-                    ↻ Retry
+                    Retry
                   </button>
                 )}
                 {msg.learn &&
                   (msg.rated ? (
-                    <span className="px-2">{msg.rated === 'up' ? '👍 thanks' : '👎 noted'}</span>
+                    <span className="px-2">{msg.rated === 'up' ? 'Thanks' : 'Noted'}</span>
                   ) : (
                     <>
                       <button type="button" onClick={() => onRate(msg, 'up')} aria-label="Helpful" className="flex min-h-8 min-w-8 cursor-pointer items-center justify-center rounded-lg hover:bg-white/5">
-                        👍
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M7 11v9H4v-9zM7 11l4-7c1.5 0 2.5 1 2 3l-.5 3H19a1.5 1.5 0 0 1 1.5 1.8l-1.3 6A2 2 0 0 1 17.3 20H7" /></svg>
                       </button>
                       <button type="button" onClick={() => onRate(msg, 'down')} aria-label="Not helpful" className="flex min-h-8 min-w-8 cursor-pointer items-center justify-center rounded-lg hover:bg-white/5">
-                        👎
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="rotate-180"><path d="M7 11v9H4v-9zM7 11l4-7c1.5 0 2.5 1 2 3l-.5 3H19a1.5 1.5 0 0 1 1.5 1.8l-1.3 6A2 2 0 0 1 17.3 20H7" /></svg>
                       </button>
                     </>
                   ))}

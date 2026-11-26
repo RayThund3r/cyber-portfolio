@@ -28,7 +28,7 @@ import ImportBackup from './ImportBackup';
 import { readAssets as readLocalAssets, readCopy, restoreToServer, writeAssets, writeCopy } from '@/lib/builder/localCopy';
 import type { TemplateDef } from '@/lib/builder/templates';
 
-import { IconCart, IconCheck, IconCheckCircle, IconClose, IconCode, IconCopy, IconDesktop, IconEye, IconEyeOff, IconImage, IconLayers, IconLock, IconPalette, IconPaperclip, IconPencil, IconPhone, IconPlus, IconSettings, IconSparkle, IconTablet, IconTrash, IconWarn, IconBulb, IconFolder } from './icons';
+import { IconCart, IconCheck, IconCheckCircle, IconClose, IconCode, IconCopy, IconDesktop, IconEye, IconEyeOff, IconImage, IconLayers, IconLock, IconPalette, IconPaperclip, IconPencil, IconPhone, IconPlus, IconSettings, IconSparkle, IconTablet, IconTrash, IconWarn, IconBulb, IconFolder, IconBack, IconUndo, IconRedo, IconExternal, IconMinus, IconInfo, IconDownload } from './icons';
 type Tool = 'layers' | 'add' | 'media' | 'design' | 'ai' | 'code' | 'settings' | 'content';
 const TOOLS: { k: Tool; icon: (p: { size?: number }) => ReactElement; label: string }[] = [
   { k: 'layers', icon: IconLayers, label: 'Layers' }, { k: 'add', icon: IconPlus, label: 'Add' }, { k: 'media', icon: IconImage, label: 'Media' },
@@ -52,7 +52,7 @@ function useMedia(q: string) {
   return m;
 }
 
-const tb = 'h-9 min-w-9 px-2.5 rounded-lg border border-zinc-700 text-xs font-mono hover:border-zinc-400 disabled:opacity-30 cursor-pointer flex items-center justify-center gap-1 whitespace-nowrap';
+const tb = 'h-9 min-w-9 px-2.5 rounded-lg text-xs font-sans text-zinc-300 hover:bg-zinc-800 hover:text-white disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap transition-colors';
 
 function Sheet({ title, onClose, children, tall }: { title: string; onClose: () => void; children: React.ReactNode; tall?: boolean }) {
   const [big, setBig] = useState(false);
@@ -400,7 +400,7 @@ export default function Editor({ mode, id, keyStr }: { mode: 'project' | 'templa
   if (!cfg || !meta) return <div className="min-h-screen bg-zinc-950 text-zinc-400 flex flex-col items-center justify-center gap-3 text-sm font-mono"><div className="load-bar" role="progressbar" aria-label="Loading" />Opening your project…</div>;
 
   const fixedW = DEVICE_W[device];
-  const pad = isLg ? 24 : 0;
+  const pad = isLg ? 32 : 0;
   const aw = Math.max(200, avail.w - pad * 2), ah = Math.max(200, avail.h - pad * 2);
   const scale = fixedW ? (fit ? Math.min(1, aw / fixedW) : zoom) : zoom;
   const frameW = fixedW ?? aw / scale;
@@ -425,7 +425,7 @@ export default function Editor({ mode, id, keyStr }: { mode: 'project' | 'templa
       default: return null;
     }
   })();
-  const panelW = tool === 'code' ? 'lg:w-[520px]' : tool === 'ai' ? 'lg:w-[400px]' : 'lg:w-80';
+  const panelW = tool === 'code' ? 'lg:w-[560px]' : tool === 'ai' ? 'lg:w-[420px]' : 'lg:w-[340px] 2xl:w-[380px]';
 
   // Quick tour: shown once on a visitor's first project, and any time from the "?" button.
   const tourSteps: TourStep[] = [
@@ -440,40 +440,46 @@ export default function Editor({ mode, id, keyStr }: { mode: 'project' | 'templa
   return (
     <div className="h-dvh flex flex-col bg-[#101013] text-zinc-100 font-sans">
       {/* ── top bar ── */}
-      <header className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-2 border-b border-zinc-800 bg-zinc-950">
-        <Link href={isProject ? '/builder' : '/admin'} className={tb} aria-label="Back to designs">←</Link>
+      <header className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-4 py-2 border-b border-zinc-800/80 bg-zinc-950">
+        <Link href={isProject ? '/builder' : '/admin'} className={tb} aria-label="Back to designs" title="Back"><IconBack size={18} /></Link>
         {isProject
-          ? <input data-tour="name" aria-label="Project name" disabled={locked} value={projName} maxLength={60} onChange={(e) => { setProjName(e.target.value); setNameV((x) => x + 1); }} className="bg-transparent border-b border-transparent hover:border-zinc-700 focus:border-cyan-500 outline-none text-sm px-1 py-1 w-28 sm:w-52 truncate" />
-          : <span className="text-xs sm:text-sm text-amber-300 font-mono truncate">Template: {meta.name}</span>}
-        {isProject && isLg && <button className={tb} onClick={() => setNewProj(true)}>＋ New</button>}
+          ? <input data-tour="name" aria-label="Project name" disabled={locked} value={projName} maxLength={60} onChange={(e) => { setProjName(e.target.value); setNameV((x) => x + 1); }} className="bg-transparent rounded-md border border-transparent hover:border-zinc-700 focus:border-cyan-500 outline-none text-sm font-medium px-2 py-1 w-28 sm:w-56 truncate" />
+          : <span className="text-xs sm:text-sm text-amber-300 font-medium truncate">Template: {meta.name}</span>}
+        {isLg && !viewMode && (
+          <span className={`hidden xl:flex items-center gap-1.5 text-[11px] ${save === 'error' || !online ? 'text-amber-300' : 'text-zinc-500'}`} aria-hidden="true">
+            <span className={`h-1.5 w-1.5 rounded-full ${save === 'saving' || dirty ? 'bg-amber-400' : 'bg-emerald-400'}`} />{saveLabel}
+          </span>
+        )}
 
-        <div data-tour="mode" className="mx-auto flex rounded-lg border border-zinc-700 overflow-hidden" role="group" aria-label="Mode">
-          <button onClick={() => setViewMode(false)} aria-pressed={!viewMode} aria-label="Design mode" className={`px-2.5 sm:px-3 h-9 min-w-9 text-xs font-mono cursor-pointer inline-flex items-center justify-center gap-1 ${!viewMode ? 'bg-cyan-500 text-black font-semibold' : 'hover:bg-zinc-800'}`}><IconPencil size={14} /><span className="hidden sm:inline">Design</span></button>
-          <button onClick={() => { setViewMode(true); setInspOpen(false); }} aria-pressed={viewMode} aria-label="View mode" className={`px-2.5 sm:px-3 h-9 min-w-9 text-xs font-mono cursor-pointer inline-flex items-center justify-center gap-1 ${viewMode ? 'bg-cyan-500 text-black font-semibold' : 'hover:bg-zinc-800'}`}><IconEye size={14} /><span className="hidden sm:inline">View</span></button>
+        <div data-tour="mode" className="mx-auto flex rounded-full bg-zinc-900 p-0.5 border border-zinc-800" role="group" aria-label="Mode">
+          <button onClick={() => setViewMode(false)} aria-pressed={!viewMode} aria-label="Design mode" className={`px-3 h-8 min-w-9 text-xs font-sans rounded-full cursor-pointer inline-flex items-center justify-center gap-1.5 transition-colors ${!viewMode ? 'bg-cyan-500 text-black font-semibold' : 'text-zinc-400 hover:text-zinc-100'}`}><IconPencil size={14} /><span className="hidden sm:inline">Design</span></button>
+          <button onClick={() => { setViewMode(true); setInspOpen(false); }} aria-pressed={viewMode} aria-label="View mode" className={`px-3 h-8 min-w-9 text-xs font-sans rounded-full cursor-pointer inline-flex items-center justify-center gap-1.5 transition-colors ${viewMode ? 'bg-cyan-500 text-black font-semibold' : 'text-zinc-400 hover:text-zinc-100'}`}><IconEye size={14} /><span className="hidden sm:inline">View</span></button>
         </div>
 
-        <button data-tour="undo" className={tb} onClick={undo} disabled={locked || !hist!.past.length} aria-label="Undo" title="Undo (Ctrl+Z)">↶</button>
-        <button className={tb} onClick={redo} disabled={locked || !hist!.future.length} aria-label="Redo" title="Redo (Ctrl+Y)">↷</button>
-        <button className={tb} onClick={() => setTour(true)} aria-label="Take the quick tour" title="Quick tour">?</button>
+        <button data-tour="undo" className={tb} onClick={undo} disabled={locked || !hist!.past.length} aria-label="Undo" title="Undo (Ctrl+Z)"><IconUndo size={17} /></button>
+        <button className={tb} onClick={redo} disabled={locked || !hist!.future.length} aria-label="Redo" title="Redo (Ctrl+Y)"><IconRedo size={17} /></button>
 
         {isLg && (
           <>
-            <div className="flex items-center gap-1 ml-2" role="group" aria-label="Zoom">
-              <button className={tb} disabled={!!fixedW && fit} onClick={() => stepZoom(-1)} aria-label="Zoom out">−</button>
-              <button className={`${tb} w-14`} onClick={() => { setZoom(1); setFit(true); }} title="Reset zoom / fit">{Math.round(scale * 100)}%</button>
-              <button className={tb} disabled={!!fixedW && fit} onClick={() => stepZoom(1)} aria-label="Zoom in">＋</button>
+            <span className="mx-1 h-5 w-px bg-zinc-800" aria-hidden="true" />
+            <div className="flex items-center" role="group" aria-label="Zoom">
+              <button className={tb} disabled={!!fixedW && fit} onClick={() => stepZoom(-1)} aria-label="Zoom out"><IconMinus size={15} /></button>
+              <button className={`${tb} w-14 tabular-nums`} onClick={() => { setZoom(1); setFit(true); }} title="Reset zoom / fit">{Math.round(scale * 100)}%</button>
+              <button className={tb} disabled={!!fixedW && fit} onClick={() => stepZoom(1)} aria-label="Zoom in"><IconPlus size={15} /></button>
             </div>
-            <div className="flex gap-1" role="group" aria-label="Device">
-              {(['desktop', 'tablet', 'mobile'] as const).map((d) => <button key={d} className={`${tb} ${device === d ? 'border-cyan-500 text-cyan-300' : ''}`} aria-pressed={device === d} onClick={() => { setDevice(d); setFit(true); setZoom(1); }} title={d}>{d === 'desktop' ? <IconDesktop size={16} /> : d === 'tablet' ? <IconTablet size={16} /> : <IconPhone size={16} />}</button>)}
+            <div className="flex rounded-lg bg-zinc-900 p-0.5 border border-zinc-800" role="group" aria-label="Device">
+              {(['desktop', 'tablet', 'mobile'] as const).map((d) => <button key={d} className={`h-8 w-9 rounded-md flex items-center justify-center cursor-pointer transition-colors ${device === d ? 'bg-zinc-700 text-cyan-300' : 'text-zinc-400 hover:text-zinc-100'}`} aria-pressed={device === d} aria-label={`${d} preview`} onClick={() => { setDevice(d); setFit(true); setZoom(1); }} title={d}>{d === 'desktop' ? <IconDesktop size={16} /> : d === 'tablet' ? <IconTablet size={16} /> : <IconPhone size={16} />}</button>)}
             </div>
-            <button data-tour="fullpreview" className={tb} onClick={fullPreview}>↗ Preview</button>
+            <span className="mx-1 h-5 w-px bg-zinc-800" aria-hidden="true" />
+            <button data-tour="fullpreview" className={tb} onClick={fullPreview} title="Open the site in a new tab"><IconExternal size={15} /> Preview</button>
           </>
         )}
-        {isProject && !locked && <button data-tour="buy" className="h-9 px-3 rounded-lg bg-cyan-500 text-black text-xs font-mono font-semibold hover:bg-cyan-400 cursor-pointer whitespace-nowrap" onClick={() => setBuy(true)}><IconCheck size={15} /> <span className="hidden sm:inline">Confirm & buy</span><span className="sm:hidden">Buy</span></button>}
+        <button className={tb} onClick={() => setTour(true)} aria-label="Take the quick tour" title="Quick tour"><IconInfo size={17} /></button>
+        {isProject && !locked && <button data-tour="buy" className="h-9 px-3.5 rounded-lg bg-cyan-500 text-black text-xs font-sans font-semibold hover:bg-cyan-400 cursor-pointer whitespace-nowrap inline-flex items-center gap-1.5 ml-1" onClick={() => setBuy(true)}><IconCheck size={15} /> <span className="hidden sm:inline">Confirm & buy</span><span className="sm:hidden">Buy</span></button>}
       </header>
 
       {/* ── status banners ── */}
-      <div role="status" className="text-[11px] font-mono text-zinc-500 px-3 py-1 border-b border-zinc-900 bg-zinc-950 flex items-center gap-2 flex-wrap">
+      <div role="status" className={`text-[11px] font-sans text-zinc-500 px-4 py-1 border-b border-zinc-900 bg-zinc-950 items-center gap-2 flex-wrap ${isLg && !viewMode ? 'sr-only' : 'flex'}`}>
         <span>{viewMode ? 'View mode — exactly how visitors see your site. Links and menus work.' : saveLabel}</span>
         {viewMode && <span className="ml-auto">{saveLabel}</span>}
       </div>
@@ -484,7 +490,7 @@ export default function Editor({ mode, id, keyStr }: { mode: 'project' | 'templa
       {locked && isProject && (
         <div className="px-3 py-2 text-xs bg-amber-500/10 border-b border-amber-500/30 text-amber-200 flex flex-wrap items-center gap-3">
           {meta.order!.paid
-            ? <><span>Paid — your website is ready.</span><button className="px-3 py-1 rounded bg-emerald-500 text-black font-mono font-semibold cursor-pointer" onClick={download}>⬇ Download website (.zip)</button></>
+            ? <><span>Paid — your website is ready.</span><button className="px-3 py-1 rounded bg-emerald-500 text-black font-mono font-semibold cursor-pointer" onClick={download}><IconDownload size={14} /> Download website (.zip)</button></>
             : <><span>Order placed ({meta.order!.ticket}) — waiting for your payment to be confirmed.</span><Link href={`/track?id=${meta.order!.ticket}`} className="underline">Go to payment →</Link><button className="underline cursor-pointer" onClick={unlock}>Unlock to keep editing</button></>}
         </div>
       )}
@@ -492,17 +498,17 @@ export default function Editor({ mode, id, keyStr }: { mode: 'project' | 'templa
       {/* ── workspace ── */}
       <div className="flex-1 min-h-0 flex">
         {isLg && !viewMode && (
-          <nav data-tour="tools" className="w-16 shrink-0 border-r border-zinc-800 bg-zinc-950 flex flex-col items-center py-2 gap-1" aria-label="Tools">
+          <nav data-tour="tools" className="w-[72px] shrink-0 border-r border-zinc-800 bg-zinc-950 flex flex-col items-center py-2 gap-1" aria-label="Tools">
             {tools.map((t) => (
-              <button key={t.k} onClick={() => setTool(t.k)} aria-pressed={tool === t.k} className={`w-14 py-2 rounded-lg flex flex-col items-center gap-0.5 cursor-pointer ${tool === t.k ? 'bg-cyan-500/15 text-cyan-300' : 'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100'}`}>
-                <span className="leading-none"><t.icon size={20} /></span><span className="text-[10px] font-mono">{t.label}</span>
+              <button key={t.k} onClick={() => setTool(t.k)} aria-pressed={tool === t.k} className={`w-16 py-2.5 rounded-xl flex flex-col items-center gap-1 cursor-pointer ${tool === t.k ? 'bg-cyan-500/15 text-cyan-300' : 'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100'}`}>
+                <span className="leading-none"><t.icon size={20} /></span><span className="text-[10.5px] font-sans">{t.label}</span>
               </button>
             ))}
           </nav>
         )}
         {isLg && !viewMode && tool && (
           <aside className={`${panelW} shrink-0 border-r border-zinc-800 bg-zinc-950 flex flex-col min-h-0`} aria-label={toolTitle}>
-            <div className="px-3 py-2 border-b border-zinc-800 text-xs font-mono text-zinc-400">{toolTitle.toUpperCase()}</div>
+            <div className="px-4 py-3 border-b border-zinc-800 text-sm font-semibold text-zinc-100">{toolTitle}</div>
             <div className="flex-1 min-h-0 flex flex-col">{toolBody}</div>
           </aside>
         )}
@@ -524,7 +530,7 @@ export default function Editor({ mode, id, keyStr }: { mode: 'project' | 'templa
         {/* inspector: docked on wide screens */}
         {isXl && !viewMode && !isPro && (
           <aside className="w-[340px] shrink-0 border-l border-zinc-800 bg-zinc-950 flex flex-col min-h-0" aria-label="Inspector">
-            <div className="px-3 py-2 border-b border-zinc-800 text-xs font-mono text-zinc-400">INSPECTOR</div>
+            <div className="px-4 py-3 border-b border-zinc-800 text-sm font-semibold text-zinc-100">Edit block</div>
             <div className="flex-1 min-h-0"><Inspector api={api} /></div>
           </aside>
         )}
@@ -532,7 +538,7 @@ export default function Editor({ mode, id, keyStr }: { mode: 'project' | 'templa
 
       {/* inspector drawer (laptop widths) */}
       {isLg && !isXl && !viewMode && !isPro && inspOpen && sel && (
-        <aside className="fixed right-0 top-[88px] bottom-0 w-[340px] z-40 border-l border-zinc-700 bg-zinc-950 shadow-2xl flex flex-col" aria-label="Inspector"><Inspector api={api} onClose={() => setInspOpen(false)} /></aside>
+        <aside className="fixed right-0 top-[57px] bottom-0 w-[340px] z-40 border-l border-zinc-700 bg-zinc-950 shadow-2xl flex flex-col" aria-label="Inspector"><Inspector api={api} onClose={() => setInspOpen(false)} /></aside>
       )}
 
       {/* ── mobile: bottom nav + sheets ── */}
@@ -545,11 +551,11 @@ export default function Editor({ mode, id, keyStr }: { mode: 'project' | 'templa
               <>
                 <button className="col-span-3 text-xs font-mono text-zinc-300 cursor-pointer" onClick={() => setViewMode(false)}><IconPencil size={14} /> Back to editing</button>
                 <div className="col-span-2 flex items-center justify-center gap-1">{(['desktop', 'tablet', 'mobile'] as const).map((d) => <button key={d} aria-pressed={device === d} onClick={() => { setDevice(d); setFit(true); }} className={`w-9 h-9 rounded cursor-pointer ${device === d ? 'bg-cyan-500/20 text-cyan-300' : 'text-zinc-400'}`}>{d === 'desktop' ? <IconDesktop size={16} /> : d === 'tablet' ? <IconTablet size={16} /> : <IconPhone size={16} />}</button>)}</div>
-                <button className="col-span-2 text-xs font-mono text-zinc-300 cursor-pointer" onClick={fullPreview}>↗ Preview</button>
+                <button className="col-span-2 text-xs font-mono text-zinc-300 cursor-pointer" onClick={fullPreview}><IconExternal size={14} /> Preview</button>
               </>
             ) : tools.map((t) => (
               <button key={t.k} onClick={() => { setInspOpen(false); setTool(tool === t.k ? null : t.k); }} aria-pressed={tool === t.k && !inspOpen} className={`flex flex-col items-center justify-center gap-0.5 cursor-pointer ${tool === t.k && !(inspOpen && sel) ? 'text-cyan-300 bg-cyan-500/10' : 'text-zinc-400'}`}>
-                <span className="leading-none"><t.icon size={20} /></span><span className="text-[9px] font-mono">{t.label}</span>
+                <span className="leading-none"><t.icon size={20} /></span><span className="text-[9.5px] font-sans">{t.label}</span>
               </button>
             ))}
           </nav>

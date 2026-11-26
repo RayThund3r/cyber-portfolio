@@ -11,7 +11,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ATTACH, formatBytes, kindOfName } from '@/lib/attachmentRules';
 import { SHRINK, shrinkImage } from '@/lib/imageTools';
 import { analyzeFile } from '@/utils/chatEngine/fileInsights';
-import { readImageText } from '@/lib/ocr';
+import { ocrMode, readImageText } from '@/lib/ocr';
 import type { FileInsight } from '@/utils/chatEngine/types';
 
 export interface SharedFile {
@@ -75,19 +75,23 @@ export function useAttachments() {
         }
         const { pending: p, shared: s } = latest.current;
         const count = p.length + s.length + added.length;
-        if (count >= ATTACH.maxFiles) {
-          problems.push(`You can share up to ${ATTACH.maxFiles} files in one chat.`);
+        if (count >= ATTACH.maxReadFiles) {
+          problems.push(`You can share up to ${ATTACH.maxReadFiles} files in one chat.`);
           break;
         }
         const total = [...p, ...s, ...added].reduce((n, f) => n + f.file.size, 0) + file.size;
-        if (total > ATTACH.maxTotalBytes) {
-          problems.push(`That would be more than ${formatBytes(ATTACH.maxTotalBytes)} in total.`);
+        if (total > ATTACH.maxReadTotalBytes) {
+          problems.push(`That would be more than ${formatBytes(ATTACH.maxReadTotalBytes)} in total.`);
           continue;
         }
         try {
           setStatus('Reading file…');
           const insight = await analyzeFile(file);
           if (note) insight.note = note;
+          // Where the browser can read text in pictures instantly and for free (no download), do it straight away so the assistant can answer about screenshots.
+          if (insight.kind === 'image' && ocrMode() === 'native') {
+            try { const t = await readImageText(file, setStatus); if (t) { insight.text = t; insight.excerpt = t.slice(0, 3000); insight.summary += ' · text read'; } } catch { /* the "Read text" button is still there */ }
+          }
           let previewUrl: string | undefined;
           if (insight.kind === 'image') {
             previewUrl = URL.createObjectURL(file);

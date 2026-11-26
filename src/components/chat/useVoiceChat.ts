@@ -32,6 +32,9 @@ interface Args {
 export function useVoiceChat(a: Args) {
   const [prefs, setPrefs] = useState<VoicePrefs>(DEFAULT_VOICE_PREFS);
   const [panelOpen, setPanelOpen] = useState(false);
+  /** Voice conversation (full-screen mode): always auto-sends, reads replies, and listens again by itself. */
+  const [session, setSessionState] = useState(false);
+  const sessionRef = useRef(false);
   const prefsRef = useRef(prefs);
   prefsRef.current = prefs;
   const A = useRef(a);
@@ -91,7 +94,7 @@ export function useVoiceChat(a: Args) {
       },
       onProblem: (m) => { loop.current = false; A.current.toast(m); },
     },
-    { lang: prefs.lang, autoSend: prefs.autoSend }
+    { lang: prefs.lang, autoSend: prefs.autoSend || session }
   );
   const voiceRef = useRef(voice);
   voiceRef.current = voice;
@@ -103,7 +106,7 @@ export function useVoiceChat(a: Args) {
       rate: p.rate,
       voice: p.voice,
       lang: 'en-US',
-      onEnd: () => { if (loop.current && prefsRef.current.handsFree && A.current.open) window.setTimeout(() => startListening(), 250); },
+      onEnd: () => { if (loop.current && (prefsRef.current.handsFree || sessionRef.current) && A.current.open) window.setTimeout(() => startListening(), 250); },
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -117,7 +120,34 @@ export function useVoiceChat(a: Args) {
 
   const toggleMic = useCallback(() => {
     if (voiceRef.current?.listening) { loop.current = false; voiceRef.current.stop(); return; }
-    loop.current = prefsRef.current.handsFree;
+    loop.current = prefsRef.current.handsFree || sessionRef.current;
+    startListening();
+  }, [startListening]);
+
+  const startSession = useCallback(() => {
+    sessionRef.current = true;
+    setSessionState(true);
+    loop.current = true;
+    base.current = '';
+    A.current.setDraft('');
+    startListening();
+  }, [startListening]);
+
+  const endSession = useCallback(() => {
+    sessionRef.current = false;
+    setSessionState(false);
+    loop.current = false;
+    base.current = '';
+    A.current.setDraft('');
+    voiceRef.current?.stop();
+    speechRef.current.stop();
+  }, []);
+
+  /** Tap on the orb: interrupt a reply and talk, pause listening, or start listening again. */
+  const tapOrb = useCallback(() => {
+    if (speechRef.current.speaking) { speechRef.current.stop(); loop.current = true; startListening(); return; }
+    if (voiceRef.current?.listening) { loop.current = false; voiceRef.current.stop(); return; }
+    loop.current = true;
     startListening();
   }, [startListening]);
 
@@ -134,7 +164,7 @@ export function useVoiceChat(a: Args) {
     lastReply.current = { id: last.id, text: last.text };
     const p = prefsRef.current;
     if (!a.open) return;
-    if (p.speakReplies || (loop.current && p.handsFree)) {
+    if (p.speakReplies || sessionRef.current || (loop.current && p.handsFree)) {
       if (speechRef.current.supported) speakNow(last.id, last.text);
       else if (loop.current) window.setTimeout(() => startListening(), 300);
     }
@@ -151,6 +181,8 @@ export function useVoiceChat(a: Args) {
   // Closing the chat silences everything.
   useEffect(() => {
     if (a.open) return;
+    sessionRef.current = false;
+    setSessionState(false);
     loop.current = false;
     voiceRef.current?.stop();
     speechRef.current.stop();
@@ -168,6 +200,10 @@ export function useVoiceChat(a: Args) {
     panelOpen,
     setPanelOpen,
     onUserSend,
+    session,
+    startSession,
+    endSession,
+    tapOrb,
     ui: {
       canSpeak: speech.supported,
       speakingId: speech.speakingId,
