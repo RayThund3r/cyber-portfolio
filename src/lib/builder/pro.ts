@@ -1,8 +1,9 @@
 // src/lib/builder/pro.ts — "Pro" self-sufficient sites (shop / booking / quotes + owner admin), powered by the Site Engine
 // (engine/*.js, compiled into engine.generated.ts). The editor, validator and AI all work from PRO_GROUPS.
-import { COL, FONT_PAIRS, IMG, LIST, NUM, PASS, SEL, T, TA, TOG, URLF, defaultsFor, fieldDoc, o, type Field, type ProConfig, type SiteConfig } from './schema';
+import { COL, EMO, FONT_PAIRS, IMG, LIST, NUM, PASS, SEL, T, TA, TOG, URLF, defaultsFor, fieldDoc, o, type Field, type ProConfig, type SiteConfig } from './schema';
 import { ASSET_RE, safeUrl } from './sanitize';
 import { hashPass } from './sha256';
+import { faviconFor } from '../icons';
 import { ENGINE_APP_JS, ENGINE_CORE_JS, ENGINE_CSS } from './engine.generated';
 import type { BuildOptions, BuiltSite } from './generate';
 
@@ -14,39 +15,39 @@ const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const RADIUS = o(['sharp', 'Square'], ['soft', 'Soft'], ['round', 'Very round']);
 
 export const PRO_GROUPS: ProGroup[] = [
-  { id: 'setup', title: 'Site type & sections', icon: '🧩', help: 'Choose what visitors can do, and which sections appear (drag ↑↓ to reorder).', fields: [
+  { id: 'setup', title: 'Site type & sections', icon: 'layers', help: 'Choose what visitors can do, and which sections appear (drag ↑↓ to reorder).', fields: [
     SEL('mode', 'What should visitors be able to do?', o(['shop', 'Buy online (cart, checkout, orders)'], ['book', 'Book appointments'], ['quote', 'Ask for quotes'], ['none', 'Just browse (showcase)']), 'shop'),
     T('currency', 'Currency code', 'UGX', { max: 5 }),
     SEL('lang', 'Site language', o(['en', 'English'], ['sw', 'Kiswahili'], ['fr', 'French']), 'en'),
     LIST('order', 'Page sections', [SEL('id', 'Section', SEC_OPTS, 'about'), TOG('show', 'Show this section', true)], PRO_SECTIONS.map((id) => ({ id, show: true })), { max: 9, itemLabel: 'Section', titleKey: 'id' }),
   ] },
-  { id: 'business', title: 'Business details', icon: '🏪', fields: [
+  { id: 'business', title: 'Business details', icon: 'store', fields: [
     T('name', 'Business name', 'Your Business', { max: 60 }), T('tag', 'Tagline', 'What makes you special, in one line', { max: 120 }),
     TA('about', 'About your business', 'Tell customers who you are and why they should trust you.\n\nUse a blank line for a new paragraph.', { max: 1500 }),
     T('phone', 'Phone', '', { max: 30 }), T('wa', 'WhatsApp number (customers will message you here)', '', { max: 20, placeholder: '0700123456' }), T('email', 'Email', '', { max: 100 }),
     T('addr', 'Address', '', { max: 160 }), T('hours', 'Opening hours', 'Mon–Sat 8:00–18:00', { max: 120 }), T('ig', 'Instagram (handle or link)', '', { max: 100 }), T('announce', 'Announcement bar (optional)', '', { max: 140 }),
     IMG('logo', 'Logo (optional)', ''), IMG('logoDark', 'Logo for dark mode (optional)', ''), T('mono', 'Initials (shown if no logo)', 'YB', { max: 3 }),
   ] },
-  { id: 'look', title: 'Look & feel', icon: '🎨', fields: [
+  { id: 'look', title: 'Look & feel', icon: 'palette', fields: [
     COL('accent', 'Main colour', '#2563eb'), COL('accent2', 'Second colour', '#0ea5e9'),
     SEL('theme', 'Light / dark', o(['auto', 'Follow the visitor’s device'], ['light', 'Always light'], ['dark', 'Always dark']), 'auto'),
     SEL('fontPair', 'Fonts', FONT_PAIRS.map((f) => ({ value: f.id, label: f.label })), 'modern'), SEL('radius', 'Corners', RADIUS, 'soft'),
   ] },
-  { id: 'hero', title: 'Top banner (slider)', icon: '🖼️', fields: [
+  { id: 'hero', title: 'Top banner (slider)', icon: 'image', fields: [
     SEL('fx', 'Slide effect', o(['fade', 'Fade'], ['slide', 'Slide'], ['zoom', 'Zoom']), 'fade'), TOG('auto', 'Change slides automatically', true), NUM('speed', 'Seconds per slide', 5.5, { min: 2, max: 20 }),
     LIST('slides', 'Slides', [IMG('u', 'Picture', ''), T('t', 'Headline', 'Welcome', { max: 100 }), T('s', 'Sub-headline', '', { max: 200 }), T('cta', 'Button text', 'Learn more', { max: 24 }), URLF('link', 'Button link (empty = main action)', '')],
       [{ u: '', t: 'Welcome to our business', s: 'Quality you can trust', cta: 'Get started', link: '' }], { max: 8, itemLabel: 'Slide', titleKey: 't' }),
   ] },
-  { id: 'about', title: 'About section', icon: '📖', fields: [
+  { id: 'about', title: 'About section', icon: 'book', fields: [
     T('eyebrow', 'Small label', 'Our story', { max: 30 }), T('title', 'Title', 'About us', { max: 80 }), IMG('img', 'Picture', ''),
     LIST('stats', 'Numbers', [T('v', 'Number', '10+', { max: 12 }), T('l', 'Label', 'Years', { max: 30 })], [{ v: '100+', l: 'Happy customers' }, { v: '5', l: 'Years' }, { v: '24/7', l: 'Support' }], { max: 4, itemLabel: 'Number', titleKey: 'l' }),
   ] },
-  { id: 'services', title: 'Services', icon: '✨', fields: [
+  { id: 'services', title: 'Services', icon: 'sparkles', fields: [
     T('eyebrow', 'Small label', 'What we do', { max: 30 }), T('title', 'Title', 'Our services', { max: 80 }), TA('intro', 'Intro', '', { max: 240 }),
     LIST('items', 'Services', [T('t', 'Name', 'Service', { max: 60 }), TA('d', 'Description', '', { max: 300 }), T('p', 'Price note (optional)', '', { max: 40 })],
       [{ t: 'Our first service', d: 'Describe what you offer.', p: '' }, { t: 'Another service', d: 'Describe it here.', p: '' }], { max: 12, itemLabel: 'Service', titleKey: 't' }),
   ] },
-  { id: 'catalog', title: 'Shop: products, payments & delivery', icon: '🛍️', help: 'Used when visitors can buy online.', fields: [
+  { id: 'catalog', title: 'Shop: products, payments & delivery', icon: 'shopping-bag', help: 'Used when visitors can buy online.', fields: [
     T('eyebrow', 'Small label', 'Shop', { max: 30 }), T('title', 'Title', 'Our products', { max: 80 }), TA('intro', 'Intro', '', { max: 240 }),
     NUM('fee', 'Delivery fee', 0), TA('promos', 'Promo codes (one per line, e.g. WELCOME10=10% or SAVE5000=5000)', '', { max: 400 }),
     T('mtn', 'MTN Mobile Money number', '', { max: 20 }), T('mtnn', 'MTN account name', '', { max: 40 }), T('airtel', 'Airtel Money number', '', { max: 20 }), T('airteln', 'Airtel account name', '', { max: 40 }),
@@ -55,38 +56,38 @@ export const PRO_GROUPS: ProGroup[] = [
       LIST('images', 'Pictures', [IMG('u', 'Picture', '')], [], { max: 6, itemLabel: 'Picture', titleKey: 'u' })],
       [{ name: 'Sample product', category: 'General', price: 10000, stock: 20, description: 'Describe your product.', images: [] }], { max: 60, itemLabel: 'Product', titleKey: 'name' }),
   ] },
-  { id: 'booking', title: 'Booking / quotes', icon: '📅', help: 'Used for appointment or quote sites.', fields: [
+  { id: 'booking', title: 'Booking / quotes', icon: 'calendar', help: 'Used for appointment or quote sites.', fields: [
     T('eyebrow', 'Small label', 'Book now', { max: 30 }), T('title', 'Title', 'Book an appointment', { max: 80 }), TA('intro', 'Intro', 'Choose a day and time that suits you.', { max: 240 }),
     T('slots', 'Time slots (comma separated)', '09:00, 10:00, 11:00, 14:00, 15:00, 16:00', { max: 200 }), NUM('ahead', 'How many days ahead can people book?', 14, { min: 1, max: 120 }),
     ...DAYS.map((d, i) => TOG(`closed${i}`, `Closed on ${d}`, i === 0)), TA('deposit', 'Deposits (one per line: Service name=Amount)', '', { max: 400 }),
   ] },
-  { id: 'gallery', title: 'Gallery', icon: '📸', fields: [
+  { id: 'gallery', title: 'Gallery', icon: 'camera', fields: [
     T('eyebrow', 'Small label', 'Gallery', { max: 30 }), T('title', 'Title', 'Our work', { max: 80 }), TA('intro', 'Intro', '', { max: 240 }),
     LIST('items', 'Photos', [IMG('u', 'Photo', ''), T('c', 'Caption', '', { max: 80 })], [], { max: 40, itemLabel: 'Photo', titleKey: 'c' }),
   ] },
-  { id: 'reviews', title: 'Customer reviews', icon: '💬', fields: [
+  { id: 'reviews', title: 'Customer reviews', icon: 'message-circle', fields: [
     T('title', 'Title', 'What customers say', { max: 80 }),
     LIST('items', 'Reviews', [T('n', 'Customer name', '', { max: 50 }), TA('q', 'Review', '', { max: 400 })], [{ n: 'Happy Customer', q: 'Excellent service — I will definitely come back!' }], { max: 12, itemLabel: 'Review', titleKey: 'n' }),
   ] },
-  { id: 'faq', title: 'FAQ', icon: '❓', fields: [
+  { id: 'faq', title: 'FAQ', icon: 'help-circle', fields: [
     T('title', 'Title', 'Frequently asked questions', { max: 80 }),
     LIST('items', 'Questions', [T('q', 'Question', '', { max: 150 }), TA('a', 'Answer', '', { max: 600 })], [{ q: 'How do I order?', a: 'Choose what you like and send us your order — we will confirm quickly.' }], { max: 15, itemLabel: 'Question', titleKey: 'q' }),
   ] },
-  { id: 'contact', title: 'Contact & order delivery', icon: '📞', fields: [
+  { id: 'contact', title: 'Contact & order delivery', icon: 'phone', fields: [
     T('eyebrow', 'Small label', 'Say hello', { max: 30 }), T('title', 'Title', 'Contact us', { max: 80 }), TA('intro', 'Intro', 'We reply fast — usually within the hour.', { max: 240 }),
     URLF('endpoint', 'Send orders & bookings to my email (optional — paste a Formspree / Getform link)', '', { help: 'Orders always go to your WhatsApp. Add this link to ALSO receive them by email.' }),
   ] },
-  { id: 'features', title: 'Features on / off', icon: '🎛️', fields: [
+  { id: 'features', title: 'Features on / off', icon: 'sliders', fields: [
     TOG('theme', 'Light / dark button', true), TOG('lang', 'English ⇄ Kiswahili button', true), TOG('wa', 'Floating WhatsApp button', true), TOG('top', 'Back-to-top button', true),
     TOG('fav', 'Favourites (hearts)', true), TOG('track', 'Order tracking', true), TOG('news', 'Newsletter sign-up', true), TOG('admin', 'Owner admin panel (#admin)', true),
     TOG('cloud', 'Cloud inbox — orders, bookings & messages appear in your admin on EVERY device', true),
   ] },
-  { id: 'owner', title: 'Owner passcode', icon: '🔐', help: 'Protects your in-site admin panel. Only a scrambled (hashed) version is stored.', fields: [
+  { id: 'owner', title: 'Owner passcode', icon: 'lock', help: 'Protects your in-site admin panel. Only a scrambled (hashed) version is stored.', fields: [
     PASS('adminHash', 'Owner passcode', { companion: 'cloudVerifier' }),
     PASS('cloudVerifier', 'Cloud inbox key', { hidden: true }),
   ] },
-  { id: 'seo', title: 'Search engines', icon: '🔎', fields: [
-    T('title', 'Page title (Google)', '', { max: 70 }), TA('description', 'Description (Google)', '', { max: 160 }), T('favicon', 'Browser tab icon (emoji)', '🛍️', { max: 4 }),
+  { id: 'seo', title: 'Search engines', icon: 'search', fields: [
+    T('title', 'Page title (Google)', '', { max: 70 }), TA('description', 'Description (Google)', '', { max: 160 }), EMO('favicon', 'Browser tab icon', 'shopping-bag'),
   ] },
 ];
 
@@ -172,7 +173,7 @@ export function buildPro(cfg: SiteConfig, opts: BuildOptions): BuiltSite {
   const css = ENGINE_CSS + '\n' + proVars(p);
   const title = p.seo.title || `${b.name}${b.tag ? ' — ' + b.tag : ''}`;
   const desc = p.seo.description || b.tag || b.name;
-  const fav = `data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>${(p.seo.favicon || '🛍️').replace(/[<>"'&]/g, '')}</text></svg>`)}`;
+  const fav = faviconFor(p.seo.favicon || 'shopping-bag');
   const ld = safeJson({ '@context': 'https://schema.org', '@type': 'LocalBusiness', name: b.name, description: desc, ...(b.phone ? { telephone: b.phone } : {}), ...(b.email ? { email: b.email } : {}), ...(b.addr ? { address: b.addr } : {}), ...(b.hours ? { openingHours: b.hours } : {}) });
   const inJs = (x: string) => x.replace(/<\/script/gi, '<\\/script');
   const inCss = (x: string) => x.replace(/<\/style/gi, '<\\/style');

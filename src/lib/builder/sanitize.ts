@@ -44,7 +44,7 @@ function coerce(f: Field, v: any, ctx: SanitizeCtx): any {
     case 'code': return clean(v, f.max ?? 20000, true); // raw code: only control characters are removed
     case 'number': { const n = Number(v); const lo = f.min ?? 0, hi = f.max ?? 1e9; return Number.isFinite(n) ? Math.min(hi, Math.max(lo, Math.round(n * 100) / 100)) : Number(f.def ?? 0); }
     case 'passcode': return typeof v === 'string' && /^[0-9a-f]{64}$/.test(v) ? v : ''; // only a SHA-256 hash is ever stored
-    case 'emoji': return clean(v, 8).replace(/[<>"'&]/g, '');
+    case 'emoji': return clean(v, 24).replace(/[<>"'&\s]/g, '');
     case 'url': return safeUrl(v);
     case 'image': return safeImage(v, ctx);
     case 'color': return typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v) ? v.toLowerCase() : String(f.def || '#000000');

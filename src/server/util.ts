@@ -1,5 +1,6 @@
 // src/server/util.ts
 import 'server-only';
+import { stripEmoji } from '@/lib/icons';
 
 export const esc = (v: unknown): string =>
   String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -7,8 +8,9 @@ export const esc = (v: unknown): string =>
 export const oneLine = (v: unknown, max: number): string =>
   String(v ?? '').replace(/[\r\n\t]+/g, ' ').trim().slice(0, max);
 
+/** Visitor text: no NUL bytes and no emoji (the site shows icons, never emoji). */
 export const clean = (v: unknown, max: number): string =>
-  typeof v === 'string' ? v.replace(/\u0000/g, '').trim().slice(0, max) : '';
+  typeof v === 'string' ? stripEmoji(v.replace(/\u0000/g, '')).trim().slice(0, max) : '';
 
 /** Plain addresses only: no commas, semicolons, angle brackets or quotes, so one field can never mean "several recipients" or a display-name trick. */
 export const EMAIL_RE = /^[A-Za-z0-9._%+'-]{1,64}@[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*\.[A-Za-z]{2,24}$/;

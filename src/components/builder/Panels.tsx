@@ -169,9 +169,9 @@ export function SettingsPanel({ api, onNew, onDuplicate, onBackup, onFullPreview
         <section className="space-y-2">
           <h3 className="text-xs font-mono text-cyan-300">PROJECT</h3>
           <button className={btn} onClick={onNew}>＋ New project…</button>
-          <button className={btn} onClick={onDuplicate}>⧉ Duplicate this project</button>
+          <button className={btn} onClick={onDuplicate}>Duplicate this project</button>
           <button className={btn} onClick={onFullPreview}><IconExternal size={14} /> Open full preview in a new tab</button>
-          <button className={btn} onClick={onBackup}>⬇ Download a backup file (.json)</button>
+          <button className={btn} onClick={onBackup}>Download a backup file (.json)</button>
         </section>
       )}
       {api.cfg.kind !== 'pro' && <>
@@ -197,7 +197,7 @@ export function Inspector({ api, onClose }: { api: EditorApi; onClose?: () => vo
         <SectionIcon type={s.type} size={20} />
         <div className="flex-1 min-w-0"><div className="text-sm font-semibold truncate">{def.label}</div><div className="text-[10px] font-mono text-zinc-500">{s.id}</div></div>
         {!def.fixed && <>
-          <button className={ib} aria-label="Duplicate" disabled={api.locked} onClick={() => api.ops.duplicate(s.id)}>⧉</button>
+          <button className={ib} aria-label="Duplicate" disabled={api.locked} onClick={() => api.ops.duplicate(s.id)}><IconCopy size={14} /></button>
           <button className={ib} aria-label="Delete" disabled={api.locked} onClick={() => api.ops.remove(s.id)}><IconTrash size={15} /></button>
         </>}
         {onClose && <button className={ib} aria-label="Close" onClick={onClose}><IconClose size={16} /></button>}

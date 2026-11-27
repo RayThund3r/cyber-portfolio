@@ -12,7 +12,7 @@ import Icon from '@/components/ui/Icon';
 
 const label = 'mb-2 font-mono text-[10px] uppercase tracking-widest text-accent sm:text-xs';
 const SRC: Record<string, string> = { google: 'Google', whatsapp: 'WhatsApp', facebook: 'Facebook', instagram: 'Instagram', other: '' };
-const Stars = ({ n }: { n: number }) => <span className="flex gap-0.5 text-base leading-none text-amber-400" role="img" aria-label={`${n} out of 5 stars`}>{[1, 2, 3, 4, 5].map((i) => <span key={i} aria-hidden="true" className={i <= n ? '' : 'opacity-25'}>★</span>)}</span>;
+const Stars = ({ n }: { n: number }) => <span className="flex gap-0.5 text-base leading-none text-amber-400" role="img" aria-label={`${n} out of 5 stars`}>{[1, 2, 3, 4, 5].map((i) => <span key={i} aria-hidden="true" className={i <= n ? '' : 'opacity-25'}><svg width="1em" height="1em" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.500l2.900 6 6.600.9-4.800 4.600 1.200 6.500L12 17.300 6.100 20.500l1.200-6.500L2.500 9.400l6.600-.9z" /></svg></span>)}</span>;
 
 export function StatsStrip() {
   const { stats } = useSiteContent();

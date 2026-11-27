@@ -341,3 +341,33 @@ Verified: full suite ALL GREEN. Not verified: real `next build`; the new tabs/ma
 - New `VoiceMode.tsx` (orb states, live captions, tap to interrupt, settings sheet) driven by `startSession/endSession/tapOrb` in `useVoiceChat.ts`. `VoicePanel.tsx` removed. Not tested on a real device/microphone.
 - File reading: cloud/remote AI now receive file text (redacted, ~10k chars); images use OCR text only (no vision). Attachment tray now says file text is read to answer.
 - Builder editor: icon top bar, grouped zoom/device controls, wider panels, save status inline. Template/content emojis (generated site cards) intentionally unchanged.
+
+## Round 38 — from the older merged snapshot
+- Admin → Calendar tab (month view of booked visits), `components/admin/CalendarPanel.tsx`; chevron icons added to `ui/Icon.tsx`.
+- `tests/noemoji.test.cjs` (source scan; registered in run-all) — remaining emoji/glyphs in admin, chat, builder chrome and studio replaced with icons or words.
+- Old tests kept in `tests/legacy/` (not run); `documentation/ADMIN.md` rewritten for the current admin.
+
+## Round 39 — strictly no emoji
+- Interface, chat texts, builder templates/drafts, studio engine and the generated-site engine contain no emoji (tests/noemoji.test.cjs scans all of src/ and engine/; allowed: lib/icons.ts table, speechText.ts patterns, studio engineData glyph keys that are swapped for SVG at run time).
+- Card icons and favicons are now icon names (`star`, `rocket`…); old projects that stored an emoji still render (mapped to the nearest icon, else dropped). Builder icon picker shows icons.
+- Chess pieces / checkers crown / star ratings drawn as SVG. Chat replies had emoji removed at source; `EmojiText` now drops any leftover emoji instead of showing it.
+- `engine/app.js` got an `IC()` icon helper; engine.generated.ts rebuilt.
+
+## Round 40 — Art gallery
+- Public `/art` (masonry grid, category chips, full-screen viewer with swipe/arrow keys), in nav/footer via `lib/siteMap.ts`, sitemap and chat navigation.
+- Admin → Build → **Art** tab (`components/admin/ArtPanel.tsx`): pick a picture, it is shrunk on the device (`lib/artImage.ts`, ~380 KB + thumbnail), saved through `/api/admin/art`. Pictures live under their own keys (`art-img-<id>`, `art-thumb-<id>`), list in `art-list`; served by `/api/art/<id>` with a year-long cache (URL carries `?v=`).
+- `admin()` gained an optional body-limit argument. Test: `tests/art.test.cjs`. The Backup & data download does NOT include artwork pictures yet.
+
+## Round 41 — Art gallery v2
+- /art rebuilt: spotlight hero, category chips with counts, search, sort, masonry/grid toggle, zoomable viewer (filmstrip, slideshow, fullscreen, share links `?piece=`), commission band.
+- Each piece stores a vivid `color` and average `tone` (computed in the browser on upload) used for glows.
+- Contact page accepts `?ref=<title>` to start the message.
+- Not run in a real browser; `next build` unverified. Artwork is not part of the Backup download.
+
+- Art admin: Download backup / Restore from backup (full pictures, restores only missing pieces) and Refresh glow colours for older pieces.
+
+## Round 42
+- Optional Telegram + CallMeBot WhatsApp alerts (lib/admin/auth.ts notify), optional Plausible/Umami script (layout), Health checklist rows, visitor text stripped of emoji (server/util.ts clean), ADMIN.md optional setups.
+
+## Round 43
+- Art page checked in a real Chromium render (desktop and phone): hero headline size, viewer buttons on phones.

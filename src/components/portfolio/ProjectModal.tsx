@@ -170,7 +170,7 @@ export default function ProjectModal({ project, position, onClose, onStep }: Mod
               onClick={onClose}
               className="ml-1 min-h-10 cursor-pointer rounded bg-zinc-800/60 px-3 text-zinc-400 transition-colors hover:bg-zinc-700 hover:text-zinc-100"
             >
-              [CLOSE ✕]
+              [CLOSE]
             </button>
           </div>
         </div>
@@ -399,7 +399,7 @@ function ModalBody({ project, onClose }: { project: ProjectItem; onClose: () => 
             onClick={share}
             className="min-h-11 flex-1 cursor-pointer rounded border border-zinc-800 bg-zinc-900 px-4 py-2.5 text-zinc-300 transition-all duration-200 hover:border-accent/40 hover:text-accent sm:flex-none"
           >
-            <span aria-live="polite">{copied ? 'LINK COPIED ✓' : 'SHARE_LINK'}</span>
+            <span aria-live="polite">{copied ? 'LINK COPIED' : 'SHARE_LINK'}</span>
           </button>
         </div>
 

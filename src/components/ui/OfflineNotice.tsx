@@ -24,7 +24,7 @@ export default function OfflineNotice() {
   return (
     <div role="status" aria-live="polite" className="pointer-events-none fixed inset-x-0 top-3 z-[150] flex justify-center px-4" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
       <div className={`ios-enter rounded-full border px-4 py-2 font-mono text-xs shadow-lg backdrop-blur ${offline ? 'border-amber-500/50 bg-zinc-900/90 text-amber-300' : 'border-emerald-500/50 bg-zinc-900/90 text-emerald-300'}`}>
-        {offline ? "You're offline. Forms and chat will work again when you reconnect." : 'Back online ✓'}
+        {offline ? "You're offline. Forms and chat will work again when you reconnect." : 'Back online'}
       </div>
     </div>
   );

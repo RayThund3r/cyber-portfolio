@@ -20,6 +20,11 @@ export const adminEnv = () => ({
   totp: (process.env.ADMIN_TOTP_SECRET || '').replace(/\s+/g, ''),
   webhook: process.env.ADMIN_WEBHOOK_URL || '',
   ntfy: process.env.ADMIN_NTFY_TOPIC || '',
+  // Optional free alert channels (see ADMIN.md): a Telegram bot, and WhatsApp through CallMeBot.
+  tgToken: process.env.TELEGRAM_BOT_TOKEN || '',
+  tgChat: process.env.TELEGRAM_CHAT_ID || '',
+  cmbPhone: (process.env.CALLMEBOT_PHONE || '').replace(/\D/g, ''),
+  cmbKey: process.env.CALLMEBOT_KEY || '',
 });
 export const adminConfigured = ownerConfigured;
 
@@ -72,6 +77,8 @@ export async function notify(text: string): Promise<void> {
   const tasks: Promise<unknown>[] = [];
   if (e.webhook && /^https:\/\//.test(e.webhook)) tasks.push(send(e.webhook, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ content: text, text }) }));
   if (e.ntfy && /^[A-Za-z0-9_-]{3,64}$/.test(e.ntfy)) tasks.push(send('https://ntfy.sh/' + e.ntfy, { method: 'POST', body: text, headers: { Title: 'SYS_PORTFOLIO admin' } }));
+  if (/^\d{6,12}:[A-Za-z0-9_-]{30,}$/.test(e.tgToken) && /^-?\d{4,20}$/.test(e.tgChat)) tasks.push(send(`https://api.telegram.org/bot${e.tgToken}/sendMessage`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ chat_id: e.tgChat, text: text.slice(0, 1000), disable_web_page_preview: true }) }));
+  if (/^\d{8,15}$/.test(e.cmbPhone) && /^[A-Za-z0-9]{3,20}$/.test(e.cmbKey)) tasks.push(send(`https://api.callmebot.com/whatsapp.php?phone=${e.cmbPhone}&apikey=${e.cmbKey}&text=${encodeURIComponent(text.slice(0, 500))}`, { method: 'GET' }));
   await Promise.all(tasks);
 }
 

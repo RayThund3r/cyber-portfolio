@@ -44,7 +44,7 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
     content:
       'Phone repair covers cracked or dead screens, battery replacement, charging port faults, water damage cleanup, software faults and board-level repair. The technician needs the phone model and the exact symptom to diagnose.',
     reply:
-      "I repair phones: cracked or dead screens, batteries that drain fast, charging port faults, water damage and board-level problems. 📱\n\nTell me the **model** and **what exactly is happening** (won't charge, no display, restarts...) and I'll point you in the right direction.",
+      "I repair phones: cracked or dead screens, batteries that drain fast, charging port faults, water damage and board-level problems.\n\nTell me the **model** and **what exactly is happening** (won't charge, no display, restarts...) and I'll point you in the right direction.",
     expert:
       'SYS_MOBILE_REPAIR // Scope: display assembly, battery cell, charge IC/port, liquid ingress cleanup, board-level faults. Provide: model + symptom + recent events (drop/water).',
     suggestions: ['Screen is cracked', "Phone won't charge", 'Battery drains fast', 'Get a quote'],
@@ -57,7 +57,7 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
     content:
       'PC and laptop service: diagnostics, screen/keyboard/battery replacement, RAM and SSD upgrades, OS reinstall, malware removal, thermal service, motherboard-level repair and data recovery attempts.',
     reply:
-      "For PCs and laptops I do diagnostics, screen/keyboard/battery replacement, RAM & SSD upgrades, OS reinstalls, virus removal, cooling service and motherboard-level repair. 💻\n\nWhat's the make/model and what is it doing?",
+      "For PCs and laptops I do diagnostics, screen/keyboard/battery replacement, RAM & SSD upgrades, OS reinstalls, virus removal, cooling service and motherboard-level repair.\n\nWhat's the make/model and what is it doing?",
     expert:
       'SYS_PC_SERVICE // Scope: POST/boot diagnostics, rail tracing, RAM/SSD upgrades, OS recovery, thermal service, data recovery. Provide: model + symptom + OS.',
     suggestions: ['Laptop won\'t turn on', 'PC is slow', 'Overheating', 'Data recovery'],
@@ -83,7 +83,7 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
     content:
       'Overheating is commonly dried thermal paste, clogged vents/dust, failing fan, blocked airflow (using laptop on soft surfaces), or heavy background load. Fixes: clean vents and fans, replace thermal paste/pads, use a hard surface or cooling pad, check Task Manager for runaway processes.',
     reply:
-      "Running hot is usually **dried thermal paste, dust-clogged vents/fans**, blocked airflow (laptop on a bed/sofa), or something hammering the CPU in the background. 🔥\n\nQuick wins: use it on a hard surface, check Task Manager for runaway processes, and don't ignore it — heat shortens component life. A proper clean + fresh thermal paste usually fixes it. Desktop or laptop?",
+      "Running hot is usually **dried thermal paste, dust-clogged vents/fans**, blocked airflow (laptop on a bed/sofa), or something hammering the CPU in the background.\n\nQuick wins: use it on a hard surface, check Task Manager for runaway processes, and don't ignore it — heat shortens component life. A proper clean + fresh thermal paste usually fixes it. Desktop or laptop?",
     expert:
       'SYS_THERMAL_DIAG // Likely: TIM degradation, intake/heatsink fouling, fan bearing wear, airflow obstruction, runaway process. Action: inspect temps under load, service cooler, repaste CPU/GPU, verify fan curve.',
     suggestions: ['It is a laptop', 'It is a desktop', 'Book a cleaning'],
@@ -110,7 +110,7 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
     content:
       'General gaming PC advice: spend most of the budget on the GPU, pair it with a balanced modern CPU, use an NVMe SSD, 16GB RAM minimum (dual channel), a quality power supply from a reputable brand, and good airflow. Avoid bottlenecks and cheap unbranded PSUs. Prices vary, so confirm current availability and budget with the technician.',
     reply:
-      "For a gaming PC the sweet spot is: **put most of the budget into the GPU**, pair it with a balanced modern CPU, use an **NVMe SSD**, **16GB RAM** (two sticks), a **quality branded PSU**, and a case with good airflow. Skip no-name power supplies — they're the part that can take other parts with them. 🎮\n\nWhat's your budget and what games do you play? I can suggest a balanced setup.",
+      "For a gaming PC the sweet spot is: **put most of the budget into the GPU**, pair it with a balanced modern CPU, use an **NVMe SSD**, **16GB RAM** (two sticks), a **quality branded PSU**, and a case with good airflow. Skip no-name power supplies — they're the part that can take other parts with them.\n\nWhat's your budget and what games do you play? I can suggest a balanced setup.",
     expert:
       'SYS_BUILD_ADVISOR // Priority: GPU > CPU balance > NVMe > 16GB dual-channel RAM > certified PSU > airflow. Provide: budget, target resolution/FPS, titles.',
     suggestions: ['Budget build', 'Upgrade my current PC', 'Get a quote'],
@@ -136,7 +136,7 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
     content:
       'Design services: logos, brand identity (colors, typography, guidelines), posters, flyers, business cards, social media graphics. Tools: Adobe Photoshop, Illustrator, Figma. Deliverables include scalable vector files plus print-ready exports.',
     reply:
-      "I design logos, full brand identities, posters, flyers, business cards and social graphics using Photoshop, Illustrator and Figma. 🎨 You get **scalable vector files** and print-ready exports.\n\nWhat's the business or project, and do you already have colours or a style in mind?",
+      "I design logos, full brand identities, posters, flyers, business cards and social graphics using Photoshop, Illustrator and Figma. You get **scalable vector files** and print-ready exports.\n\nWhat's the business or project, and do you already have colours or a style in mind?",
     expert:
       'DESIGN_ENGINE // Deliverables: SVG/AI vector masters, PNG/PDF print exports, brand guidelines. Toolchain: Illustrator, Photoshop, Figma.',
     suggestions: ['I need a logo', 'Brand identity', 'Poster / flyer', 'Get a quote'],
@@ -149,7 +149,7 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
     content:
       'Embroidery and fabric print preparation: converting artwork into machine-ready formats (DST, PES), formatting name lists for batch embroidery/printing, cleaning and vectorising logos so they stitch or print cleanly at small sizes.',
     reply:
-      "I prepare artwork and name lists for **embroidery and fabric printing**: cleaning/vectorising logos, setting them up for small sizes, and exporting machine formats like **DST/PES**. Great for uniforms, jerseys and branded wear. 🧵\n\nWhat machine or format does your printer/embroiderer need?",
+      "I prepare artwork and name lists for **embroidery and fabric printing**: cleaning/vectorising logos, setting them up for small sizes, and exporting machine formats like **DST/PES**. Great for uniforms, jerseys and branded wear.\n\nWhat machine or format does your printer/embroiderer need?",
     expert:
       'EMB_PREP // Pipeline: vectorise -> simplify for stitch density -> export DST/PES; batch name-list formatting for print/embroidery. Provide: target machine, garment, size.',
     suggestions: ['Name list formatting', 'Digitise my logo', 'Get a quote'],
@@ -162,7 +162,7 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
     content:
       'Web development with Next.js, React, TypeScript, Tailwind CSS and Framer Motion: portfolio sites, business sites, landing pages, dashboards and small web apps; responsive design, SEO basics, and deployment help.',
     reply:
-      "I build fast, responsive sites with **Next.js, React, TypeScript and Tailwind** (with Framer Motion for polish): business sites, portfolios, landing pages, dashboards and small web apps. 🌐\n\nWhat do you want the site to do, and do you have a deadline or reference sites you like?",
+      "I build fast, responsive sites with **Next.js, React, TypeScript and Tailwind** (with Framer Motion for polish): business sites, portfolios, landing pages, dashboards and small web apps.\n\nWhat do you want the site to do, and do you have a deadline or reference sites you like?",
     expert:
       'WEB_ENGINEERING // Stack: Next.js, React, TS, Tailwind, Framer Motion. Output: responsive SSR/SSG apps, SEO baseline, deploy pipeline.',
     suggestions: ['Business website', 'Portfolio website', 'Web app', 'Get a quote'],
@@ -174,7 +174,7 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
     keywords: ['mobile app', 'mobile apps', 'android app', 'ios app', 'iphone app', 'app development', 'native app', 'flutter', 'react native', 'play store', 'app store', 'pwa', 'build an app', 'make an app'],
     content: 'The listed work is web: responsive web apps and installable web apps (PWAs). Native iOS/Android store apps are not listed; the owner confirms what is possible.',
     reply:
-      "The work I can point to is **web**: responsive web apps that work great on phones, and installable web apps (PWAs) that sit on the home screen. 📱 Native Play Store / App Store apps aren't something I can promise from here, so I'd rather pass that to the owner to confirm.\n\nTell me what the app should do and I'll put a short brief together.",
+      "The work I can point to is **web**: responsive web apps that work great on phones, and installable web apps (PWAs) that sit on the home screen. Native Play Store / App Store apps aren't something I can promise from here, so I'd rather pass that to the owner to confirm.\n\nTell me what the app should do and I'll put a short brief together.",
     expert: 'WEB_ENGINEERING // Listed: responsive web apps, PWA. Native store apps: not listed, owner to confirm.',
     suggestions: ['Web app', 'Get a quote', 'Send this to the owner'],
   },
@@ -214,7 +214,7 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
     content:
       'We design complete, responsive business websites made to order: hero slideshow, product or service catalogue with search and categories, cart with WhatsApp ordering, appointment booking or quote requests, reviews, gallery, FAQ, light and dark modes, English/Swahili/Luganda, and an owner admin page. Examples are in the portfolio with working live demos.',
     reply:
-      "Yes, we build **complete business websites** to order. 🌐\n\nA typical site has:\n- a hero slideshow, about, services and a **product catalogue** with search\n- a **cart that sends orders to your WhatsApp**\n- **appointment booking** or **quote requests**\n- reviews, gallery, FAQ, light & dark mode and **English / Swahili / Luganda**\n- an **owner admin page** to manage products and orders\n\nIt looks great on phones, tablets and computers. Open the **portfolio** to try live demos, then send a request and we will quote you before any work starts.",
+      "Yes, we build **complete business websites** to order.\n\nA typical site has:\n- a hero slideshow, about, services and a **product catalogue** with search\n- a **cart that sends orders to your WhatsApp**\n- **appointment booking** or **quote requests**\n- reviews, gallery, FAQ, light & dark mode and **English / Swahili / Luganda**\n- an **owner admin page** to manage products and orders\n\nIt looks great on phones, tablets and computers. Open the **portfolio** to try live demos, then send a request and we will quote you before any work starts.",
     expert:
       'CUSTOM_SITES // Made-to-order responsive business sites: slideshow, catalogue, cart->WhatsApp, booking or quote flow, reviews, gallery, FAQ, light/dark, EN/SW/LG, owner admin. Live demos in portfolio. Quote before work.',
     suggestions: ['Build me a website', 'Show me your websites', 'Request a custom website', 'How much does it cost?', 'Open the template builder'],
@@ -227,7 +227,7 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
     content:
       'The Template Builder lets anyone pick a ready-made website template (business, portfolio, restaurant, product landing page), customize every text, photo, colour, font and section with a live preview and no coding, then confirm it is ready, pay by mobile money, and download the finished site as a zip (HTML, CSS, JavaScript, Bootstrap) to upload to any hosting. Prices are shown on each template.',
     reply:
-      "You can build your own website here **without any coding**! 🎨\n\n1. **Pick a template** (business, portfolio, restaurant, product page)\n2. **Make it yours** — change every word, photo, colour, font and section with a live preview\n3. **Confirm it's ready**, pay by mobile money, then **download your site as a .zip** to upload to any hosting\n\nSay **\"open the template builder\"** and I'll take you there.",
+      "You can build your own website here **without any coding**!\n\n1. **Pick a template** (business, portfolio, restaurant, product page)\n2. **Make it yours** — change every word, photo, colour, font and section with a live preview\n3. **Confirm it's ready**, pay by mobile money, then **download your site as a .zip** to upload to any hosting\n\nSay **\"open the template builder\"** and I'll take you there.",
     expert:
       'TEMPLATE_BUILDER // Flow: choose template -> customize (no code, live preview) -> confirm -> mobile-money payment -> download .zip (HTML/CSS/JS/Bootstrap). Say "open template builder".',
     suggestions: ['Open template builder', 'How much do templates cost?', 'Request a custom website', 'Track my request'],
@@ -254,7 +254,7 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
     content:
       'Pricing depends on the device/model and fault (repairs), or scope and deliverables (design/web). The owner gives a quote after diagnosis or a short brief. No exact prices are published in this chat, so do not state numbers.',
     reply:
-      "Pricing depends on the job: for repairs it's the **device + fault** (and parts), for design/web it's the **scope and deliverables**. I don't want to guess numbers here — send me the details and you'll get a clear, straightforward quote with no hidden fees. 💬",
+      "Pricing depends on the job: for repairs it's the **device + fault** (and parts), for design/web it's the **scope and deliverables**. I don't want to guess numbers here — send me the details and you'll get a clear, straightforward quote with no hidden fees.",
     expert:
       'SLA_PRICING // Quote basis: diagnostic tier + parts (repair) | scope + deliverables (design/web). No hidden fees. Submit details via contact module.',
     suggestions: ['Quote for a repair', 'Quote for a website', 'Quote for a logo', 'Contact'],
@@ -267,7 +267,7 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
     content: `Location: ${SITE.location}. ${contactLine || 'Use the contact section of the website to send a message.'}`,
     reply: `I'm based in **${SITE.location}**. ${
       contactLine ? contactLine + '. ' : ''
-    }The quickest way to reach me is the contact section of this site — I can take you there. 📍`,
+    }The quickest way to reach me is the contact section of this site — I can take you there.`,
     expert: `NODE_LOCATION // ${SITE.location}. ${contactLine || 'Direct link: contact module.'}`,
     suggestions: ['Open contact section', 'Get a quote'],
   },
@@ -279,7 +279,7 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
     content:
       `Typical timelines from the services page: hardware diagnostics and repair ${TIME(0)}; brand identity and graphic design ${TIME(1)}; UI/UX and web layouts ${TIME(2)}; file conversion and embroidery digitizing ${TIME(3)}. These are typical, not guarantees; the owner confirms the real timeline with the quote.`,
     reply:
-      `Typical timelines: **repairs ${TIME(0)}**, **logos & brand design ${TIME(1)}**, **file conversion / embroidery ${TIME(3)}**, and **websites / UI ${TIME(2).toLowerCase()}** (depends on size). Those are typical, not promises. You get the real timeline with your quote. ⏱️ Got a deadline?`,
+      `Typical timelines: **repairs ${TIME(0)}**, **logos & brand design ${TIME(1)}**, **file conversion / embroidery ${TIME(3)}**, and **websites / UI ${TIME(2).toLowerCase()}** (depends on size). Those are typical, not promises. You get the real timeline with your quote. Got a deadline?`,
     expert:
       `SYS_ETA // repair ${TIME(0)} | design ${TIME(1)} | assets ${TIME(3)} | web/UI ${TIME(2)}. Typical only; confirmed with quote.`,
     suggestions: ['It is urgent', 'Get a quote'],
@@ -291,8 +291,8 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
     keywords: ['hours', 'opening hours', 'open', 'opened', 'closed', 'closing', 'sunday', 'saturday', 'weekend', 'weekday', 'available', 'availability', 'when are you', 'schedule', 'walk in', 'appointment'],
     content: SITE.hours ? `Hours: ${SITE.hours}.` : 'Opening hours are not published in this chat. Do not guess hours; direct the visitor to message the owner.',
     reply: SITE.hours
-      ? `Hours: **${SITE.hours}**. For anything urgent, message me through the contact section. 🕒`
-      : "I don't have set opening hours listed, and I won't guess. 🕒 The quickest way to find out if someone's free is to send a message. I can pass your question to the owner for you.",
+      ? `Hours: **${SITE.hours}**. For anything urgent, message me through the contact section.`
+      : "I don't have set opening hours listed, and I won't guess. The quickest way to find out if someone's free is to send a message. I can pass your question to the owner for you.",
     expert: SITE.hours ? `HOURS // ${SITE.hours}` : 'HOURS // not published. Use contact module or SEND_TO_OWNER.',
     suggestions: ['Send my question to the owner', 'Open contact section'],
   },
@@ -302,7 +302,7 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
     title: 'Warranty and guarantees',
     keywords: ['warranty', 'guarantee', 'guaranteed', 'refund', 'return', 'comes back', 'breaks again', 'fails again', 'after repair', 'covered'],
     content: 'Warranty and guarantee terms are not published in this chat. Do not state any warranty length or refund policy; the owner confirms terms per job.',
-    reply: "Warranty terms depend on the job and the part, so I won't quote one I can't back up. 🛡️ The owner confirms exactly what's covered when they quote. I can add \"what's the warranty?\" to your message so it's answered up front.",
+    reply: "Warranty terms depend on the job and the part, so I won't quote one I can't back up. The owner confirms exactly what's covered when they quote. I can add \"what's the warranty?\" to your message so it's answered up front.",
     expert: 'WARRANTY // terms job-specific; confirmed by owner at quote. Not stated here.',
     suggestions: ['Send my question to the owner', 'Get a quote'],
   },
@@ -312,7 +312,7 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
     title: 'Payment methods',
     keywords: ['pay', 'paying', 'payment', 'payments', 'mobile money', 'momo', 'mtn', 'airtel', 'cash', 'card', 'bank', 'transfer', 'deposit', 'upfront', 'invoice', 'installments', 'instalments', 'receipt'],
     content: 'Payments are made by mobile money (MTN or Airtel). After a quote, the customer pays and submits the mobile-money reference on the Track page. Deposit amounts and any other methods (cash, bank, card) are confirmed by the owner with the quote; do not claim any other method is or is not accepted.',
-    reply: "Payment is by **mobile money (MTN or Airtel)**. 💳 Once you have a quote you send the payment and enter the mobile-money reference on the **Track** page so it can be confirmed. Deposit amounts, and whether cash, bank or card also work, are confirmed by the owner with your quote. I can pass that question along.",
+    reply: "Payment is by **mobile money (MTN or Airtel)**. Once you have a quote you send the payment and enter the mobile-money reference on the **Track** page so it can be confirmed. Deposit amounts, and whether cash, bank or card also work, are confirmed by the owner with your quote. I can pass that question along.",
     expert: 'PAYMENT // mobile money (MTN/Airtel); reference submitted on /track. Deposit + other methods confirmed by owner with quote.',
     suggestions: ['Send my question to the owner', 'Get a quote'],
   },
@@ -322,7 +322,7 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
     title: 'Track my request or repair',
     keywords: ['track', 'tracking', 'track my repair', 'track repair', 'track my request', 'status', 'repair status', 'order status', 'check status', 'where is my', 'progress', 'reference', 'ticket', 'ticket number', 'is it ready', 'ready yet'],
     content: 'Customers can check the status of a repair or design request on the Track page (/track) using their reference number. The page also shows the quote and deposit and lets them submit a mobile-money payment reference.',
-    reply: "You can follow your request on the **Track** page: enter your reference number to see its status, your quote and deposit, and to submit your mobile-money payment reference. 🔎 I can open it for you. If you've lost your reference, send the owner a message and they'll look it up.",
+    reply: "You can follow your request on the **Track** page: enter your reference number to see its status, your quote and deposit, and to submit your mobile-money payment reference. I can open it for you. If you've lost your reference, send the owner a message and they'll look it up.",
     expert: 'TRACK // /track?id=<reference>. Shows status flow, quote/deposit, payment reference form.',
     suggestions: ['Open the track page', 'Send my question to the owner'],
   },
@@ -332,7 +332,7 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
     title: 'Who is Ray Thund3r, the developer and owner',
     keywords: ['ray', 'thund3r', 'thunder', 'ray thund3r', 'who is ray', 'who are you', 'who is the owner', 'who is the developer', 'who built this', 'who made this', 'who made you', 'who created', 'creator', 'founder', 'owner', 'developer'],
     content: `${SITE.ownerName} is the hardware technician, designer and web developer behind this site, based in ${SITE.location}. He fixes the hardware, designs the brand and builds the website, so one person handles the whole job. GitHub: RayThund3r. ${contactLine}`,
-    reply: `**${SITE.ownerName}** is the hardware technician, designer and web developer behind this site, based in ${SITE.location}. One person handles the whole job: fixing the hardware, designing the brand and building the website. 🛠️ ${contactLine ? contactLine + '. ' : ''}Want to see the work or start a project?`,
+    reply: `**${SITE.ownerName}** is the hardware technician, designer and web developer behind this site, based in ${SITE.location}. One person handles the whole job: fixing the hardware, designing the brand and building the website. ${contactLine ? contactLine + '. ' : ''}Want to see the work or start a project?`,
     expert: `OPERATOR // ${SITE.ownerName} | hardware + design + web | ${SITE.location}. ${contactLine}`,
     suggestions: ['See projects', 'Get a quote', 'Open contact section'],
   },
@@ -342,7 +342,7 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
     title: 'Drop-off, pickup and delivery',
     keywords: ['pickup', 'pick up', 'collect', 'collection', 'drop off', 'dropoff', 'bring', 'deliver', 'delivery', 'courier', 'ship', 'shipping', 'post', 'mail', 'remote', 'online', 'home visit', 'come to me', 'on site'],
     content: 'Drop-off, pickup, delivery and remote options are not published in this chat. Do not promise any of them. For design and web projects, work is done remotely and files are shared digitally.',
-    reply: "Design and web work is done remotely: files travel online, so you can be anywhere. 🌍 For **device repairs**, how it gets to and from the workshop (drop-off, pickup, delivery) is arranged per job, and I don't want to promise something I can't confirm. I can ask the owner for you.",
+    reply: "Design and web work is done remotely: files travel online, so you can be anywhere. For **device repairs**, how it gets to and from the workshop (drop-off, pickup, delivery) is arranged per job, and I don't want to promise something I can't confirm. I can ask the owner for you.",
     expert: 'LOGISTICS // design+web remote. Device drop-off/pickup arranged per job by owner.',
     suggestions: ['Send my question to the owner', 'Book a repair'],
   },
@@ -383,7 +383,7 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
     content:
       'SSDs have no moving parts, boot and load far faster, and survive drops better than HDDs. NVMe SSDs are faster than SATA SSDs. HDDs are cheaper per gigabyte and suit bulk storage but are slow and fragile. Replacing an HDD with an SSD is the single biggest speed upgrade for an old PC; reinstalling or cloning the OS is needed.',
     reply:
-      "**SSD vs HDD** in short:\n\n- **SSD:** no moving parts, boots in seconds, much more drop-resistant. **NVMe** SSDs are faster still than SATA ones\n- **HDD:** cheaper per GB, fine for bulk storage, but slow and fragile\n\nSwapping an old HDD for an SSD is usually the **biggest speed boost** you can give an older PC or laptop. I can clone or reinstall your system so you don't lose anything. 🚀",
+      "**SSD vs HDD** in short:\n\n- **SSD:** no moving parts, boots in seconds, much more drop-resistant. **NVMe** SSDs are faster still than SATA ones\n- **HDD:** cheaper per GB, fine for bulk storage, but slow and fragile\n\nSwapping an old HDD for an SSD is usually the **biggest speed boost** you can give an older PC or laptop. I can clone or reinstall your system so you don't lose anything.",
     expert:
       'SYS_STORAGE // SSD: no moving parts, high IOPS. NVMe > SATA SSD > HDD. HDD: capacity/cost. Best upgrade path for legacy systems: HDD -> SSD with OS clone/reinstall.',
     suggestions: ['Upgrade to SSD', 'My PC is slow', 'Get a quote'],
@@ -409,7 +409,7 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
     content:
       'Batteries age with heat and full charge cycles. Tips: avoid heat, avoid leaving the device at 100% or 0% for long periods, use quality chargers. Replace when capacity is low or the device shuts down unexpectedly. A swollen or bulging battery is dangerous: stop charging and using the device and have it replaced safely; do not puncture or press it.',
     reply:
-      "To keep a battery healthy: **avoid heat**, don't leave it at 0% or pinned at 100% for long, and use a **quality charger**. If it drains fast or shuts off unexpectedly, the battery is probably worn and a replacement fixes it. 🔋\n\n⚠️ If the battery looks **swollen or the back is lifting**, stop charging and using the device straight away and have it replaced — never press or puncture it.",
+      "To keep a battery healthy: **avoid heat**, don't leave it at 0% or pinned at 100% for long, and use a **quality charger**. If it drains fast or shuts off unexpectedly, the battery is probably worn and a replacement fixes it.\n\nIf the battery looks **swollen or the back is lifting**, stop charging and using the device straight away and have it replaced — never press or puncture it.",
     expert:
       'SYS_BATT // Degradation drivers: heat, high SoC dwell, poor chargers. Replace at low capacity or unexpected shutdowns. SWELLING = safety hazard: cease charging, do not puncture, replace.',
     suggestions: ['Battery replacement', 'Get a quote'],
@@ -422,7 +422,7 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
     content:
       'Signs of malware: sudden slowness, pop-ups, browser redirects, unknown apps or toolbars, battery drain, disabled antivirus. PC steps: run a full scan with Microsoft Defender (and an offline scan), uninstall unknown programs and browser extensions, update Windows, and avoid cracked software and unknown downloads. Phones: remove unknown apps, check device-admin permissions, run Play Protect or a reputable scanner, avoid installing APKs from unknown sources. If banking or ID was exposed, change passwords from a clean device. Severe infections may need a clean OS reinstall.',
     reply:
-      "Signs of a virus or malware: **sudden slowness, pop-ups, browser redirects, apps or toolbars you didn't install**, battery drain. 🛡️\n\n**On a PC:**\n- Run a **full scan** with Windows Security (Microsoft Defender), plus an **offline scan**\n- Uninstall unknown programs and browser extensions, then update Windows\n- Avoid cracked software and shady downloads — the most common way in\n\n**On a phone:** remove unknown apps, don't install APKs from random sources, and run Play Protect.\n\nIf you logged into banking or email while infected, **change those passwords from a clean device**. For stubborn infections I can do a proper cleanup or a clean reinstall.",
+      "Signs of a virus or malware: **sudden slowness, pop-ups, browser redirects, apps or toolbars you didn't install**, battery drain.\n\n**On a PC:**\n- Run a **full scan** with Windows Security (Microsoft Defender), plus an **offline scan**\n- Uninstall unknown programs and browser extensions, then update Windows\n- Avoid cracked software and shady downloads — the most common way in\n\n**On a phone:** remove unknown apps, don't install APKs from random sources, and run Play Protect.\n\nIf you logged into banking or email while infected, **change those passwords from a clean device**. For stubborn infections I can do a proper cleanup or a clean reinstall.",
     expert:
       'SYS_MALWARE_TRIAGE // Indicators: perf drop, popups, redirects, unknown apps, AV disabled. PC: Defender full + offline scan, remove PUPs/extensions, patch OS. Phone: remove unknown apps, check device-admin, Play Protect. Rotate credentials from clean device. Severe: clean OS reinstall.',
     suggestions: ['Clean my PC', 'My account was hacked', 'Get a quote'],
@@ -435,7 +435,7 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
     content:
       'If an account is compromised: use the platform\'s official recovery page from a trusted device, change the password (and the email password if reused), turn on two-step verification, sign out of all other sessions, remove unknown devices and linked apps, check recovery email/phone, and warn contacts not to trust messages from the account. Never pay anyone claiming they can recover an account.',
     reply:
-      "Sorry that happened — act fast. 🔐 In this order:\n1. Use the **official recovery page** of the app (WhatsApp, Facebook, Gmail...) from a device you trust\n2. **Change the password** — and your **email password** too if it's the same or related\n3. Turn on **two-step verification**\n4. **Sign out of all other sessions** and remove unknown devices / linked apps\n5. **Warn your contacts** not to trust messages or money requests from your account\n\n⚠️ Never pay someone who promises to \"recover\" it for you — that's usually a scam. If you think your phone or PC itself is infected, I can check it.",
+      "Sorry that happened — act fast. In this order:\n1. Use the **official recovery page** of the app (WhatsApp, Facebook, Gmail...) from a device you trust\n2. **Change the password** — and your **email password** too if it's the same or related\n3. Turn on **two-step verification**\n4. **Sign out of all other sessions** and remove unknown devices / linked apps\n5. **Warn your contacts** not to trust messages or money requests from your account\n\nNever pay someone who promises to \"recover\" it for you — that's usually a scam. If you think your phone or PC itself is infected, I can check it.",
     expert:
       'SYS_INCIDENT // Account compromise: 1) official recovery flow from trusted device. 2) rotate password (+ email). 3) enable 2FA. 4) revoke sessions/devices/apps. 5) notify contacts. Do not engage paid "recovery" services. Scan endpoint for malware.',
     suggestions: ['Scan my phone for viruses', 'Phishing and scams', 'Contact'],
@@ -461,7 +461,7 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
     content:
       'Liquid damage first aid: switch the device off immediately, do not charge or try to turn it on, remove the case, SIM and any removable battery, wipe the outside and let it dry in open air. Rice is not reliable. Corrosion starts quickly, so internal cleaning by a technician as soon as possible gives the best chance. Sugary or salty liquids are worse than plain water.',
     reply:
-      "Liquid damage — act quickly: 💧\n1. **Switch it off now** and don't try to charge or power it on\n2. Remove the **case, SIM and battery** (if removable) and wipe the outside\n3. Let it dry in open air — **rice doesn't really work** and can leave dust behind\n4. **Don't use a hairdryer** on high heat\n5. **Bring it in as soon as you can** — corrosion starts within hours, and an internal clean is what saves it\n\nSugary or salty liquids (juice, tea, sea water) are worse than plain water.",
+      "Liquid damage — act quickly:\n1. **Switch it off now** and don't try to charge or power it on\n2. Remove the **case, SIM and battery** (if removable) and wipe the outside\n3. Let it dry in open air — **rice doesn't really work** and can leave dust behind\n4. **Don't use a hairdryer** on high heat\n5. **Bring it in as soon as you can** — corrosion starts within hours, and an internal clean is what saves it\n\nSugary or salty liquids (juice, tea, sea water) are worse than plain water.",
     expert:
       'SYS_LIQUID // Power down, no charging. Remove case/SIM/battery. Air-dry; avoid high heat; rice ineffective. Time-critical: corrosion progresses; ultrasonic/IPA cleaning by technician. Sugary/saline liquids = higher risk.',
     suggestions: ['Book a repair', 'Get a quote'],
@@ -474,7 +474,7 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
     content:
       'Flicker, coloured lines, black spots or ghost touch are usually a failing display or digitizer (often after a drop or pressure), a loose display connector, or on PCs a graphics driver issue. For a laptop, test with an external monitor: if the external display is fine, the laptop panel or cable is at fault. For phones, display replacement is the usual fix. Update drivers first on PCs.',
     reply:
-      "Flicker, coloured lines, black spots or ghost touches usually mean a **failing display or digitizer** (often after a drop or pressure), a **loose connector**, or on PCs a **graphics driver problem**. 📺\n\n- **Laptop:** plug in an external monitor — if that looks fine, the laptop's panel or cable is the issue; if not, it's the GPU/driver\n- **PC:** update or roll back the graphics driver and test with another cable\n- **Phone:** if it started after a drop or pressure, it's almost always a display replacement\n\nWhat's the device and when did it start?",
+      "Flicker, coloured lines, black spots or ghost touches usually mean a **failing display or digitizer** (often after a drop or pressure), a **loose connector**, or on PCs a **graphics driver problem**.\n\n- **Laptop:** plug in an external monitor — if that looks fine, the laptop's panel or cable is the issue; if not, it's the GPU/driver\n- **PC:** update or roll back the graphics driver and test with another cable\n- **Phone:** if it started after a drop or pressure, it's almost always a display replacement\n\nWhat's the device and when did it start?",
     expert:
       'SYS_DISPLAY_DIAG // Artifacts: panel/digitizer fault, connector, or GPU/driver. Isolate: external monitor test (laptop), driver rollback + cable swap (PC). Phone post-impact: display assembly replacement.',
     suggestions: ['Screen replacement', 'Get a quote'],
@@ -500,7 +500,7 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
     content:
       'Wi-Fi troubleshooting: check whether other devices also fail (if yes, restart the router/modem and check the provider; if only one device fails, forget and rejoin the network, toggle airplane mode, restart the device, update network drivers). Place the router centrally and away from walls and appliances. On Windows, flushing DNS or running the network troubleshooter can help.',
     reply:
-      "Internet or Wi-Fi acting up? First check **is it just one device or all of them?** 📶\n\n**All devices:** restart the router/modem (off for 30 seconds), check for provider outages or an unpaid/finished data bundle.\n**Only one device:** turn Wi-Fi/airplane mode off and on, **forget the network and rejoin**, restart the device, and on a PC run the **network troubleshooter** / update the Wi-Fi driver.\n\nFor weak signal, move the router to a central, open spot away from walls and appliances. If only one laptop or phone keeps failing, it may be the Wi-Fi card — I can test it.",
+      "Internet or Wi-Fi acting up? First check **is it just one device or all of them?**\n\n**All devices:** restart the router/modem (off for 30 seconds), check for provider outages or an unpaid/finished data bundle.\n**Only one device:** turn Wi-Fi/airplane mode off and on, **forget the network and rejoin**, restart the device, and on a PC run the **network troubleshooter** / update the Wi-Fi driver.\n\nFor weak signal, move the router to a central, open spot away from walls and appliances. If only one laptop or phone keeps failing, it may be the Wi-Fi card — I can test it.",
     expert:
       'SYS_NET_DIAG // Scope: all clients vs single client. Global: power-cycle modem/router, check ISP. Single: forget/rejoin, airplane toggle, reboot, driver update, DNS flush. RF: centralise AP, avoid obstructions/interference.',
     suggestions: ['Only my laptop fails', 'Get a quote'],
@@ -513,7 +513,7 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
     content:
       'Vector files (SVG, AI, EPS, PDF) scale to any size without losing quality and suit logos, signs, embroidery and print. Raster files (PNG, JPG) are made of pixels and blur when enlarged. PNG supports transparency; JPG is smaller for photos. For print, use about 300 DPI at final size and CMYK colour; for screens use RGB. Ask for a vector master of any logo.',
     reply:
-      "Quick guide to file formats: 🖼️\n\n- **Vector** (SVG, AI, EPS, PDF): scales to *any* size with no quality loss — best for **logos, signs, embroidery and print**\n- **Raster** (PNG, JPG): made of pixels, blurs when enlarged. **PNG** keeps transparency, **JPG** is smaller for photos\n- **Print:** about **300 DPI** at final size, **CMYK** colours. **Screens:** RGB\n\nAlways get a **vector master** of your logo — I can convert or redraw yours if you only have a small PNG.",
+      "Quick guide to file formats:\n\n- **Vector** (SVG, AI, EPS, PDF): scales to *any* size with no quality loss — best for **logos, signs, embroidery and print**\n- **Raster** (PNG, JPG): made of pixels, blurs when enlarged. **PNG** keeps transparency, **JPG** is smaller for photos\n- **Print:** about **300 DPI** at final size, **CMYK** colours. **Screens:** RGB\n\nAlways get a **vector master** of your logo — I can convert or redraw yours if you only have a small PNG.",
     expert:
       'DESIGN_SPEC // Vector (SVG/AI/EPS/PDF) = resolution independent; raster (PNG/JPG) = pixel-bound. Print: 300 DPI @ final size, CMYK. Screen: RGB. Deliver vector master + exports.',
     suggestions: ['Redraw my logo', 'Embroidery files', 'Get a quote'],
@@ -526,7 +526,7 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
     content:
       'A typical website project: 1) short brief (purpose, pages, style, references), 2) design/layout, 3) build, 4) review and changes, 5) launch. The client provides text, logo and photos, and a domain name (renewed yearly) plus hosting; many small sites can be hosted on free or low-cost platforms. Sites are built mobile-first and responsive. Timelines and prices are agreed per project.',
     reply:
-      "Here's how a website project usually goes: 🌐\n1. **Brief** — what the site is for, pages needed, style, sites you like\n2. **Design** — layout and look for your approval\n3. **Build** — responsive, mobile-friendly, fast\n4. **Review** — you test and request changes\n5. **Launch** — domain + hosting connected, site goes live\n\n**What I need from you:** your text, logo and photos (or I can help create them), plus a domain name (renewed yearly) and hosting — many small sites can run on free or low-cost platforms. Timeline and price are agreed after the brief.",
+      "Here's how a website project usually goes:\n1. **Brief** — what the site is for, pages needed, style, sites you like\n2. **Design** — layout and look for your approval\n3. **Build** — responsive, mobile-friendly, fast\n4. **Review** — you test and request changes\n5. **Launch** — domain + hosting connected, site goes live\n\n**What I need from you:** your text, logo and photos (or I can help create them), plus a domain name (renewed yearly) and hosting — many small sites can run on free or low-cost platforms. Timeline and price are agreed after the brief.",
     expert:
       'WEB_PIPELINE // Brief -> design -> build (mobile-first, responsive) -> review -> launch. Client inputs: copy, brand assets, domain, hosting. Timeline/price per scope.',
     suggestions: ['Get a quote', 'Portfolio website', 'Business website'],

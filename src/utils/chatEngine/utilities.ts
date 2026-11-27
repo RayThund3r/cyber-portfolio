@@ -185,7 +185,7 @@ export function tryUtilities(input: string, memory: SessionMemory): UtilityReply
   // coin
   if (/^(?:please )?(?:flip|toss|spin)(?: me)? (?:a |the )?coin$|^heads or tails$|^coin (?:flip|toss)$/.test(l)) {
     const r = pickOne(['Heads', 'Tails']);
-    return H(`🪙 **${r}!**`, `RNG // coin: ${r}.`, ['Flip again', 'Roll a dice']);
+    return H(`**${r}!**`, `RNG // coin: ${r}.`, ['Flip again', 'Roll a dice']);
   }
   // dice
   if ((m = l.match(/^(?:please )?(?:roll|throw)(?: me)? (?:a |an |the )?(?:(\d{1,2})\s*d\s*(\d{1,3})|d(\d{1,3})|(\d{1,2}) (?:dice|die)|dice|die)$/))) {
@@ -194,20 +194,20 @@ export function tryUtilities(input: string, memory: SessionMemory): UtilityReply
     const rolls = Array.from({ length: n }, () => 1 + rnd(sides));
     const total = rolls.reduce((a, b) => a + b, 0);
     const text = n === 1 ? `**${rolls[0]}**` : `${rolls.join(' + ')} = **${total}**`;
-    return H(`🎲 Rolled ${n === 1 ? `a d${sides}` : `${n}d${sides}`}: ${text}`, `RNG // ${n}d${sides}: ${rolls.join(',')} (sum ${total}).`, ['Roll again', 'Flip a coin']);
+    return H(`Rolled ${n === 1 ? `a d${sides}` : `${n}d${sides}`}: ${text}`, `RNG // ${n}d${sides}: ${rolls.join(',')} (sum ${total}).`, ['Roll again', 'Flip a coin']);
   }
   // number in a range
   if ((m = l.match(/^(?:please )?(?:pick|give|choose|generate|get|random)(?: me)?(?: a| an)?(?: random)? (?:number|integer|int)(?: (?:between|from)) (-?\d{1,9}) (?:and|to|-) (-?\d{1,9})$/))) {
     const a = Math.min(+m[1], +m[2]); const b = Math.max(+m[1], +m[2]);
     const v = a + rnd(b - a + 1);
-    return H(`🎯 Your number between ${a} and ${b}: **${v}**`, `RNG // ${a}..${b}: ${v}.`, ['Another one']);
+    return H(`Your number between ${a} and ${b}: **${v}**`, `RNG // ${a}..${b}: ${v}.`, ['Another one']);
   }
   // choose between options
   if ((m = q.match(/^(?:please )?(?:pick|choose|decide|select)(?: for me)?(?: between| from| one of| one from)? (.{3,300})$/i)) && /,| or /i.test(m[1]) && !/\b(number|password|colou?r|font|name)\b/i.test(m[1])) {
     const opts = m[1].split(/\s*,\s*(?:or\s+)?|\s+or\s+/i).map(unq).filter(Boolean);
     if (opts.length >= 2 && opts.length <= 20) {
       const r = pickOne(opts);
-      return H(`🎯 I pick **${r}**.`, `RNG // choice: ${r} of ${opts.length}.`, ['Pick again']);
+      return H(`I pick **${r}**.`, `RNG // choice: ${r} of ${opts.length}.`, ['Pick again']);
     }
   }
   // passwords / passphrases / PINs
@@ -215,7 +215,7 @@ export function tryUtilities(input: string, memory: SessionMemory): UtilityReply
     const n = +(m[1] || m[3] || 0) || undefined;
     const pw = password(m[2], n);
     return H(
-      `🔐 Here's a fresh one, made on your device just now (I don't store it):\n\n\`${pw}\`\n\nUse it with a **password manager** and turn on **two-factor login** where you can.`,
+      `Here's a fresh one, made on your device just now (I don't store it):\n\n\`${pw}\`\n\nUse it with a **password manager** and turn on **two-factor login** where you can.`,
       `PWGEN // ${m[2]}: ${pw}`,
       ['Another one', 'Make a passphrase', 'Make a 6 digit PIN'],
     );
@@ -236,28 +236,28 @@ export function tryUtilities(input: string, memory: SessionMemory): UtilityReply
     const letters = (t.match(/\p{L}/gu) || []).length;
     const what = m[1].toLowerCase();
     const n = what.startsWith('w') ? words : what.startsWith('l') ? letters : chars;
-    return H(`🔢 **${n}** ${what.replace(/s$/, '')}${n === 1 ? '' : 's'} (${words} word${words === 1 ? "" : "s"} · ${chars} characters · ${letters} letters).`, `TEXT // words=${words} chars=${chars} letters=${letters}`);
+    return H(`**${n}** ${what.replace(/s$/, '')}${n === 1 ? '' : 's'} (${words} word${words === 1 ? "" : "s"} · ${chars} characters · ${letters} letters).`, `TEXT // words=${words} chars=${chars} letters=${letters}`);
   }
   if ((m = q.match(/^(?:please )?(upper ?case|lower ?case|capitali[sz]e|title ?case|sentence ?case)(?: this| the text)? (.+)$/i))) {
     const t = asText(m[2]); if (t === null) return null;
     const k = m[1].toLowerCase().replace(' ', '');
     const out = k === 'uppercase' ? t.toUpperCase() : k === 'lowercase' ? t.toLowerCase() : k === 'sentencecase' ? t.toLowerCase().replace(/(^\s*|[.!?]\s+)([a-z])/g, (_, a: string, b: string) => a + b.toUpperCase()) : titleCase(t);
-    return H(`🔤 **${out}**`, `TEXT // ${k}: ${out}`);
+    return H(`**${out}**`, `TEXT // ${k}: ${out}`);
   }
   if ((m = q.match(/^is ["“']?(.{1,200}?)["”']? (?:a )?palindrome$/i))) {
     const t = unq(m[1]); const s = t.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
     const yes = s.length > 0 && s === Array.from(s).reverse().join('');
-    return H(yes ? `✅ Yes, **"${t}"** reads the same both ways.` : `❌ No, **"${t}"** doesn't read the same both ways.`, `TEXT // palindrome: ${yes}`);
+    return H(yes ? `Yes, **"${t}"** reads the same both ways.` : `No, **"${t}"** doesn't read the same both ways.`, `TEXT // palindrome: ${yes}`);
   }
   if ((m = q.match(/^(?:please )?base ?64 (encode|decode) (.+)$/i)) || (m = q.match(/^(?:please )?(encode|decode) (.+?) (?:to|in|as|from|into) base ?64$/i))) {
     const out = b64(m[1].toLowerCase() as 'encode' | 'decode', unq(m[2]));
     return out === null
-      ? H("That doesn't look like valid Base64 text, so I can't decode it. 🤔", 'TEXT // base64 decode failed.')
-      : H(`🧾 \`${out}\``, `TEXT // base64: ${out}`);
+      ? H("That doesn't look like valid Base64 text, so I can't decode it.", 'TEXT // base64 decode failed.')
+      : H(`\`${out}\``, `TEXT // base64: ${out}`);
   }
   if ((m = q.match(/^(?:please )?slug(?:ify)? (.{1,120})$/i))) {
     const s = unq(m[1]).normalize('NFKD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-    return H(`🔗 \`${s || '(nothing left after cleaning)'}\``, `TEXT // slug: ${s}`);
+    return H(`\`${s || '(nothing left after cleaning)'}\``, `TEXT // slug: ${s}`);
   }
 
   // naming / taglines / palette / fonts
@@ -265,7 +265,7 @@ export function tryUtilities(input: string, memory: SessionMemory): UtilityReply
     const subject = subjectOf(q);
     const names = businessNames(subject);
     return H(
-      `💡 Name ideas${subject ? ` for a **${subject}**` : ''}:\n${names.map((n) => `- **${n}**`).join('\n')}\n\nBefore you commit, check the name isn't taken as a **social handle** and a **domain**. Want taglines to go with it, or a colour palette?`,
+      `Name ideas${subject ? ` for a **${subject}**` : ''}:\n${names.map((n) => `- **${n}**`).join('\n')}\n\nBefore you commit, check the name isn't taken as a **social handle** and a **domain**. Want taglines to go with it, or a colour palette?`,
       `NAMES // ${names.join(' | ')}`,
       ['More names', 'Taglines for it', 'Colour palette for it', 'Design a logo'],
     );
@@ -273,14 +273,14 @@ export function tryUtilities(input: string, memory: SessionMemory): UtilityReply
   if (/\b(?:tag ?lines?|slogans?|mottos?)\b/.test(l) && /\b(?:give|suggest|need|want|write|make|create|come up|ideas?|help|generate)\b/.test(l)) {
     const subject = subjectOf(q);
     const t = taglines(subject);
-    return H(`✍️ Tagline ideas${subject ? ` for a **${subject}**` : ''}:\n${t.map((x) => `- ${x}`).join('\n')}\n\nShort wins: aim for **under 7 words**. Say "more taglines" for another set.`, `TAGLINES // ${t.join(' | ')}`, ['More taglines', 'Business names', 'Colour palette']);
+    return H(`Tagline ideas${subject ? ` for a **${subject}**` : ''}:\n${t.map((x) => `- ${x}`).join('\n')}\n\nShort wins: aim for **under 7 words**. Say "more taglines" for another set.`, `TAGLINES // ${t.join(' | ')}`, ['More taglines', 'Business names', 'Colour palette']);
   }
   if (/\b(?:colou?r (?:palette|scheme|combo|combination|ideas?)s?|palette|brand colou?rs|what colou?rs (?:should|would|work))\b/.test(l) && /\b(?:give|suggest|need|want|what|which|help|pick|best|ideas?|for|recommend|generate|palette)\b/.test(l)) {
     const p = PALETTES.find((x) => x.tags.test(l)) || DEFAULT_PALETTE;
     const text = p.colors[0][0]; const bg = p.colors[3][0]; const primary = p.colors[1][0];
     const onBg = contrast(text, bg); const btn = contrast('#FFFFFF', primary);
     return H(
-      `🎨 **${p.name}**\n${p.colors.map(([hex, role]) => `- \`${hex}\` ${role}`).join('\n')}\n\nContrast check: text on background **${onBg}:1** ${onBg >= 4.5 ? '✅' : '⚠️'}, white on the primary button **${btn}:1** ${btn >= 4.5 ? '✅' : '⚠️ use dark text there'} (4.5:1 is the readable minimum). Tell me the kind of business and I'll tune it.`,
+      `**${p.name}**\n${p.colors.map(([hex, role]) => `- \`${hex}\` ${role}`).join('\n')}\n\nContrast check: text on background **${onBg}:1** ${onBg >= 4.5 ? '' : ''}, white on the primary button **${btn}:1** ${btn >= 4.5 ? '' : 'use dark text there'} (4.5:1 is the readable minimum). Tell me the kind of business and I'll tune it.`,
       `PALETTE // ${p.name}: ${p.colors.map((c) => c[0]).join(' ')} · contrast text/bg ${onBg}, white/primary ${btn}`,
       ['Font pairing for it', 'Name ideas', 'Design a logo'],
     );
@@ -288,30 +288,30 @@ export function tryUtilities(input: string, memory: SessionMemory): UtilityReply
   if (/\b(?:font (?:pair|pairing|pairings|combo|combinations?|ideas?|suggestions?)|fonts? (?:for|should|to use|pair)|which fonts?|what fonts?|typeface)\b/.test(l) && /\b(?:give|suggest|need|want|what|which|help|pick|best|ideas?|recommend|use|for)\b/.test(l)) {
     const v = vibeOf(l);
     const f = FONT_PAIRS.find((x) => x.tags.test(v)) || FONT_PAIRS[0];
-    return H(`🔠 **${f.head}** for headings + **${f.body}** for body text.\n\n${f.note} Both are free on Google Fonts. Keep it to **two fonts** and 2–3 weights so the site stays fast.`, `FONTS // ${f.head} + ${f.body}`, ['Colour palette', 'Name ideas']);
+    return H(`**${f.head}** for headings + **${f.body}** for body text.\n\n${f.note} Both are free on Google Fonts. Keep it to **two fonts** and 2–3 weights so the site stays fast.`, `FONTS // ${f.head} + ${f.body}`, ['Colour palette', 'Name ideas']);
   }
 
   // notes ("remember that ...")
   if ((m = q.match(/^(?:please )?(?:remember|note|keep in mind|take note|make a note)(?: that| this| down)?[:,]? (.{3,300})$/i))) {
     const note = unq(m[1]);
     if (SECRET.test(note)) {
-      return H("I'd rather not keep passwords, PINs or card details, even just in this browser. 🔒 Tell me anything else and I'll remember it.", 'NOTE // Refused: looks like a secret.');
+      return H("I'd rather not keep passwords, PINs or card details, even just in this browser. Tell me anything else and I'll remember it.", 'NOTE // Refused: looks like a secret.');
     }
     const notes = [...readNotes(memory), note.slice(0, NOTE_MAX)].slice(-NOTES_CAP);
-    return H(`📝 Noted: **${note.slice(0, NOTE_MAX)}**. I'll keep it for this chat, in this browser only. Ask "what do you remember?" any time.`, `NOTE // saved (${notes.length}).`, ['What do you remember?'], { notes: notes.join('\n') });
+    return H(`Noted: **${note.slice(0, NOTE_MAX)}**. I'll keep it for this chat, in this browser only. Ask "what do you remember?" any time.`, `NOTE // saved (${notes.length}).`, ['What do you remember?'], { notes: notes.join('\n') });
   }
   if (/^(?:what (?:did i|have i) (?:tell|told|say|said)(?: you)?(?: so far)?|what do you (?:remember|know)(?: so far)?|what do you remember(?: about me)?|show (?:me )?(?:my )?notes|what are my notes|list my notes|recall)$/.test(l)) {
     const notes = readNotes(memory);
     if (!notes.length) return null; // let the recap / profile handlers answer
-    return H(`📝 What you've asked me to remember:\n${notes.map((n) => `- ${n}`).join('\n')}`, `NOTES // ${notes.join(' | ')}`, ['Forget my notes']);
+    return H(`What you've asked me to remember:\n${notes.map((n) => `- ${n}`).join('\n')}`, `NOTES // ${notes.join(' | ')}`, ['Forget my notes']);
   }
   if (/^(?:forget|clear|delete|erase|wipe) (?:all )?(?:my )?(?:notes|what i told you|everything you remember|what you remember)$/.test(l)) {
-    return H('🧹 Done, I\'ve forgotten your notes.', 'NOTES // cleared.', undefined, { notes: '' });
+    return H('Done, I\'ve forgotten your notes.', 'NOTES // cleared.', undefined, { notes: '' });
   }
   if ((m = l.match(/^what (?:(\w+) )?(?:\w+ )?(?:do|did) i (?:have|use|own|tell you|say)(?: about)?(?: my (\w+))?$/))) {
     const key = (m[2] || m[1] || '').toLowerCase();
     const hit = key.length > 2 ? readNotes(memory).filter((n) => n.toLowerCase().includes(key)) : [];
-    if (hit.length) return H(`📝 You told me: ${hit.map((h) => `**${h}**`).join('; ')}.`, `NOTES // ${hit.join(' | ')}`);
+    if (hit.length) return H(`You told me: ${hit.map((h) => `**${h}**`).join('; ')}.`, `NOTES // ${hit.join(' | ')}`);
   }
   return null;
 }

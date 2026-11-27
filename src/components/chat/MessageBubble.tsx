@@ -15,6 +15,7 @@ import { balanceMarkdown, copyText, plainText } from './chatUtils';
 import { useTypewriter } from './useTypewriter';
 import ImageLightbox from './ImageLightbox';
 import ChatCards from './ChatCards';
+import { emojiToNodes } from '@/components/ui/EmojiText';
 
 interface Props {
   msg: Message;
@@ -98,7 +99,7 @@ function Bubble({ msg, first, last, showActions, onRevealDone, onTick, onRate, o
           {zoom && msg.imageUrl && <ImageLightbox src={msg.imageUrl} onClose={() => setZoom(false)} />}
 
           {isUser ? (
-            <div className="whitespace-pre-wrap">{msg.text}</div>
+            <div className="whitespace-pre-wrap">{emojiToNodes(msg.text)}</div>
           ) : (
             <>
               {typing || msg.streaming ? (

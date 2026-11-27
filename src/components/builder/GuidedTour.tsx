@@ -104,7 +104,7 @@ export default function GuidedTour({ steps, open, onClose, doneKey }: { steps: T
       <div className="absolute rounded-xl border border-cyan-500/40 bg-zinc-900 p-4 text-zinc-100 shadow-2xl" style={{ top, left, width: W }}>
         <div className="mb-1 flex items-center justify-between font-mono text-[10px] text-cyan-300">
           <span>STEP {i + 1} OF {steps.length}</span>
-          <button type="button" onClick={finish} className="rounded px-1 text-zinc-400 hover:text-zinc-100">Skip ✕</button>
+          <button type="button" onClick={finish} className="rounded px-1 text-zinc-400 hover:text-zinc-100">Skip</button>
         </div>
         <h2 className="text-base font-bold">{s.title}</h2>
         <p className="mt-1 text-sm leading-relaxed text-zinc-300">{s.text}</p>

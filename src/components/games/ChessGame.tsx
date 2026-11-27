@@ -6,8 +6,18 @@ import * as C from '@/lib/games/chess';
 import { Banner, Btn, Panel, Pill, Record, Segmented, useDefer, useRecord } from './ui';
 import { copyText } from '@/components/chat/chatUtils';
 
-const GLYPH: Record<number, string> = { 1: '♟', 2: '♞', 3: '♝', 4: '♜', 5: '♛', 6: '♚' };
-const TEXT = '︎'; // force text (not emoji) presentation for the pawn glyph
+/** Chess pieces drawn as small filled SVG silhouettes (1 pawn … 6 king), coloured by the surrounding text colour. */
+const SHAPES: Record<number, string> = {
+  1: 'M12 4a3 3 0 0 1 1.6 5.5c1.6.9 2.4 2.6 2.4 4.5h1.5v2.5h-11V14H7c0-1.9.8-3.6 2.4-4.5A3 3 0 0 1 12 4zM6 18.5h12V21H6z',
+  2: 'M7 21v-2.5c0-3 1.5-4.7 3.4-6.5L9 10.5 11 4l2 1.5 3.5 4.2c1.5 2 2 4.600 1.500 8.800V21zM10 8.500h.01',
+  3: 'M12 3c2.600 2.500 4.500 5 4.500 8 0 1.800-.8 3-2 3.800l1 .2v2.500H8.500V15l1-.2c-1.200-.8-2-2-2-3.800 0-3 1.900-5.500 4.500-8zM6 18.500h12V21H6z',
+  4: 'M6 4h2.500v2h2V4h3v2h2V4H18v5l-1.500 2v5.500L18 18v3H6v-3l1.500-1.500V11L6 9zM6 18.500h12',
+  5: 'M4 8l3.500 5L9 6l3 6 3-6 1.500 7L20 8l-1.500 11h-13zM6 19.500h12V22H6z',
+  6: 'M11 2h2v2.500h2.500v2H13V9c3.500.8 6 3.500 6 7v3H5v-3c0-3.500 2.500-6.200 6-7V6.500H8.500v-2H11zM5 19.500h14V22H5z',
+};
+function Piece({ t }: { t: number }) {
+  return <svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" stroke="none" aria-hidden="true" className="inline-block"><path d={SHAPES[t] ?? SHAPES[1]} /></svg>;
+}
 const START_VAL: Record<number, number> = { 1: 1, 2: 3, 3: 3, 4: 5, 5: 9 };
 
 interface Hint { from: number; to: number }
@@ -218,7 +228,7 @@ export default function ChessGame() {
                           textShadow: '0 1px 2px rgba(0,0,0,0.35)',
                         }}
                       >
-                        {GLYPH[Math.abs(p)] + TEXT}
+                        <Piece t={Math.abs(p)} />
                       </span>
                     )}
                     {isT && (p ? <span className="absolute inset-1 rounded-full border-4 border-accent/70" /> : <span className="absolute h-1/4 w-1/4 rounded-full bg-accent/70" />)}
@@ -233,7 +243,7 @@ export default function ChessGame() {
                   <div className="flex gap-2">
                     {[C.Q, C.R, C.B, C.N].map((t) => (
                       <button key={t} type="button" onClick={() => play(promo.find((m) => m.promo === t)!)} className="flex h-14 w-14 cursor-pointer items-center justify-center rounded-lg border border-zinc-700 bg-zinc-800 text-3xl hover:border-accent" style={{ color: you === 'w' ? '#fafafa' : '#a1a1aa' }} aria-label={['', '', 'knight', 'bishop', 'rook', 'queen'][t]}>
-                        {GLYPH[t] + TEXT}
+                        <Piece t={t} />
                       </button>
                     ))}
                   </div>
@@ -307,7 +317,7 @@ function Captured({ pieces, light, label }: { pieces: number[]; light: boolean; 
   return (
     <div className="flex min-h-6 items-center gap-0.5" aria-label={`${label}: ${pieces.length} pieces`}>
       {pieces.length === 0 ? <span className="text-zinc-700">{label}: none</span> : pieces.map((t, i) => (
-        <span key={i} className="text-base leading-none" style={{ color: light ? '#fafafa' : '#71717a' }}>{GLYPH[t] + TEXT}</span>
+        <span key={i} className="text-base leading-none" style={{ color: light ? '#fafafa' : '#71717a' }}><Piece t={t} /></span>
       ))}
     </div>
   );

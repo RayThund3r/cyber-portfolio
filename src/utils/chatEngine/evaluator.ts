@@ -94,7 +94,7 @@ export function evaluateInputSafety(
       kind: 'crisis',
       safeReply: pick(
         mode,
-        "I'm really sorry you're feeling this way, and I'm glad you said something. I'm just a website assistant, so I can't give you the support you deserve — please reach out to someone you trust right now, or call the emergency numbers 112 or 999 in Uganda (or your local emergency number if you're elsewhere). You don't have to carry this alone. 💛",
+        "I'm really sorry you're feeling this way, and I'm glad you said something. I'm just a website assistant, so I can't give you the support you deserve — please reach out to someone you trust right now, or call the emergency numbers 112 or 999 in Uganda (or your local emergency number if you're elsewhere). You don't have to carry this alone.",
         'SYS_CARE // I am a website assistant and cannot help with this properly, but your safety matters. Please call 112 / 999 (Uganda) or your local emergency number, or contact someone you trust right now.'
       ),
     };
@@ -166,7 +166,7 @@ export function evaluateInputSafety(
       kind: 'piracy',
       safeReply: pick(
         mode,
-        "I can't help with cracked or pirated software — it's the #1 way PCs and phones pick up malware, and the licence side isn't worth the risk. 🙅 There are good free options: **GIMP / Krita** (photo editing and painting), **Inkscape** (vector design), **LibreOffice** (office documents), **Blender** (3D) and the free plan of **Figma** for UI work. I can help you set one up or pick the right tool.",
+        "I can't help with cracked or pirated software — it's the #1 way PCs and phones pick up malware, and the licence side isn't worth the risk. There are good free options: **GIMP / Krita** (photo editing and painting), **Inkscape** (vector design), **LibreOffice** (office documents), **Blender** (3D) and the free plan of **Figma** for UI work. I can help you set one up or pick the right tool.",
         'SYS_POLICY // Cracked/pirated software not supported (malware vector). Alternatives: GIMP, Krita, Inkscape, LibreOffice, Blender, Figma (free plan).'
       ),
     };
@@ -190,7 +190,7 @@ export function evaluateInputSafety(
       kind: 'stolen',
       safeReply: pick(
         mode,
-        "I'm sorry that happened. 😔 Here's what helps most, in this order:\n1. **Lock and track it** remotely with Find My Device (Android) or Find My iPhone (Apple) from another device\n2. **Call your network provider** to block the SIM and blacklist the phone's IMEI (the IMEI is on the box, receipt, or by dialling *#06# on a similar phone you own)\n3. **Report it to the police** and keep the case number\n4. **Change passwords** for your email, social media and mobile-money accounts\n\nThe sooner you do 1 and 2, the better.",
+        "I'm sorry that happened. Here's what helps most, in this order:\n1. **Lock and track it** remotely with Find My Device (Android) or Find My iPhone (Apple) from another device\n2. **Call your network provider** to block the SIM and blacklist the phone's IMEI (the IMEI is on the box, receipt, or by dialling *#06# on a similar phone you own)\n3. **Report it to the police** and keep the case number\n4. **Change passwords** for your email, social media and mobile-money accounts\n\nThe sooner you do 1 and 2, the better.",
         'SYS_INCIDENT // Theft response: 1) remote lock/erase via Find My Device/iPhone. 2) Carrier: block SIM + blacklist IMEI. 3) File police report. 4) Rotate credentials (email, social, mobile money).'
       ),
     };
@@ -202,7 +202,7 @@ export function evaluateInputSafety(
       kind: 'lock',
       safeReply: pick(
         mode,
-        "If it's **your own device**, I can help — reach out through the contact section and expect to be asked for proof that it's yours (receipt, box or ID). 🔐 I can't walk you through bypassing locks in this chat, and I won't help unlock a device that isn't yours. Want me to take you to the contact section?",
+        "If it's **your own device**, I can help — reach out through the contact section and expect to be asked for proof that it's yours (receipt, box or ID). I can't walk you through bypassing locks in this chat, and I won't help unlock a device that isn't yours. Want me to take you to the contact section?",
         'SYS_POLICY // Lock removal is owner-only and handled in person with proof of ownership. Not supported via chat.'
       ),
     };

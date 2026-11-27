@@ -17,7 +17,7 @@ export async function addMessage(m: Pick<InboxMessage, 'kind' | 'name' | 'email'
   const full: InboxMessage = { id, ts: Date.now(), status: 'new', starred: false, note: '', ...m };
   await db.hsetJSON(KEY, id, full);
   await getStore().cmd('HINCRBY', 'inbox:count', dayKey(), 1).catch(() => 0);
-  void notify(`📨 New ${m.kind.toLowerCase()} message from ${m.name}: ${m.details.slice(0, 120)}`);
+  void notify(`New ${m.kind.toLowerCase()} message from ${m.name}: ${m.details.slice(0, 120)}`);
   return id;
 }
 export async function listMessages(): Promise<InboxMessage[]> {

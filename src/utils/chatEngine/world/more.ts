@@ -5,7 +5,7 @@ const F = (keys: string, a: string): Fact => ({ keys: keys.split('|'), a });
 
 export const MORE: Fact[] = [
   // books, authors, art, music
-  F('who wrote the lord of the rings|lord of the rings author|author of the lord of the rings', '**J. R. R. Tolkien** wrote *The Lord of the Rings* (1954 to 1955). 📚'),
+  F('who wrote the lord of the rings|lord of the rings author|author of the lord of the rings', '**J. R. R. Tolkien** wrote *The Lord of the Rings* (1954 to 1955).'),
   F('who wrote the hobbit|the hobbit author', '**J. R. R. Tolkien** wrote *The Hobbit* (1937).'),
   F('who wrote pride and prejudice|pride and prejudice author', '**Jane Austen** wrote *Pride and Prejudice* (1813).'),
   F('who wrote 1984|1984 author|who wrote nineteen eighty four', '**George Orwell** wrote *1984* (1949).'),
@@ -29,16 +29,16 @@ export const MORE: Fact[] = [
   F('who is the father of reggae|father of reggae|bob marley', '**Bob Marley** (Jamaica, 1945 to 1981) is the most famous reggae artist and is often called its global ambassador.'),
 
   // inventors and discoverers
-  F('who invented the bicycle|inventor of the bicycle', 'There was no single inventor. Karl von Drais built an early “running machine” in 1817, and pedals and chains came later; the modern “safety bicycle” appeared in the 1880s. 🚲'),
-  F('who invented the car|who invented the automobile|inventor of the car', 'Karl Benz built the first practical petrol automobile in **1885 to 1886**. Henry Ford later made cars affordable with the assembly line (1913). 🚗'),
-  F('who invented the radio|inventor of the radio', 'Guglielmo Marconi is usually credited with practical radio (1890s), building on work by Heinrich Hertz, Nikola Tesla and others. 📻'),
-  F('who invented the television|who invented tv|inventor of the television', 'There were many contributors: John Logie Baird gave the first public demonstration of mechanical TV (1926), and Philo Farnsworth built the first fully electronic system (1927). 📺'),
-  F('who invented electricity|who discovered electricity', 'Nobody invented electricity; it is a natural phenomenon. Key figures: **Benjamin Franklin** (lightning experiments, 1752), **Alessandro Volta** (the battery, 1800) and **Michael Faraday** (electromagnetic induction, 1831). ⚡'),
+  F('who invented the bicycle|inventor of the bicycle', 'There was no single inventor. Karl von Drais built an early “running machine” in 1817, and pedals and chains came later; the modern “safety bicycle” appeared in the 1880s.'),
+  F('who invented the car|who invented the automobile|inventor of the car', 'Karl Benz built the first practical petrol automobile in **1885 to 1886**. Henry Ford later made cars affordable with the assembly line (1913).'),
+  F('who invented the radio|inventor of the radio', 'Guglielmo Marconi is usually credited with practical radio (1890s), building on work by Heinrich Hertz, Nikola Tesla and others.'),
+  F('who invented the television|who invented tv|inventor of the television', 'There were many contributors: John Logie Baird gave the first public demonstration of mechanical TV (1926), and Philo Farnsworth built the first fully electronic system (1927).'),
+  F('who invented electricity|who discovered electricity', 'Nobody invented electricity; it is a natural phenomenon. Key figures: **Benjamin Franklin** (lightning experiments, 1752), **Alessandro Volta** (the battery, 1800) and **Michael Faraday** (electromagnetic induction, 1831).'),
   F('who invented the steam engine|inventor of the steam engine', 'Thomas Newcomen built the first practical steam engine (1712), and **James Watt** greatly improved it from the 1760s.'),
   F('who invented dynamite|who started the nobel prize|alfred nobel', '**Alfred Nobel** invented dynamite (1867) and left his fortune to create the Nobel Prizes.'),
   F('who discovered radioactivity|who discovered radium|marie curie', '**Marie Curie** (with Pierre Curie) discovered polonium and radium and pioneered research on radioactivity. She won Nobel Prizes in both Physics (1903) and Chemistry (1911).'),
   F('who proposed the theory of relativity|who developed the theory of relativity', '**Albert Einstein** proposed special relativity (1905) and general relativity (1915).'),
-  F('who invented the vaccine|who discovered the smallpox vaccine|father of vaccination', '**Edward Jenner** developed the first vaccine, for smallpox, in **1796**. 💉'),
+  F('who invented the vaccine|who discovered the smallpox vaccine|father of vaccination', '**Edward Jenner** developed the first vaccine, for smallpox, in **1796**.'),
   F('who discovered dna structure|who discovered the structure of dna|double helix', '**James Watson and Francis Crick** described the double-helix structure of DNA in **1953**, using X-ray data from Rosalind Franklin and Maurice Wilkins.'),
   F('who created facebook|who founded facebook|who founded meta', '**Mark Zuckerberg** co-founded Facebook in **2004** with college friends, and the company is now called Meta.'),
   F('who created linux|who invented linux', '**Linus Torvalds** created the Linux kernel in **1991**.'),
@@ -47,10 +47,10 @@ export const MORE: Fact[] = [
   // science
   F('what is the smallest bone in the human body|smallest bone in the body|smallest bone', 'The **stapes** (stirrup) in the middle ear is the smallest bone, about 3 mm long.'),
   F('what is the largest bone in the human body|largest bone in the body|longest bone', 'The **femur** (thigh bone) is the longest and strongest bone in the body.'),
-  F('how do airplanes fly|how does a plane fly|how do planes fly|how do aeroplanes fly', 'An aeroplane flies when its wings create **lift**. The wing’s shape and angle push air downward, and the air pushes the wing up. Engines provide **thrust** to move forward against **drag**, and lift must beat **weight**. ✈️'),
+  F('how do airplanes fly|how does a plane fly|how do planes fly|how do aeroplanes fly', 'An aeroplane flies when its wings create **lift**. The wing’s shape and angle push air downward, and the air pushes the wing up. Engines provide **thrust** to move forward against **drag**, and lift must beat **weight**.'),
   F('what is the difference between a virus and bacteria|virus vs bacteria|virus and bacteria difference|bacteria vs virus', '**Bacteria** are living single cells that can reproduce on their own; many are harmless or helpful and antibiotics can kill harmful ones. **Viruses** are far smaller, need a host’s cells to multiply, and antibiotics do not work on them (vaccines and antivirals do).'),
   F('what is the difference between weather and climate', '**Weather** is what the atmosphere is doing now or this week. **Climate** is the average pattern over decades.'),
-  F('what is photosynthesis|how do plants make food', '**Photosynthesis** is how plants make food: using sunlight, they turn carbon dioxide and water into sugar and oxygen. 🌱 Chlorophyll in the leaves captures the light.'),
+  F('what is photosynthesis|how do plants make food', '**Photosynthesis** is how plants make food: using sunlight, they turn carbon dioxide and water into sugar and oxygen. Chlorophyll in the leaves captures the light.'),
   F('what is an atom|what are atoms made of', 'An **atom** is the basic unit of an element, with a nucleus of protons and neutrons surrounded by electrons.'),
   F('what is an ecosystem', 'An **ecosystem** is a community of living things interacting with each other and with their environment, such as a forest, lake or coral reef.'),
   F('what is the periodic table', 'The **periodic table** arranges all the chemical elements by atomic number into rows (periods) and columns (groups) so that elements with similar properties line up. There are 118 known elements.'),
@@ -58,7 +58,7 @@ export const MORE: Fact[] = [
   F('what is the difference between an acid and a base|acid vs base', '**Acids** have a pH below 7 (lemon juice, vinegar); **bases** have a pH above 7 (soap, baking soda); pH 7 is neutral (pure water).'),
   F('what is a solar eclipse|what is a lunar eclipse', 'In a **solar eclipse** the Moon passes between the Sun and Earth and blocks the Sun. In a **lunar eclipse** Earth passes between the Sun and Moon, so Earth’s shadow falls on the Moon.'),
   F('what is the milky way', 'The **Milky Way** is our home galaxy, a spiral of hundreds of billions of stars, including our Sun, about 100,000 light-years across.'),
-  F('how many planets are there|how many planets are in the solar system|number of planets', 'There are **8 planets**: Mercury, Venus, Earth, Mars, Jupiter, Saturn, Uranus and Neptune. Pluto is classed as a dwarf planet. 🪐'),
+  F('how many planets are there|how many planets are in the solar system|number of planets', 'There are **8 planets**: Mercury, Venus, Earth, Mars, Jupiter, Saturn, Uranus and Neptune. Pluto is classed as a dwarf planet.'),
   F('which planet is closest to the sun|closest planet to the sun', '**Mercury** is the closest planet to the Sun.'),
   F('which planet is the hottest|hottest planet', '**Venus** is the hottest planet (about 465 °C) because its thick carbon-dioxide atmosphere traps heat, even though Mercury is closer to the Sun.'),
   F('what is the red planet|which planet is the red planet', '**Mars** is called the Red Planet because iron oxide (rust) covers its surface.'),
@@ -79,7 +79,7 @@ export const MORE: Fact[] = [
   F('what is the population of the united states|usa population|us population', 'The United States has roughly **335 to 340 million** people.'),
   F('what is the tallest building in africa|tallest building in africa|tallest skyscraper in africa', 'The **Iconic Tower** in Cairo’s New Administrative Capital, Egypt (about 385 m, completed 2023), is Africa’s tallest building, ahead of the Carlton Centre in Johannesburg and the Leonardo in Sandton.'),
   F('what is the largest company in the world|biggest company in the world', 'It depends on how “largest” is measured, and the ranking changes. By revenue, retailers like **Walmart** and energy companies lead the lists, and by market value tech companies like **Apple, Microsoft, Nvidia** have been at the top. Check a current ranking.'),
-  F('who won the world cup in 2022|2022 world cup winner|who won the 2022 world cup', '**Argentina** won the 2022 FIFA World Cup in Qatar, beating France on penalties after a 3–3 draw, with Lionel Messi captaining the side. ⚽'),
+  F('who won the world cup in 2022|2022 world cup winner|who won the 2022 world cup', '**Argentina** won the 2022 FIFA World Cup in Qatar, beating France on penalties after a 3–3 draw, with Lionel Messi captaining the side.'),
   F('who won the world cup in 2018|2018 world cup winner|who won the 2018 world cup', '**France** won the 2018 FIFA World Cup in Russia, beating Croatia 4–2.'),
   F('who won the world cup in 2014|2014 world cup winner', '**Germany** won the 2014 FIFA World Cup in Brazil, beating Argentina 1–0 in extra time.'),
   F('who won the world cup in 2010|2010 world cup winner', '**Spain** won the 2010 FIFA World Cup in South Africa, their first title.'),
@@ -90,7 +90,7 @@ export const MORE: Fact[] = [
   F('what is the national dish of uganda|uganda national dish|national food of uganda', 'There is no single official national dish, but **matooke with groundnut sauce or stew** is widely seen as Uganda’s signature meal, with the **rolex** the favourite street snack. 🇺🇬'),
   F('who was the first president of uganda|first president of uganda', '**Sir Edward Mutesa II** (the Kabaka of Buganda) was Uganda’s first president (1963 to 1966), with **Milton Obote** as the first prime minister.'),
   F('how many districts does uganda have|uganda districts', 'Uganda has well over **130 districts** and the number has kept growing; check the Ministry of Local Government for the current count.'),
-  F('which language is spoken in uganda|what language do they speak in uganda|what languages do they speak in uganda', 'Uganda’s official languages are **English** and **Swahili**. **Luganda** is the most widely spoken local language, among more than 40 others. 🗣️'),
+  F('which language is spoken in uganda|what language do they speak in uganda|what languages do they speak in uganda', 'Uganda’s official languages are **English** and **Swahili**. **Luganda** is the most widely spoken local language, among more than 40 others.'),
   F('who is the president of uganda|president of uganda', '**Yoweri Museveni** has been President of Uganda since 1986. For the latest on elections or office changes, check a current news source.'),
 
   // money and internet
@@ -115,7 +115,7 @@ export const MORE: Fact[] = [
   F('what is a driver|what is a device driver', 'A **driver** is software that lets the operating system talk to a piece of hardware like a printer, graphics card or Wi-Fi chip. Wrong or outdated drivers are a common cause of crashes and odd behaviour.'),
   F('what is the bios|what is uefi|bios meaning', 'The **BIOS/UEFI** is the first software a PC runs when it powers on. It checks the hardware and starts the operating system, and you can change boot order and basic hardware settings there.'),
   F('what is a captcha|captcha meaning', 'A **CAPTCHA** is a small test (like clicking traffic lights) that tells humans from automated bots.'),
-  F('what is two factor authentication|what is 2fa|what is mfa|2fa meaning', '**Two-factor authentication (2FA)** needs a second proof beyond your password, like a code from an app or SMS. It stops most account takeovers, so turn it on for email, social media and money apps. 🔐'),
+  F('what is two factor authentication|what is 2fa|what is mfa|2fa meaning', '**Two-factor authentication (2FA)** needs a second proof beyond your password, like a code from an app or SMS. It stops most account takeovers, so turn it on for email, social media and money apps.'),
   F('what is a hotspot|how to use phone as hotspot|mobile hotspot', 'A **hotspot** shares your phone’s mobile data as Wi-Fi for other devices. On Android: Settings → Network → Hotspot; on iPhone: Settings → Personal Hotspot. It uses your data bundle and drains the battery faster.'),
   F('what is the difference between a laptop and a desktop|laptop vs desktop', '**Laptops** are portable with a built-in screen and battery but cost more for the same power and are harder to upgrade. **Desktops** give more power and easier upgrades and repairs for the money but are stuck on a desk.'),
   F('how long does a laptop battery last|laptop battery life|how long should a laptop battery last', 'A laptop battery gives roughly **3 to 10 hours per charge** depending on the model and what you do. The battery itself usually keeps good capacity for around **2 to 4 years (300 to 500 charge cycles)**, then holds noticeably less. If it drains fast or swells, get it checked.'),
@@ -123,7 +123,7 @@ export const MORE: Fact[] = [
   F('how long do phones last|how long should a phone last|phone lifespan', 'A phone typically lasts **3 to 5 years** if the battery is replaced when it fades and the software is supported. The battery is usually the first thing to age.'),
 
   // everyday language
-  F('what does lol mean|lol meaning', '**LOL** means “laughing out loud”. 😄'),
+  F('what does lol mean|lol meaning', '**LOL** means “laughing out loud”.'),
   F('what does omg mean|omg meaning', '**OMG** means “oh my god”, used to show surprise.'),
   F('what does brb mean|brb meaning', '**BRB** means “be right back”.'),
   F('what does idk mean|idk meaning', '**IDK** means “I don’t know”.'),

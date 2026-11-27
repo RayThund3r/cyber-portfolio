@@ -136,6 +136,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           // Hide the hero intro only when motion is allowed (see globals.css). Runs before first paint.
           dangerouslySetInnerHTML={{ __html: "try{if(!matchMedia('(prefers-reduced-motion: reduce)').matches)document.documentElement.classList.add('motion-ready')}catch(e){}" }}
         />
+        {/* Optional visitor statistics: only added when the owner sets the matching environment variable. */}
+        {process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN && /^[a-z0-9.-]+$/i.test(process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN) && <script defer data-domain={process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN} src="https://plausible.io/js/script.js" />}
+        {process.env.NEXT_PUBLIC_UMAMI_ID && /^[a-f0-9-]{36}$/i.test(process.env.NEXT_PUBLIC_UMAMI_ID) && <script defer data-website-id={process.env.NEXT_PUBLIC_UMAMI_ID} src={process.env.NEXT_PUBLIC_UMAMI_SRC && /^https:\/\//.test(process.env.NEXT_PUBLIC_UMAMI_SRC) ? process.env.NEXT_PUBLIC_UMAMI_SRC : 'https://cloud.umami.is/script.js'} />}
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ld).replace(/</g, '\\u003c') }} />
       </head>
       <body className="min-h-full flex flex-col bg-zinc-950 text-zinc-100 font-sans selection:bg-accent-strong selection:text-black">

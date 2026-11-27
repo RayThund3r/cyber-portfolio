@@ -51,7 +51,7 @@ function recall(q: string, raw: string, memory: SessionMemory): PersonaReply | n
   if (firstQ && users.length) {
     const first = users[0].text;
     return {
-      human: `The earliest thing I can still see from you is: “${quote(first, 220)}”. 🧠${users.length >= 12 ? ' (I only keep the most recent part of a long chat.)' : ''}`,
+      human: `The earliest thing I can still see from you is: “${quote(first, 220)}”.${users.length >= 12 ? ' (I only keep the most recent part of a long chat.)' : ''}`,
       expert: `RECALL // earliest retained query: "${quote(first, 220)}"`,
       keepTopic: true,
     };
@@ -59,7 +59,7 @@ function recall(q: string, raw: string, memory: SessionMemory): PersonaReply | n
   if (askedBefore && !firstQ) {
     const prev = users[users.length - 1];
     if (!prev) {
-      return { human: "You haven't asked me anything yet — this is the start of our chat. 😊 What would you like to know?", expert: 'RECALL // No prior queries in session.', keepTopic: true };
+      return { human: "You haven't asked me anything yet — this is the start of our chat. What would you like to know?", expert: 'RECALL // No prior queries in session.', keepTopic: true };
     }
     const reply = bots[bots.length - 1];
     return {
@@ -73,7 +73,7 @@ function recall(q: string, raw: string, memory: SessionMemory): PersonaReply | n
   const again = /^(say that again|repeat that|repeat it|can you repeat( that)?|come again|sorry what|pardon|what did you (just )?(say|mean)|what was that|i didn'?t (get|catch|understand) that|huh)\??$/.test(q);
   if (again) {
     const last = bots[bots.length - 1];
-    if (!last) return { human: "I haven't said anything yet. 😄 Ask me something!", expert: 'RECALL // No prior output.', keepTopic: true };
+    if (!last) return { human: "I haven't said anything yet. Ask me something!", expert: 'RECALL // No prior output.', keepTopic: true };
     const text = last.text.length > 700 ? last.text.slice(0, 700).trimEnd() + '…' : last.text;
     return { human: `Sure — here it is again:\n\n${text}`, expert: `RECALL // repeating last output:\n${text}`, suggestions: ['Explain that simpler', 'Give me an example'], keepTopic: true };
   }
@@ -96,7 +96,7 @@ function aboutMe(q: string, memory: SessionMemory): PersonaReply | null {
     const remote = isRemoteLLMConfigured() ? ' (This site also has a self-hosted AI endpoint connected, which is where AI-mode messages go.)' : '';
     return {
       human:
-        `Here's exactly what happens with your data: 🔒\n\n` +
+        `Here's exactly what happens with your data:\n\n` +
         `- **Your chat is saved only in this browser** (so it survives a refresh). Say **“reset chat”** and it's wiped.\n` +
         `- **Nothing goes to the owner** unless you press **SEND** in the “send to the owner” card, and you choose what's included.\n` +
         `- **Files you attach are read on your device**, not uploaded.\n` +
@@ -114,7 +114,7 @@ function aboutMe(q: string, memory: SessionMemory): PersonaReply | null {
   if (/\b(better|smarter|stronger|more (advanced|powerful)) than (chat ?gpt|gpt|gemini|claude|copilot|siri|alexa|google)\b|\bare you (as good as|like|the same as) (chat ?gpt|gpt|gemini|claude|copilot)\b|\bcompare (you|yourself) to (chat ?gpt|gpt|gemini|claude)\b/.test(q)) {
     return {
       human:
-        "Honestly? No — the big assistants are far larger than me, and I won't pretend otherwise. 😄 I'm a small assistant built into this site. What I do well: repair and design questions, exact maths and dates, explaining tech in plain words, **taking you around the site**, reading files you share, and passing messages to the owner. Turn on the on-device AI at the top for more open-ended chat.",
+        "Honestly? No — the big assistants are far larger than me, and I won't pretend otherwise. I'm a small assistant built into this site. What I do well: repair and design questions, exact maths and dates, explaining tech in plain words, **taking you around the site**, reading files you share, and passing messages to the owner. Turn on the on-device AI at the top for more open-ended chat.",
       expert: 'SELF_ASSESS // Small site-embedded assistant. Strengths: domain KB, exact calc/dates, site control, file triage, owner relay. Not comparable to large hosted LLMs. Optional on-device model extends open chat.',
       suggestions: ['What can you do?', 'Enable AI'],
       keepTopic: true,
@@ -123,7 +123,7 @@ function aboutMe(q: string, memory: SessionMemory): PersonaReply | null {
 
   if (/\b(are you|r u|u r|you are)\b.{0,6}\b(a )?(real|human|person|bot|robot|ai|alive|machine|chatbot|automated|living)\b/.test(q) || /\bam i (talking|speaking|chatting) (to|with) (a |an )?(real |human |person|bot|robot|ai|machine)/.test(q)) {
     return {
-      human: "I'm an automated assistant, not a person. 🤖 I answer from a built-in knowledge base (and an optional on-device AI if you enable it). If you'd like a human, I can pass your message to the owner — just say “send this to the owner”.",
+      human: "I'm an automated assistant, not a person. I answer from a built-in knowledge base (and an optional on-device AI if you enable it). If you'd like a human, I can pass your message to the owner — just say “send this to the owner”.",
       expert: 'IDENTITY // Automated assistant (rules + KB + optional on-device model). Human relay available on request.',
       suggestions: ['Send a message to the owner', 'What can you do?'],
       keepTopic: true,
@@ -143,8 +143,8 @@ function aboutMe(q: string, memory: SessionMemory): PersonaReply | null {
     const mem = (memory.conversationHistory || []).length;
     return {
       human:
-        `Plain version: 🧩\n\n1. **Safety check**, then I look for things I can do exactly: site commands, maths, dates, unit conversions.\n2. **Guided questions** for repairs and projects (I remember the device, problem and style as we go).\n3. **Knowledge base** search that forgives typos, then a short Wikipedia lookup for general questions.\n4. If you enable it, a **small AI model in your browser** phrases things more freely.\n\nI learn only from your 👍/👎, and only in this browser.${mem ? ` Right now I'm holding ${Math.ceil(mem / 2)} turn(s) of this chat in mind.` : ''}`,
-      expert: 'ARCH // safety -> exact handlers -> guided dialogue -> KB (BM25, typo-tolerant) -> web lookup -> optional on-device LLM. Learning: local 👍/👎 aliases only.',
+        `Plain version:\n\n1. **Safety check**, then I look for things I can do exactly: site commands, maths, dates, unit conversions.\n2. **Guided questions** for repairs and projects (I remember the device, problem and style as we go).\n3. **Knowledge base** search that forgives typos, then a short Wikipedia lookup for general questions.\n4. If you enable it, a **small AI model in your browser** phrases things more freely.\n\nI learn only from your/, and only in this browser.${mem ? ` Right now I'm holding ${Math.ceil(mem / 2)} turn(s) of this chat in mind.` : ''}`,
+      expert: 'ARCH // safety -> exact handlers -> guided dialogue -> KB (BM25, typo-tolerant) -> web lookup -> optional on-device LLM. Learning: local/aliases only.',
       suggestions: ['Is my data safe?', 'What can you do?'],
       keepTopic: true,
     };
@@ -155,14 +155,14 @@ function aboutMe(q: string, memory: SessionMemory): PersonaReply | null {
 /* ------------------------------------------------------------------ feelings */
 
 const FACTS = [
-  'The first computer "bug" was a real moth, found jammed in a relay of the Harvard Mark II in 1947. 🪲',
-  'The very first website is still online: info.cern.ch. 🌐',
-  "Your phone has far more computing power than the computers that guided Apollo 11 to the Moon. 🚀",
-  'The first computer mouse (1964) was carved from wood. 🖱️',
-  "Lithium batteries age fastest when they're kept at 100% and hot, so cooler and 20–80% is gentler on them. 🔋",
-  "Not every USB-C cable is equal: some carry only slow charging, no video and no fast data. 🔌",
-  "An SSD left unpowered for a very long time can slowly lose data, which is one more reason to keep real backups. 💾",
-  'Dried-out thermal paste is one of the most common reasons an older laptop runs hot and loud. 🔥',
+  'The first computer "bug" was a real moth, found jammed in a relay of the Harvard Mark II in 1947.',
+  'The very first website is still online: info.cern.ch.',
+  "Your phone has far more computing power than the computers that guided Apollo 11 to the Moon.",
+  'The first computer mouse (1964) was carved from wood.',
+  "Lithium batteries age fastest when they're kept at 100% and hot, so cooler and 20–80% is gentler on them.",
+  "Not every USB-C cable is equal: some carry only slow charging, no video and no fast data.",
+  "An SSD left unpowered for a very long time can slowly lose data, which is one more reason to keep real backups.",
+  'Dried-out thermal paste is one of the most common reasons an older laptop runs hot and loud.',
 ];
 
 function feelings(q: string, memory: SessionMemory): PersonaReply | null {
@@ -173,7 +173,7 @@ function feelings(q: string, memory: SessionMemory): PersonaReply | null {
     /^(wrong|nope wrong|that'?s wrong|that is wrong|no that'?s not what i (asked|meant)|not what i asked)$/.test(q)
   ) {
     return {
-      human: "Fair — sounds like I missed what you were after, and I'm sorry about that. 🙏 Tell me in one line what you need and I'll try again, or I can hand the whole thing to the owner so a real person replies.",
+      human: "Fair — sounds like I missed what you were after, and I'm sorry about that. Tell me in one line what you need and I'll try again, or I can hand the whole thing to the owner so a real person replies.",
       expert: 'FEEDBACK // Miss acknowledged. Restate the query in one line, or relay to the owner.',
       suggestions: ['Send this to the owner', 'Let me rephrase'],
       keepTopic: true,
@@ -181,7 +181,7 @@ function feelings(q: string, memory: SessionMemory): PersonaReply | null {
   }
   if (/\bi (really )?(love|adore|like) (you|u)\b|\bmarry me\b|\bbe my (friend|girlfriend|boyfriend)\b/.test(q)) {
     return {
-      human: "Aw, thank you! 😄 I'm just a chat assistant, so I'll keep it friendly and practical — but I'm glad I'm useful. What shall we sort out?",
+      human: "Aw, thank you! I'm just a chat assistant, so I'll keep it friendly and practical — but I'm glad I'm useful. What shall we sort out?",
       expert: 'ACK // Positive sentiment logged. Standing by.',
       suggestions: ['My device is not working', 'I need a logo', 'Tell me a fun fact'],
       keepTopic: true,
@@ -193,7 +193,7 @@ function feelings(q: string, memory: SessionMemory): PersonaReply | null {
     /\b(well done|nice one|good bot|great job|thanks a lot buddy|you rock)\b/.test(q)
   ) {
     return {
-      human: 'Thank you, that made my day! 😊 Anything else I can help with — or would you like a quick tour of the projects?',
+      human: 'Thank you, that made my day! Anything else I can help with — or would you like a quick tour of the projects?',
       expert: 'ACK // Positive feedback received.',
       suggestions: ['Show me your projects', 'Book a repair'],
       keepTopic: true,
@@ -246,7 +246,7 @@ function budget(q: string, raw: string): PersonaReply | null {
     if (b) {
       return {
         human:
-          `Noted: a budget of about **${b.label}**. 📝 I don't keep a public price list and I won't guess what that covers — cost depends on the exact job (device + fault + parts, or design/web scope). ` +
+          `Noted: a budget of about **${b.label}**. I don't keep a public price list and I won't guess what that covers — cost depends on the exact job (device + fault + parts, or design/web scope). ` +
           `Tell me what you need and I'll flag your budget to the owner so they can say honestly what fits.`,
         expert: `BUDGET // Recorded: ${b.label}. No public rate card; scope determines price. Provide job details, then relay to owner.`,
         suggestions: ['Send this to the owner', 'Fix a phone or PC', 'Design or website'],
@@ -258,7 +258,7 @@ function budget(q: string, raw: string): PersonaReply | null {
   if (/\b(cheapest|cheap|lowest price|most affordable|least expensive|low cost|discount|bargain|negotiable|can you reduce)\b/.test(q) && /\b(service|price|rate|option|package|deal|one|repair|logo|website|you)\b/.test(q)) {
     return {
       human:
-        "I don't have a public price list, so I can't name a \"cheapest\" honestly. 😊 As a rule, small quick jobs (a software fix, an OS reinstall, a file conversion) cost less than component repair, a full brand identity or a multi-page site. Tell me the job and your budget and I'll pass both to the owner for a straight number.",
+        "I don't have a public price list, so I can't name a \"cheapest\" honestly. As a rule, small quick jobs (a software fix, an OS reinstall, a file conversion) cost less than component repair, a full brand identity or a multi-page site. Tell me the job and your budget and I'll pass both to the owner for a straight number.",
       expert: 'PRICING // No rate card. Cost scales with scope: software/format jobs < component repair < full brand/web builds. Supply job + budget for a quote.',
       suggestions: ['Send this to the owner', 'Get a quote', 'What services do you offer?'],
       topic: 'PRICING_RATES',
@@ -299,7 +299,7 @@ function scope(q: string): PersonaReply | null {
   for (const u of UNLISTED) {
     if (u.test.test(q)) {
       return {
-        human: `${u.near.charAt(0).toUpperCase()}${u.near.slice(1)}, so I won't promise ${u.what} here. 🙏 The owner can confirm if it's possible — want me to send them your question?`,
+        human: `${u.near.charAt(0).toUpperCase()}${u.near.slice(1)}, so I won't promise ${u.what} here. The owner can confirm if it's possible — want me to send them your question?`,
         expert: `SCOPE // "${u.what}" not in the service list. Listed: [MOBILE/PC REPAIR] [BRAND/GRAPHIC DESIGN] [UI/UX + WEB] [FILE/ASSET CONVERSION]. Relay to owner to confirm.`,
         suggestions: ['Send this to the owner', ...u.suggestions].slice(0, 4),
         topic: 'PORTFOLIO',

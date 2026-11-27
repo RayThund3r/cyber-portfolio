@@ -41,7 +41,7 @@ export default function AccessPanel({ onClose }: { onClose: () => void }) {
     <div className="mt-2 rounded border border-zinc-800 bg-zinc-950/70 p-2 text-zinc-300" role="region" aria-label="Get more AI answers">
       <div className="mb-2 flex items-center gap-2">
         {tab('code', 'I HAVE A CODE')}{plans.length > 0 && tab('pay', 'BUY A PASS')}
-        <button type="button" onClick={onClose} aria-label="Close" className="hit ml-auto cursor-pointer px-1 text-zinc-500 hover:text-zinc-200">✕</button>
+        <button type="button" onClick={onClose} aria-label="Close" className="hit ml-auto cursor-pointer px-1 text-zinc-500 hover:text-zinc-200"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg></button>
       </div>
       {mode === 'code' ? (
         <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); if (code.trim()) void run(() => redeemPass(code), 'Pass unlocked. Enjoy!'); }}>

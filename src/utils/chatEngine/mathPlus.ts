@@ -170,7 +170,7 @@ function tryExpression(s: string): MathAnswer | null {
     const value = evaluate(toks);
     if (!Number.isFinite(value)) return null;
     const shown = s.replace(/\s+/g, ' ');
-    return { human: `${shown} = **${fmt(value)}** 🧮`, expert: `CALC // ${shown} = ${fmt(value)}`, value };
+    return { human: `${shown} = **${fmt(value)}**`, expert: `CALC // ${shown} = ${fmt(value)}`, value };
   } catch {
     return null;
   }
@@ -184,7 +184,7 @@ function tryPercent(s: string): MathAnswer | null {
   if ((m = new RegExp(`^${NUM}\\s*(?:%|percent|per cent)\\s*(?:off|discount(?: on| off)?)\\s*${NUM}$`).exec(s))) {
     const p = num(m[1]), base = num(m[2]);
     const saved = (p / 100) * base, value = base - saved;
-    return { human: `${fmt(p)}% off ${fmt(base)}: you save **${fmt(saved)}** and pay **${fmt(value)}** 🏷️`, expert: `DISCOUNT // ${fmt(base)} - ${fmt(p)}% = ${fmt(value)} (saving ${fmt(saved)})`, value };
+    return { human: `${fmt(p)}% off ${fmt(base)}: you save **${fmt(saved)}** and pay **${fmt(value)}**`, expert: `DISCOUNT // ${fmt(base)} - ${fmt(p)}% = ${fmt(value)} (saving ${fmt(saved)})`, value };
   }
   // "add 18% to 200" / "200 plus 18%" / "increase 200 by 18%" / "decrease 200 by 10%"
   if ((m = new RegExp(`^(?:add|plus)\\s*${NUM}\\s*(?:%|percent)\\s*to\\s*${NUM}$`).exec(s)) || (m = new RegExp(`^${NUM}\\s*(?:\\+|plus)\\s*${NUM}\\s*(?:%|percent)$`).exec(s))) {
@@ -192,13 +192,13 @@ function tryPercent(s: string): MathAnswer | null {
     const isAddFirst = /^(?:add|plus)/.test(s);
     const base = isAddFirst ? second : first, p = isAddFirst ? first : second;
     const value = base * (1 + p / 100);
-    return { human: `${fmt(base)} plus ${fmt(p)}% = **${fmt(value)}** 🧮`, expert: `CALC // ${fmt(base)} * ${fmt(1 + p / 100)} = ${fmt(value)}`, value };
+    return { human: `${fmt(base)} plus ${fmt(p)}% = **${fmt(value)}**`, expert: `CALC // ${fmt(base)} * ${fmt(1 + p / 100)} = ${fmt(value)}`, value };
   }
   if ((m = new RegExp(`^(increase|decrease|reduce|raise|lower)\\s*${NUM}\\s*by\\s*${NUM}\\s*(?:%|percent)$`).exec(s))) {
     const base = num(m[2]), p = num(m[3]);
     const up = /^(increase|raise)/.test(m[1]);
     const value = base * (1 + (up ? 1 : -1) * (p / 100));
-    return { human: `${m[1]} ${fmt(base)} by ${fmt(p)}% → **${fmt(value)}** 🧮`, expert: `CALC // ${fmt(base)} ${up ? '+' : '-'} ${fmt(p)}% = ${fmt(value)}`, value };
+    return { human: `${m[1]} ${fmt(base)} by ${fmt(p)}% → **${fmt(value)}**`, expert: `CALC // ${fmt(base)} ${up ? '+' : '-'} ${fmt(p)}% = ${fmt(value)}`, value };
   }
   // "what percent is 30 of 120" / "30 is what percent of 120" / "30 out of 120 as a percentage"
   if (
@@ -209,20 +209,20 @@ function tryPercent(s: string): MathAnswer | null {
     const a = num(m[1]), b = num(m[2]);
     if (b === 0) return null;
     const value = (a / b) * 100;
-    return { human: `${fmt(a)} is **${fmt(value)}%** of ${fmt(b)} 🧮`, expert: `CALC // ${fmt(a)} / ${fmt(b)} = ${fmt(value)}%`, value };
+    return { human: `${fmt(a)} is **${fmt(value)}%** of ${fmt(b)}`, expert: `CALC // ${fmt(a)} / ${fmt(b)} = ${fmt(value)}%`, value };
   }
   // "tip 15% on 80" / "15% tip on 80"
   if ((m = new RegExp(`^(?:tip\\s*${NUM}\\s*(?:%|percent)\\s*(?:on|of|for)\\s*${NUM}|${NUM}\\s*(?:%|percent)\\s*tip\\s*(?:on|of|for)\\s*${NUM})$`).exec(s))) {
     const p = num(m[1] ?? m[3]), base = num(m[2] ?? m[4]);
     const tip = (p / 100) * base;
-    return { human: `A ${fmt(p)}% tip on ${fmt(base)} is **${fmt(tip)}** — total **${fmt(base + tip)}** 🧾`, expert: `TIP // ${fmt(tip)} (total ${fmt(base + tip)})`, value: tip };
+    return { human: `A ${fmt(p)}% tip on ${fmt(base)} is **${fmt(tip)}** — total **${fmt(base + tip)}**`, expert: `TIP // ${fmt(tip)} (total ${fmt(base + tip)})`, value: tip };
   }
   // "split 120 between 4" / "120 split 3 ways" / "divide 90 among 3"
   if ((m = new RegExp(`^(?:split|divide|share)\\s*${NUM}\\s*(?:between|among|by|into|\\()?\\s*(\\d+)(?:\\s*(?:ways|people|persons|friends))?\\)?$`).exec(s)) || (m = new RegExp(`^${NUM}\\s*split\\s*(\\d+)\\s*ways?$`).exec(s))) {
     const total = num(m[1]), people = parseInt(m[2], 10);
     if (people < 1 || people > 100000) return null;
     const value = total / people;
-    return { human: `${fmt(total)} split ${people} ways is **${fmt(value)}** each 🍕`, expert: `SPLIT // ${fmt(total)} / ${people} = ${fmt(value)}`, value };
+    return { human: `${fmt(total)} split ${people} ways is **${fmt(value)}** each`, expert: `SPLIT // ${fmt(total)} / ${people} = ${fmt(value)}`, value };
   }
   return null;
 }
@@ -240,7 +240,7 @@ function tryList(s: string): MathAnswer | null {
   else if (/^(min|minimum|smallest)/.test(kind)) { value = sorted[0]; label = 'smallest'; }
   else if (/^(max|maximum|largest|biggest)/.test(kind)) { value = sorted[sorted.length - 1]; label = 'largest'; }
   else { const mid = Math.floor(sorted.length / 2); value = sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2; label = 'median'; }
-  return { human: `The ${label} of ${nums.length} numbers is **${fmt(value)}** 🧮`, expert: `LIST // ${label} (${nums.length} values) = ${fmt(value)}`, value };
+  return { human: `The ${label} of ${nums.length} numbers is **${fmt(value)}**`, expert: `LIST // ${label} (${nums.length} values) = ${fmt(value)}`, value };
 }
 
 /** "and 20% of that", "times 3", "half of that", "double it" ... acting on the previous result. */
@@ -248,7 +248,7 @@ function tryFollowUp(s: string, last: number): MathAnswer | null {
   const t = s.replace(/^(and|then|now|ok|okay|so)\s+/, '');
   const ref = '(?:that|it|this|the (?:result|answer|total))';
   let m: RegExpExecArray | null;
-  const reply = (value: number, text: string): MathAnswer => ({ human: `${text} = **${fmt(value)}** 🧮`, expert: `CALC // ${text} = ${fmt(value)}`, value });
+  const reply = (value: number, text: string): MathAnswer => ({ human: `${text} = **${fmt(value)}**`, expert: `CALC // ${text} = ${fmt(value)}`, value });
   if ((m = new RegExp(`^${NUM}\\s*(?:%|percent)\\s*of\\s*${ref}$`).exec(t))) return reply((num(m[1]) / 100) * last, `${m[1]}% of ${fmt(last)}`);
   if ((m = new RegExp(`^${NUM}\\s*(?:%|percent)\\s*off\\s*${ref}$`).exec(t))) return reply(last * (1 - num(m[1]) / 100), `${fmt(last)} minus ${m[1]}%`);
   if ((m = new RegExp(`^(?:add|plus|\\+)\\s*${NUM}\\s*(?:%|percent)$`).exec(t))) return reply(last * (1 + num(m[1]) / 100), `${fmt(last)} plus ${m[1]}%`);
@@ -341,22 +341,22 @@ function convertAnswer(value: number, fromRaw: string, toRaw: string): MathAnswe
     if (ft === 'k' && value < 0) return null;
     const r = tempConvert(value, ft, tt);
     const shown = Number(r.toFixed(2));
-    return { human: `${fmt(value)}${TEMP_LABEL[ft]} is **${fmt(shown)}${TEMP_LABEL[tt]}** 🌡️`, expert: `CONVERT // ${fmt(value)}${TEMP_LABEL[ft]} = ${fmt(shown)}${TEMP_LABEL[tt]}`, value: shown };
+    return { human: `${fmt(value)}${TEMP_LABEL[ft]} is **${fmt(shown)}${TEMP_LABEL[tt]}**`, expert: `CONVERT // ${fmt(value)}${TEMP_LABEL[ft]} = ${fmt(shown)}${TEMP_LABEL[tt]}`, value: shown };
   }
   const a = lookupUnit(fromRaw), b = lookupUnit(toRaw);
   if (!a || !b) {
     if ((ft && b) || (a && tt)) {
       const left = ft ? 'temperature' : DIM_NOUN[a!.dim], right = tt ? 'temperature' : DIM_NOUN[b!.dim];
-      return { human: `Those don't match — one measures ${left}, the other ${right}, so there's nothing to convert. 🙂`, expert: `CONVERT // Dimension mismatch (${left} vs ${right}).` };
+      return { human: `Those don't match — one measures ${left}, the other ${right}, so there's nothing to convert.`, expert: `CONVERT // Dimension mismatch (${left} vs ${right}).` };
     }
     return null;
   }
   if (a.dim !== b.dim) {
-    return { human: `Those don't match — **${a.name}** measures ${DIM_NOUN[a.dim]} and **${b.name}** measures ${DIM_NOUN[b.dim]}, so there's nothing to convert. 🙂`, expert: `CONVERT // Dimension mismatch (${DIM_NOUN[a.dim]} vs ${DIM_NOUN[b.dim]}).` };
+    return { human: `Those don't match — **${a.name}** measures ${DIM_NOUN[a.dim]} and **${b.name}** measures ${DIM_NOUN[b.dim]}, so there's nothing to convert.`, expert: `CONVERT // Dimension mismatch (${DIM_NOUN[a.dim]} vs ${DIM_NOUN[b.dim]}).` };
   }
   const r = (value * a.f) / b.f;
   const shown = Number(r.toPrecision(7));
-  let human = `${fmt(value)} ${a.name} = **${fmt(shown)} ${b.name}** 📐`;
+  let human = `${fmt(value)} ${a.name} = **${fmt(shown)} ${b.name}**`;
   let expert = `CONVERT // ${fmt(value)} ${a.name} = ${fmt(shown)} ${b.name}`;
   if (a.dim === 'data') {
     // Drive makers use 1,000-based units while Windows/Android use 1,024-based ones: show both, it explains

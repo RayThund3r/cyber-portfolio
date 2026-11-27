@@ -49,9 +49,7 @@ export default function ImageLightbox({ src, alt, onClose }: { src: string; alt?
         onClick={onClose}
         aria-label="Close preview"
         className="touch-target absolute right-4 top-[max(1rem,env(safe-area-inset-top))] flex cursor-pointer items-center justify-center rounded-full border border-white/15 bg-zinc-900/90 text-zinc-200 hover:text-white"
-      >
-        ✕
-      </button>
+      ><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg></button>
     </div>,
     document.body
   );

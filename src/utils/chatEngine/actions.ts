@@ -33,13 +33,13 @@ export function actionReply(action: SystemAction, mode: 'HUMAN' | 'EXPERT'): str
     case 'SCROLL_TO_PROJECTS':
       return mode === 'EXPERT'
         ? 'NAV // Scrolling to project archive.'
-        : 'Sure! Scrolling to the project archive now. 👀';
+        : 'Sure! Scrolling to the project archive now.';
     case 'OPEN_CONTACT':
       return mode === 'EXPERT'
         ? 'NAV // Opening contact module.'
-        : 'Taking you to the contact section now. 📬 Tell them what you need and include your device model or project details.';
+        : 'Taking you to the contact section now. Tell them what you need and include your device model or project details.';
     case 'TOGGLE_THEME':
-      return mode === 'EXPERT' ? 'UI // Theme cycled.' : 'Switching the theme for you. 🎨';
+      return mode === 'EXPERT' ? 'UI // Theme cycled.' : 'Switching the theme for you.';
     default:
       return null;
   }

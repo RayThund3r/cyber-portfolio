@@ -14,6 +14,9 @@ export function envChecklist(): EnvCheck[] {
     { name: 'ADMIN_SESSION_SECRET', set: e.secret.length >= 16, required: false, purpose: 'Separate cookie-signing secret (16+ characters).', hint: 'Any long random string' },
     { name: 'ADMIN_ALLOWED_IPS', set: !!process.env.ADMIN_ALLOWED_IPS, required: false, purpose: 'Only these IPs can reach the admin.', hint: 'Comma-separated list; skip if your IP changes' },
     { name: 'ADMIN_WEBHOOK_URL / ADMIN_NTFY_TOPIC', set: !!(e.webhook || e.ntfy), required: false, purpose: 'Phone/Discord/Slack alerts for new requests and failed logins.', hint: 'Discord webhook URL, or a private ntfy.sh topic name' },
+    { name: 'TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID', set: !!(process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID), required: false, purpose: 'Optional: a Telegram message on your phone for every new request.', hint: 'Free. Create a bot with @BotFather, then message it once' },
+    { name: 'CALLMEBOT_PHONE + CALLMEBOT_KEY', set: !!(process.env.CALLMEBOT_PHONE && process.env.CALLMEBOT_KEY), required: false, purpose: 'Optional: a WhatsApp message to your own number for every new request.', hint: 'Free. Activate at callmebot.com (WhatsApp section)' },
+    { name: 'NEXT_PUBLIC_PLAUSIBLE_DOMAIN / NEXT_PUBLIC_UMAMI_ID', set: !!(process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN || process.env.NEXT_PUBLIC_UMAMI_ID), required: false, purpose: 'Optional: privacy-friendly visitor statistics from Plausible or Umami.', hint: 'Use your own site id; both have free or self-hosted options' },
   ];
 }
 

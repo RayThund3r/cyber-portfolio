@@ -85,7 +85,7 @@ function zoneAnswer(q: string): WorldAnswer | null {
   const h12 = ((hh + 11) % 12) + 1;
   const t = `${h12}:${String(mm).padStart(2, '0')} ${hh < 12 ? 'AM' : 'PM'}`;
   const off = `UTC${z[1] >= 0 ? '+' : '−'}${Math.abs(Math.trunc(z[1]))}${z[1] % 1 ? ':30' : ''}`;
-  return out('TIME', `In **${title(place)}** it is about **${t}** (${off}, ${z[2]}). 🕒 Daylight saving can shift this by an hour in some places.`);
+  return out('TIME', `In **${title(place)}** it is about **${t}** (${off}, ${z[2]}). Daylight saving can shift this by an hour in some places.`);
 }
 function zoneDiff(q: string): WorldAnswer | null {
   const m = /^(?:what(?:s| is)? )?(?:the )?time (?:difference|diff) (?:between )?(.+?) (?:and|to|vs) (.+)$/.exec(q);
@@ -101,24 +101,24 @@ function countryAnswer(q: string): WorldAnswer | null {
   let m: RegExpExecArray | null;
   const ask = (re: RegExp) => (m = re.exec(q));
   if (ask(/^(?:what )?(?:is )?(?:the )?capital(?: city)? (?:of )?(.+)$/) || ask(/^(.+?) capital(?: city)?$/)) {
-    const c = findCountry(m![1]); if (c) return out('FACT', `The capital of ${bold(nameOnly(c))} is ${bold(c.capital)}. 🌍`);
+    const c = findCountry(m![1]); if (c) return out('FACT', `The capital of ${bold(nameOnly(c))} is ${bold(c.capital)}.`);
   }
   if (ask(/^(?:what )?(?:is )?(?:the )?(?:national )?currency (?:of|in|used in) (.+)$/) || ask(/^(?:what )?currency does (.+?) (?:use|have)$/) || ask(/^(.+?) currency$/) || ask(/^(?:what )?money (?:does|do) (.+?) use$/)) {
-    const c = findCountry(m![1]); if (c) return out('FACT', `${bold(nameOnly(c))} uses the ${bold(c.currency)}. 💱`);
+    const c = findCountry(m![1]); if (c) return out('FACT', `${bold(nameOnly(c))} uses the ${bold(c.currency)}.`);
   }
   if (ask(/^(?:what )?(?:is )?(?:the )?(?:country |calling |dialing |dialling |phone |international )+(?:code|prefix) (?:of|for) (.+)$/) || ask(/^(.+?) (?:country |calling |dialing |dialling |phone )+(?:code|prefix)$/)) {
-    const c = findCountry(m![1]); if (c) return out('FACT', `${bold(nameOnly(c))}’s international calling code is ${bold(c.code)}. 📞`);
+    const c = findCountry(m![1]); if (c) return out('FACT', `${bold(nameOnly(c))}’s international calling code is ${bold(c.code)}.`);
   }
   if (ask(/^(?:what )?(?:languages?|language) (?:is |are )?(?:spoken|used|official)? ?(?:in|of) (.+)$/) || ask(/^(?:what )?(?:languages?) do (?:they|people) speak in (.+)$/) || ask(/^(?:what )?(?:is )?(?:the )?official languages? of (.+)$/)) {
-    const c = findCountry(m![1]); if (c) return out('FACT', `Main languages in ${bold(nameOnly(c))}: ${bold(c.languages)}. 🗣️`);
+    const c = findCountry(m![1]); if (c) return out('FACT', `Main languages in ${bold(nameOnly(c))}: ${bold(c.languages)}.`);
   }
   if (ask(/^(?:which |what )?continent (?:is|does) (.+?)(?: belong to| in| on| located in| part of)?$/) || ask(/^(?:which |what )?continent (?:of|for) (.+)$/) || ask(/^(?:in )?which continent is (.+?)(?: in| located)?$/) || ask(/^where is (.+?)(?: located)?$/)) {
-    const c = findCountry(m![1]); if (c) return out('FACT', `${bold(nameOnly(c))} is in ${bold(c.continent)}. Its capital is ${c.capital}. 🌍`);
+    const c = findCountry(m![1]); if (c) return out('FACT', `${bold(nameOnly(c))} is in ${bold(c.continent)}. Its capital is ${c.capital}.`);
   }
   if (ask(/^(?:tell me about|facts about|about|info on|information on|describe|country profile(?: of)?) (.+)$/) || ask(/^(?:what is|whats) (.+?) like$/)) {
     const c = findCountry(m![1]);
     if (c && norm(c.name) === norm(m![1]) || (c && c.aliases.map(norm).includes(norm(m![1])))) {
-      return out('FACT', `**${c.name}** 🌍\n- Continent: ${c.continent}\n- Capital: ${c.capital}\n- Currency: ${c.currency}\n- Languages: ${c.languages}\n- Calling code: ${c.code}`, [`Currency of ${c.name}`, `Capital of ${c.name}`, 'Ask me something else']);
+      return out('FACT', `**${c.name}**\n- Continent: ${c.continent}\n- Capital: ${c.capital}\n- Currency: ${c.currency}\n- Languages: ${c.languages}\n- Calling code: ${c.code}`, [`Currency of ${c.name}`, `Capital of ${c.name}`, 'Ask me something else']);
     }
   }
   return null;
@@ -129,29 +129,29 @@ function scienceAnswer(q: string): WorldAnswer | null {
   let m: RegExpExecArray | null;
   const ask = (re: RegExp) => (m = re.exec(q));
   if (ask(/^(?:what )?(?:is )?(?:the )?(?:chemical )?symbol (?:of|for) (?:the )?(?:element )?(.+)$/) || ask(/^(.+?)(?: chemical)? symbol$/)) {
-    const e = elByName.get(m![1].trim()); if (e) return out('FACT', `The chemical symbol for ${bold(e.name)} is ${bold(e.sym)}${elementNote(e)}. Atomic number ${e.n}. 🧪`);
+    const e = elByName.get(m![1].trim()); if (e) return out('FACT', `The chemical symbol for ${bold(e.name)} is ${bold(e.sym)}${elementNote(e)}. Atomic number ${e.n}.`);
   }
   if (ask(/^(?:what )?(?:is )?(?:the )?atomic number (?:of|for) (?:the )?(?:element )?(.+)$/) || ask(/^(.+?) atomic number$/)) {
     const key = m![1].trim(); const e = elByName.get(key) || elBySym.get(key);
-    if (e) return out('FACT', `${bold(e.name)} (${e.sym}) has atomic number ${bold(String(e.n))}. 🧪`);
+    if (e) return out('FACT', `${bold(e.name)} (${e.sym}) has atomic number ${bold(String(e.n))}.`);
   }
   if (ask(/^(?:what |which )?(?:element|chemical element) (?:has |with |is )?(?:the )?(?:chemical )?symbol (.+)$/) || ask(/^(?:what )?(?:does |is )?(.+?) (?:stand for|mean) (?:in (?:the )?(?:periodic table|chemistry))$/)) {
-    const e = elBySym.get(m![1].trim()); if (e) return out('FACT', `**${e.sym}** is the symbol for ${bold(e.name)} (atomic number ${e.n}). 🧪`);
+    const e = elBySym.get(m![1].trim()); if (e) return out('FACT', `**${e.sym}** is the symbol for ${bold(e.name)} (atomic number ${e.n}).`);
   }
   if (ask(/^(?:what |which )?element (?:is )?(?:has )?(?:atomic )?(?:number|no) (\d{1,3})$/) || ask(/^(?:what )?(?:is )?element (?:number )?(\d{1,3})$/) || ask(/^(?:what )?element has (?:atomic number )?(\d{1,3})$/)) {
-    const e = ELEMENTS[Number(m![1]) - 1]; if (e) return out('FACT', `Element ${e.n} is ${bold(e.name)} (symbol ${e.sym}). 🧪`);
+    const e = ELEMENTS[Number(m![1]) - 1]; if (e) return out('FACT', `Element ${e.n} is ${bold(e.name)} (symbol ${e.sym}).`);
   }
   if (ask(/^(?:what )?(?:is )?(?:the )?(\w+)(?:st|nd|rd|th)? planet from the sun$/)) { /* handled below */ }
   if (ask(/^(?:which |what )?planet (?:is )?(?:number |no )?(\d) (?:from the sun|in the solar system)$/) || ask(/^(?:what is )?planet number (\d)$/)) {
-    const p = PLANETS.find((x) => x.order === Number(m![1])); if (p) return out('FACT', `Planet number ${p.order} from the Sun is ${bold(p.name)}. 🪐`);
+    const p = PLANETS.find((x) => x.order === Number(m![1])); if (p) return out('FACT', `Planet number ${p.order} from the Sun is ${bold(p.name)}.`);
   }
   if (ask(/^(?:tell me about|facts about|about|what is|whats|describe|info on) (?:the )?(?:planet )?(\w+)$/)) {
-    const p = planetIdx.get(m![1]); if (p) return out('FACT', `**${p.name}** is planet number ${p.order} from the Sun: ${p.facts} 🪐`, ['How many planets are there?', 'Which planet is the largest?', 'Ask me something else']);
+    const p = planetIdx.get(m![1]); if (p) return out('FACT', `**${p.name}** is planet number ${p.order} from the Sun: ${p.facts}`, ['How many planets are there?', 'Which planet is the largest?', 'Ask me something else']);
   }
   const bare = planetIdx.get(q.replace(/^(?:the )?(?:planet )?/, ''));
-  if (bare) return out('FACT', `**${bare.name}** is planet number ${bare.order} from the Sun: ${bare.facts} 🪐`);
+  if (bare) return out('FACT', `**${bare.name}** is planet number ${bare.order} from the Sun: ${bare.facts}`);
   const e = elByName.get(q.replace(/^(?:what is |tell me about |about )(?:the )?(?:element )?/, ''));
-  if (e && /^(?:what is |tell me about |about |element )/.test(q)) return out('FACT', `**${e.name}** is element number ${e.n}, symbol ${bold(e.sym)}${elementNote(e)}. 🧪`);
+  if (e && /^(?:what is |tell me about |about |element )/.test(q)) return out('FACT', `**${e.name}** is element number ${e.n}, symbol ${bold(e.sym)}${elementNote(e)}.`);
   return null;
 }
 
@@ -163,17 +163,17 @@ function techAnswer(q: string): WorldAnswer | null {
   const cue = ask(/^(?:what )?(?:does )?(.+?) (?:stand for|stands for|mean)$/) || ask(/^(?:what )?(?:is )?(?:the )?(?:full form|full meaning|abbreviation|long form|expansion) (?:of|for) (.+)$/) || ask(/^(.+?) full form$/) || ask(/^(?:what )?(?:is )?(?:the )?meaning of (.+)$/);
   if (cue) {
     const a = acro.get(m![1].trim().replace(/\s+/g, ''));
-    if (a) return out('FACT', `**${a.abbr}** stands for ${bold(a.full)}: ${a.meaning}. 💻`);
+    if (a) return out('FACT', `**${a.abbr}** stands for ${bold(a.full)}: ${a.meaning}.`);
   }
   // programming languages
   if (ask(/^(?:who )?(?:created|invented|made|designed|founded|developed|wrote) (?:the )?(?:programming )?(?:language )?(.+?)(?: (?:programming )?language)?$/) || ask(/^who is (?:the )?(?:creator|inventor|author|father) of (.+?)(?: (?:programming )?language)?$/) || ask(/^(.+?)(?: programming)?(?: language)? (?:creator|inventor|author)$/)) {
-    const l = langIdx.get(m![1].trim()); if (l) return out('FACT', `${bold(l.name)} was created by ${bold(l.creator)} in ${bold(l.year)}. 👨‍💻`);
+    const l = langIdx.get(m![1].trim()); if (l) return out('FACT', `${bold(l.name)} was created by ${bold(l.creator)} in ${bold(l.year)}.`);
   }
   if (ask(/^(?:when|what year|which year) (?:was|did) (.+?)(?: programming)?(?: language)? (?:created|invented|made|released|come out|first appear|start|begin|developed)$/)) {
-    const l = langIdx.get(m![1].trim()); if (l) return out('FACT', `${bold(l.name)} first appeared in ${bold(l.year)}, created by ${l.creator}. 👨‍💻`);
+    const l = langIdx.get(m![1].trim()); if (l) return out('FACT', `${bold(l.name)} first appeared in ${bold(l.year)}, created by ${l.creator}.`);
   }
   if (ask(/^(?:what )?(?:is |are )?(.+?)(?: programming)?(?: language)? (?:used for|good for|for)$/) || ask(/^(?:what )?(?:do|does|can) (?:people |you )?(?:use|do) (.+?)(?: programming)?(?: language)? for$/) || ask(/^what is (.+?) (?:programming )?language$/) || ask(/^(?:tell me about|about) (.+?) (?:programming )?language$/)) {
-    const l = langIdx.get(m![1].trim()); if (l) return out('FACT', `${bold(l.name)} is a programming language by ${l.creator} (${l.year}), used for ${l.use}. 👨‍💻`);
+    const l = langIdx.get(m![1].trim()); if (l) return out('FACT', `${bold(l.name)} is a programming language by ${l.creator} (${l.year}), used for ${l.use}.`);
   }
   // companies / products
   if (ask(/^(?:when|what year|which year) (?:was|did) (.+?) (?:founded|started|created|launched|established|begin|released|come out|invented)$/)) {
@@ -198,7 +198,7 @@ function historyAnswer(q: string): WorldAnswer | null {
   if (ask(/^(?:who )?(?:was|is|were) (.+)$/) || ask(/^(?:tell me about|about|who(?:s| is) )(.+)$/) || ask(/^(?:what )?(?:is )?(.+?) (?:known for|famous for)$/) || ask(/^what did (.+?) (?:do|invent|discover|create)$/)) {
     const key = m![1].trim().replace(/^(?:the )/, '');
     const p = peopleIdx.get(key);
-    if (p) return out('FACT', `**${p.name}** (${p.lived}): ${p.known}. 📚`, [`Who else is famous?`, 'Ask me something else']);
+    if (p) return out('FACT', `**${p.name}** (${p.lived}): ${p.known}.`, [`Who else is famous?`, 'Ask me something else']);
   }
   // events: whenever a question asks about an event's date or what it was
   const dateish = /\b(?:when|what year|which year|what date|date of|year of|what happened|start|started|begin|began|end|ended|happened|occur)\b/.test(q) || /^(?:what was|tell me about|about|what is|explain)\b/.test(q);
@@ -211,7 +211,7 @@ function historyAnswer(q: string): WorldAnswer | null {
     }
     if (best) {
       const kw = content(norm(best.e.keys.find((k) => hasPhrase(q, norm(k)))!)).length;
-      if (kw / Math.max(1, w.length) >= 0.5) return out('FACT', `${best.e.what}. 📅`);
+      if (kw / Math.max(1, w.length) >= 0.5) return out('FACT', `${best.e.what}.`);
     }
   }
   return null;
@@ -220,9 +220,9 @@ function historyAnswer(q: string): WorldAnswer | null {
 /* ---------- small maths ---------- */
 function powerAnswer(q: string): WorldAnswer | null {
   let m = /^(?:what(?:s| is) )?(?:the )?(square|cube|square root) of (-?\d+(?:\.\d+)?)$/.exec(q);
-  if (m) { const n = Number(m[2]); const v = m[1] === 'square' ? n * n : m[1] === 'cube' ? n ** 3 : Math.sqrt(n); if (Number.isFinite(v)) return out('MATH', `${m[1]} of ${n} = **${+v.toFixed(6)}** 🧮`); }
+  if (m) { const n = Number(m[2]); const v = m[1] === 'square' ? n * n : m[1] === 'cube' ? n ** 3 : Math.sqrt(n); if (Number.isFinite(v)) return out('MATH', `${m[1]} of ${n} = **${+v.toFixed(6)}**`); }
   m = /^(?:what(?:s| is) )?(-?\d+(?:\.\d+)?) (squared|cubed)$/.exec(q);
-  if (m) { const n = Number(m[1]); const v = m[2] === 'squared' ? n * n : n ** 3; return out('MATH', `${n} ${m[2]} = **${+v.toFixed(6)}** 🧮`); }
+  if (m) { const n = Number(m[1]); const v = m[2] === 'squared' ? n * n : n ** 3; return out('MATH', `${n} ${m[2]} = **${+v.toFixed(6)}**`); }
   return null;
 }
 
@@ -232,7 +232,7 @@ function zoneQ(q: string): WorldAnswer | null {
   if (!m) return null;
   const z = ZONES.find(([n]) => n === m[1].replace(/^the /, '').trim());
   if (!z) return null;
-  return out('FACT', `${title(z[0])} is on **${z[2]}**, UTC${z[1] >= 0 ? '+' : '−'}${Math.abs(Math.trunc(z[1]))}${z[1] % 1 ? ':30' : ''}. 🕒`);
+  return out('FACT', `${title(z[0])} is on **${z[2]}**, UTC${z[1] >= 0 ? '+' : '−'}${Math.abs(Math.trunc(z[1]))}${z[1] % 1 ? ':30' : ''}.`);
 }
 
 /* ---------- dictionary & translation ---------- */
@@ -245,9 +245,9 @@ function dictAnswer(q: string): WorldAnswer | null {
   word = word.replace(/^(?:a |an |the |to )/, '').trim();
   const d = DICT[word];
   if (!d) return null;
-  if (wantSyn) return out('FACT', `Words similar to **${word}**: ${d.syn || d.def}. 📖`);
+  if (wantSyn) return out('FACT', `Words similar to **${word}**: ${d.syn || d.def}.`);
   void wantDef;
-  return out('FACT', `**${word}** (${d.pos}): ${d.def}.${d.syn ? ` Similar: ${d.syn}.` : ''} 📖`);
+  return out('FACT', `**${word}** (${d.pos}): ${d.def}.${d.syn ? ` Similar: ${d.syn}.` : ''}`);
 }
 
 const LANG_ALIAS: Record<string, string> = { french: 'french', spanish: 'spanish', portuguese: 'portuguese', german: 'german', italian: 'italian', arabic: 'arabic', swahili: 'swahili', kiswahili: 'swahili', luganda: 'luganda', ganda: 'luganda', chinese: 'chinese', mandarin: 'chinese', japanese: 'japanese', hindi: 'hindi', kinyarwanda: 'kinyarwanda' };
@@ -258,7 +258,7 @@ function transAnswer(q: string): WorldAnswer | null {
   const phrase = m[1].replace(/^(?:the word |the phrase |say )/, '').trim();
   const row = TRANS[phrase];
   if (!lang || !row || !row[lang]) return null;
-  return out('FACT', `“${phrase}” in ${title(lang)}: **${row[lang]}** 🗣️`);
+  return out('FACT', `“${phrase}” in ${title(lang)}: **${row[lang]}**`);
 }
 
 /* ---------- public API ---------- */

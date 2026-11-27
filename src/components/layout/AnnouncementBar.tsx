@@ -23,7 +23,7 @@ export function Bar({ data, onDismiss }: { data: BarData; onDismiss?: () => void
   return (
     <div role="status" className={`flex items-center gap-2 border-b px-4 py-1.5 font-mono text-[11px] sm:text-xs ${LOOK[data.level]}`}>
       {data.href ? (data.href.startsWith('/') ? <Link href={data.href} className="flex min-w-0 flex-1 items-center gap-2 hover:underline">{inner}</Link> : <a href={data.href} target="_blank" rel="noopener noreferrer" className="flex min-w-0 flex-1 items-center gap-2 hover:underline">{inner}</a>) : <div className="flex min-w-0 flex-1 items-center gap-2">{inner}</div>}
-      {data.dismissible && onDismiss && <button type="button" onClick={onDismiss} aria-label="Dismiss announcement" className="shrink-0 cursor-pointer rounded px-1.5 py-0.5 opacity-70 hover:opacity-100">✕</button>}
+      {data.dismissible && onDismiss && <button type="button" onClick={onDismiss} aria-label="Dismiss announcement" className="shrink-0 cursor-pointer rounded px-1.5 py-0.5 opacity-70 hover:opacity-100"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg></button>}
     </div>
   );
 }

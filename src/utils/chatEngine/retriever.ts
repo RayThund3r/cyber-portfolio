@@ -118,10 +118,10 @@ export function searchKnowledge(query: string, limit = 3): KnowledgeHit[] {
   const weights = qTokens.map((t) => (df.has(t) ? idf(t, n) : maxIdf));
   const totalWeight = weights.reduce((a, b) => a + b, 0) || 1;
 
-  // What this visitor has taught us (👍 = "that phrasing means this entry", 👎 = "wrong entry").
+  // What this visitor has taught us (= "that phrasing means this entry", = "wrong entry").
   const qSet = new Set(qTokens);
-  const learnedBoost = new Map<string, number>(); // entryId -> similarity of best 👍 alias
-  const learnedPenalty = new Set<string>(); // entryIds with a close 👎 alias
+  const learnedBoost = new Map<string, number>(); // entryId -> similarity of best alias
+  const learnedPenalty = new Set<string>(); // entryIds with a close alias
   for (const a of getLearnedAliases()) {
     const sim = jaccardSets(qSet, new Set(tokens(a.query)));
     if (sim < 0.7) continue;

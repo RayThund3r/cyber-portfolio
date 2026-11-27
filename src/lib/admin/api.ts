@@ -16,12 +16,12 @@ export async function readBody(req: Request, max = 400_000): Promise<Record<stri
   } catch { throw Object.assign(new Error('Invalid JSON body.'), { status: 400 }); }
 }
 
-export function admin(handler: Handler, mutating = false) {
+export function admin(handler: Handler, mutating = false, maxBody = 400_000) {
   return async (req: Request): Promise<Response> => {
     const gate = await requireAdmin(req, mutating);
     if ('error' in gate) return gate.error;
     try {
-      const body = mutating ? await readBody(req) : {};
+      const body = mutating ? await readBody(req, maxBody) : {};
       const out = await handler({ session: gate.session, req, url: new URL(req.url), body });
       if (mutating) await bumpSiteVersion(); // any owner save: open pages refresh themselves
       return out instanceof Response ? out : jsonResponse(out ?? { ok: true }, 200);

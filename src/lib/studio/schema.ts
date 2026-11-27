@@ -20,7 +20,7 @@ const LIST = (key: string, label: string, fields: Field[], x: Partial<Field> = {
 export interface StudioGroup { id: string; label: string; icon: string; blurb: string; fields: Field[] }
 
 export const STUDIO_GROUPS: StudioGroup[] = [
-  { id: 'brand', label: 'Brand & logo', icon: '🏷️', blurb: 'Name, tagline and logo shown across the site.', fields: [
+  { id: 'brand', label: 'Brand & logo', icon: 'tag', blurb: 'Name, tagline and logo shown across the site.', fields: [
     T('name', 'Business name', 'Your Business', { max: 60 }),
     T('tag', 'Tagline', '', { max: 120 }),
     T('announce', 'Announcement bar (leave empty to hide)', '', { max: 140 }),
@@ -32,7 +32,7 @@ export const STUDIO_GROUPS: StudioGroup[] = [
     SEL('lr', 'Logo corners', o(['0', 'Square'], ['8', 'Soft'], ['12', 'Rounded'], ['16', 'More rounded'], ['20', 'Very rounded']), '12'),
     IMG('favicon', 'Browser tab icon (optional)', ''),
   ] },
-  { id: 'contact', label: 'Contact & social', icon: '📞', blurb: 'Where customers reach you. Orders, bookings and enquiries go to WhatsApp.', fields: [
+  { id: 'contact', label: 'Contact & social', icon: 'phone', blurb: 'Where customers reach you. Orders, bookings and enquiries go to WhatsApp.', fields: [
     T('phone', 'Phone', '', { max: 30 }),
     T('wa', 'WhatsApp number (digits only, with country code, e.g. 256700000000)', '', { max: 20 }),
     T('email', 'Email', '', { max: 100 }),
@@ -43,7 +43,7 @@ export const STUDIO_GROUPS: StudioGroup[] = [
     T('thanks', 'Thank-you message after the contact form', 'Thank you! We will reply shortly.', { max: 160 }),
     T('wamsg', 'WhatsApp greeting message', 'Hello, I found you on your website.', { max: 160 }),
   ] },
-  { id: 'look', label: 'Look & feel', icon: '🎨', blurb: 'Colours, fonts and style. Every site has a light and a dark mode.', fields: [
+  { id: 'look', label: 'Look & feel', icon: 'palette', blurb: 'Colours, fonts and style. Every site has a light and a dark mode.', fields: [
     SEL('skin', 'Style', Object.entries({ soft: 'Soft & rounded', bold: 'Bold & sharp', classic: 'Classic & elegant', clean: 'Clean (no extras)' }).map(([value, label]) => ({ value, label })), 'soft'),
     SEL('hf', 'Heading font', FONTS.filter((f) => f.kind === 'heading').map((f) => ({ value: f.id, label: f.label })), 'playfair'),
     SEL('bf', 'Text font', FONTS.filter((f) => f.kind === 'body').map((f) => ({ value: f.id, label: f.label })), 'quicksand'),
@@ -57,7 +57,7 @@ export const STUDIO_GROUPS: StudioGroup[] = [
     COL('bgD', 'Dark mode · page background', '#170d12'), COL('cardD', 'Dark mode · cards', '#241720'), COL('txD', 'Dark mode · text', '#fbeaf1'),
     TA('customCss', 'Extra CSS (optional, for experts)', '', { max: 4000, help: 'Added at the very end of the stylesheet.' }),
   ] },
-  { id: 'content', label: 'Pages & content', icon: '📝', blurb: 'Hero slides, about, services, numbers, reviews and questions.', fields: [
+  { id: 'content', label: 'Pages & content', icon: 'file-text', blurb: 'Hero slides, about, services, numbers, reviews and questions.', fields: [
     LIST('slides', 'Hero slides', [IMG('u', 'Picture', ''), T('t', 'Headline', '', { max: 80 }), T('s', 'Sub-headline', '', { max: 160 })], { itemLabel: 'Slide', titleKey: 't', max: 8 }),
     IMG('aboutImg', 'About picture', ''),
     T('svTitle', 'Services section title', 'What we do', { max: 60 }),
@@ -66,7 +66,7 @@ export const STUDIO_GROUPS: StudioGroup[] = [
     LIST('testi', 'Customer reviews', [T('n', 'Name', '', { max: 40 }), TA('q', 'What they said', '', { max: 260 })], { itemLabel: 'Review', titleKey: 'n', max: 9 }),
     LIST('faq', 'Questions & answers', [T('q', 'Question', '', { max: 120 }), TA('a', 'Answer', '', { max: 400 })], { itemLabel: 'Question', titleKey: 'q', max: 20 }),
   ] },
-  { id: 'catalog', label: 'Products & gallery', icon: '🛍️', blurb: 'The catalogue customers browse and order from, and your photo gallery.', fields: [
+  { id: 'catalog', label: 'Products & gallery', icon: 'shopping-bag', blurb: 'The catalogue customers browse and order from, and your photo gallery.', fields: [
     T('catTitle', 'Catalogue title', 'Our catalogue', { max: 60 }),
     LIST('products', 'Products / packages', [
       T('n', 'Name', '', { max: 80 }), T('c', 'Category (customers filter by this)', '', { max: 30 }),
@@ -76,7 +76,7 @@ export const STUDIO_GROUPS: StudioGroup[] = [
     T('galTitle', 'Gallery title', 'Our work', { max: 60 }),
     LIST('gallery', 'Gallery photos', [IMG('u', 'Photo', ''), T('c', 'Caption', '', { max: 60 }), T('k', 'Category (optional filter)', '', { max: 24 })], { itemLabel: 'Photo', titleKey: 'c', max: 48 }),
   ] },
-  { id: 'booking', label: 'Booking or quotes', icon: '📅', blurb: 'Choose how customers take the next step: book a time slot, or request a quote.', fields: [
+  { id: 'booking', label: 'Booking or quotes', icon: 'calendar', blurb: 'Choose how customers take the next step: book a time slot, or request a quote.', fields: [
     SEL('mode', 'The site works as', o(['book', 'Booking site (customers pick a day and time)'], ['quote', 'Quote site (customers send a custom request)']), 'book'),
     T('bookTitle', 'Booking section title', 'Book an appointment', { max: 60 }),
     T('bookText', 'Booking section text', 'Pick a day and time that suits you.', { max: 160 }),
@@ -84,7 +84,7 @@ export const STUDIO_GROUPS: StudioGroup[] = [
     T('slots', 'Time slots (comma separated)', '09:00,11:00,14:00,16:00', { max: 120 }),
     T('closed', 'Closed weekdays (0=Sun … 6=Sat, comma separated)', '0', { max: 20 }),
   ] },
-  { id: 'shop', label: 'Payments & promos', icon: '💳', blurb: 'What customers see at checkout. Orders are confirmed by you, on WhatsApp.', fields: [
+  { id: 'shop', label: 'Payments & promos', icon: 'credit-card', blurb: 'What customers see at checkout. Orders are confirmed by you, on WhatsApp.', fields: [
     T('mtn', 'MTN MoMo number', '', { max: 30 }), T('mtnn', 'MTN registered name', '', { max: 60 }),
     T('airtel', 'Airtel Money number', '', { max: 30 }), T('airteln', 'Airtel registered name', '', { max: 60 }),
     T('bank', 'Bank details', '', { max: 160 }),
@@ -92,12 +92,12 @@ export const STUDIO_GROUPS: StudioGroup[] = [
     T('paylink', 'Online payment link (optional)', '', { max: 200 }),
     TA('promos', 'Promo codes (one per line, e.g. WELCOME10=10% or SAVE5000=5000)', '', { max: 400 }),
   ] },
-  { id: 'features', label: 'Features on / off', icon: '🧩', blurb: 'Switch parts of the site on or off.', fields: [
+  { id: 'features', label: 'Features on / off', icon: 'layers', blurb: 'Switch parts of the site on or off.', fields: [
     TOG('fShop', 'Shopping cart and ordering'), TOG('fWa', 'Floating WhatsApp button'), TOG('fRev', 'Customer reviews on products'),
     TOG('fFav', 'Favourites (hearts)'), TOG('fLang', 'Language switch (English, Swahili, Luganda)'), TOG('fNews', 'Newsletter sign-up'),
     TOG('fTop', 'Back-to-top button'), TOG('fTrack', 'Order tracking'),
   ] },
-  { id: 'advanced', label: 'Advanced', icon: '⚙️', blurb: 'Search title, owner admin passcode, cloud sync, translations.', fields: [
+  { id: 'advanced', label: 'Advanced', icon: 'settings', blurb: 'Search title, owner admin passcode, cloud sync, translations.', fields: [
     T('title', 'Browser tab title (empty = business name)', '', { max: 90 }),
     T('pass', 'Owner admin passcode (at least 8 characters)', '', { max: 40, help: 'Used to open the site\'s own admin page (add #admin to the address). The website only contains a scrambled (hashed) copy, never the passcode itself. Longer is safer.' }),
     T('dburl', 'Cloud database URL (optional, Firebase Realtime Database)', '', { max: 200, help: 'Without this, orders, bookings and visit counts are stored only in the browser of the person who made them. Add your own Firebase URL to collect them in one place.' }),

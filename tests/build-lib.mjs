@@ -10,6 +10,7 @@ const src = join(here, '..', 'src', 'lib', 'builder'), out = join(here, '.build'
 rmSync(out, { recursive: true, force: true }); mkdirSync(out, { recursive: true });
 for (const f of readdirSync(src).filter((x) => x.endsWith('.ts'))) {
   const r = ts.transpileModule(readFileSync(join(src, f), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, esModuleInterop: false }, fileName: f });
-  writeFileSync(join(out, f.replace(/\.ts$/, '.js')), r.outputText);
+  writeFileSync(join(out, f.replace(/\.ts$/, '.js')), r.outputText.replace(/require\((['"])\.\.\/icons\1\)/g, "require('./icons')"));
 }
+{ const f = join(here, '..', 'src', 'lib', 'icons.ts'); writeFileSync(join(out, 'icons.js'), ts.transpileModule(readFileSync(f, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 }, fileName: 'icons.ts' }).outputText); }
 console.log('builder library transpiled →', out);

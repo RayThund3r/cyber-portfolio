@@ -7,7 +7,7 @@ import { Banner, Btn, Panel, Pill, Record, Segmented, useDefer, useRecord } from
 
 const CFG = M.CLASSIC;
 const COL = ['#ef4444', '#f59e0b', '#22c55e', '#06b6d4', '#6366f1', '#d946ef'];
-const SYM = ['●', '■', '▲', '◆', '★', '✚'];
+const SYM = ['●', '■', '▲', '◆', '▼', '◀'];
 const NAMES = ['red', 'amber', 'green', 'cyan', 'indigo', 'magenta'];
 type Row = { guess: M.Code; fb: M.Fb };
 

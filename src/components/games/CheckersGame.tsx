@@ -83,7 +83,7 @@ export default function CheckersGame() {
                 {isTarget && <span className="absolute h-1/4 w-1/4 rounded-full bg-accent/70" />}
                 {p !== 0 && (
                   <span className={`g-pop flex h-[78%] w-[78%] items-center justify-center rounded-full border-2 text-[clamp(0.6rem,3vw,1.1rem)] font-bold shadow-lg transition ${p > 0 ? 'border-red-300 bg-red-600 text-red-100' : 'border-zinc-400 bg-zinc-950 text-zinc-300'} ${sel === i ? 'scale-110 ring-2 ring-accent' : movable.has(i) && myTurn && state.turn === Math.sign(p) ? 'ring-1 ring-accent/40' : ''}`}>
-                    {Math.abs(p) === 2 ? '♛' : ''}
+                    {Math.abs(p) === 2 ? <svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" aria-hidden="true"><path d="M4 8l3.500 5L9 6l3 6 3-6 1.500 7L20 8l-1.500 11h-13z" /></svg> : null}
                   </span>
                 )}
               </button>
@@ -106,8 +106,8 @@ export default function CheckersGame() {
           <Btn icon="lightbulb" onClick={askHint} disabled={!myTurn}>Hint</Btn>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Pill label="Red" value={`${cnt.red}${cnt.redK ? ` (${cnt.redK}♛)` : ''}`} tone={mine === 1 ? 'accent' : 'default'} />
-          <Pill label="Black" value={`${cnt.black}${cnt.blackK ? ` (${cnt.blackK}♛)` : ''}`} tone={mine === -1 ? 'accent' : 'default'} />
+          <Pill label="Red" value={`${cnt.red}${cnt.redK ? ` (${cnt.redK} kings)` : ''}`} tone={mine === 1 ? 'accent' : 'default'} />
+          <Pill label="Black" value={`${cnt.black}${cnt.blackK ? ` (${cnt.blackK} kings)` : ''}`} tone={mine === -1 ? 'accent' : 'default'} />
         </div>
         <Record rec={rec} />
         <p className="text-[11px] leading-relaxed text-zinc-500">Captures are compulsory and multi-jumps are chosen for you by tapping the final square. Reach the far row to crown a king. Eighty quiet half-moves is a draw. Master searches ~10 plies with alpha-beta, a transposition table and quiescence.</p>

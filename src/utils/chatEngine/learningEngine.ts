@@ -6,7 +6,7 @@
 //
 //   session      chat history survives page reloads
 //   answer cache web answers are stored; similar repeat questions are instant and work offline
-//   aliases      👍/👎 on a reply teaches the retriever which phrasing maps to which entry
+//   aliases     /on a reply teaches the retriever which phrasing maps to which entry
 //   unanswered   questions the bot could not answer
 //   prefs        whether the visitor enabled the on-device AI (and which model)
 //
@@ -122,7 +122,7 @@ export function cacheAnswer(query: string, title: string, extract: string, image
   write(KEYS.cache, list.slice(0, 60));
 }
 
-/* ---------------- learned aliases (👍 / 👎) ---------------- */
+/* ---------------- learned aliases (/) ---------------- */
 
 export function getLearnedAliases(): LearnedAlias[] {
   const list = read<LearnedAlias[]>(KEYS.aliases, []);

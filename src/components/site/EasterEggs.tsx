@@ -13,7 +13,7 @@ import Icon from '@/components/ui/Icon';
 const KONAMI = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
 const SWIPES = ['U', 'U', 'D', 'D', 'L', 'R', 'L', 'R', 'T', 'T'];
 const WORDS: Record<string, { fx: 'confetti' | 'matrix' | 'snow' | 'hearts' | 'stars' | 'barrel' | 'none'; msg: string }> = {
-  party: { fx: 'confetti', msg: 'Party mode! 🎉' },
+  party: { fx: 'confetti', msg: 'Party mode!' },
   matrix: { fx: 'matrix', msg: 'Wake up, visitor...' },
   snow: { fx: 'snow', msg: 'Let it snow.' },
   hearts: { fx: 'hearts', msg: 'Spreading love.' },
@@ -32,7 +32,7 @@ export default function EasterEggs() {
     try {
       if (!(window as unknown as { __sysHello?: boolean }).__sysHello) {
         (window as unknown as { __sysHello?: boolean }).__sysHello = true;
-        console.log('%c SYS://ONLINE ', 'background:#22d3ee;color:#000;font-weight:bold;padding:2px 6px;border-radius:4px', '\nCurious? So are we. Try the cheat code, or type "party" on the page. 🤫');
+        console.log('%c SYS://ONLINE ', 'background:#22d3ee;color:#000;font-weight:bold;padding:2px 6px;border-radius:4px', '\nCurious? So are we. Try the cheat code, or type "party" on the page.');
       }
     } catch { /* console blocked */ }
 

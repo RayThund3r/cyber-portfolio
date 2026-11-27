@@ -6,6 +6,7 @@
 import { FONT_PAIRS, SECTION_DEFS, type SectionInstance, type SiteConfig } from './schema';
 import { ASSET_RE, safeUrl } from './sanitize';
 import { buildPro } from './pro';
+import { faviconFor, iconHtml } from '../icons';
 
 export const BS_VERSION = '5.3.3';
 export const BS_CDN = {
@@ -134,7 +135,7 @@ img{max-width:100%}
 .rounded-brand{border-radius:var(--r)}
 .card{background:var(--c-card);border:1px solid var(--c-line);border-radius:var(--r);color:inherit}
 .sec-alt .card{background:var(--c-bg)}
-.feature .icon{font-size:2rem;margin-bottom:.6rem}
+.ico{vertical-align:-.125em}.feature .icon,.feat-row .icon,.feat-min .icon{color:var(--c-primary)}.feature .icon{font-size:2rem;margin-bottom:.6rem}
 .feature{transition:transform .2s,box-shadow .2s}.feature:hover{transform:translateY(-4px);box-shadow:0 10px 30px rgba(0,0,0,.08)}
 .ticks{list-style:none;padding:0;margin:1.2rem 0 0}.ticks li{margin:.4rem 0}.tick{color:var(--c-primary);font-weight:800;margin-right:.4rem}
 .stat-num{font-family:var(--f-head);font-weight:800;font-size:clamp(2rem,4vw,3rem);color:var(--c-primary)}
@@ -154,7 +155,7 @@ img{max-width:100%}
 .price{padding:1.6rem;text-align:center;height:100%}
 .price.featured{border:2px solid var(--c-primary);box-shadow:0 14px 40px rgba(0,0,0,.12);transform:scale(1.03)}
 .price .amount{font-family:var(--f-head);font-size:2.2rem;font-weight:800}
-.price ul{margin:1.2rem 0;text-align:left}.price li{padding:.3rem 0;border-bottom:1px dashed var(--c-line)}.price li::before{content:"✓ ";color:var(--c-primary);font-weight:700}
+.price ul{margin:1.2rem 0;text-align:left}.price li{padding:.3rem 0;border-bottom:1px dashed var(--c-line)}.price li::before{content:"";display:inline-block;width:.32em;height:.62em;border:solid var(--c-primary);border-width:0 2px 2px 0;transform:rotate(45deg) translateY(-.12em);margin-right:.7em}
 .team-photo{width:130px;height:130px;border-radius:50%;object-fit:cover;margin-bottom:.8rem}
 .team-photo.ph{display:inline-flex;align-items:center;justify-content:center;background:var(--c-primary);color:var(--c-on-primary);font-size:2.4rem;font-weight:700}
 .accordion{--bs-accordion-bg:var(--c-card);--bs-accordion-color:var(--c-text);--bs-accordion-border-color:var(--c-line);--bs-accordion-btn-color:var(--c-text);--bs-accordion-btn-bg:var(--c-card);--bs-accordion-active-bg:color-mix(in srgb,var(--c-primary) 12%,var(--c-bg));--bs-accordion-active-color:var(--c-text);--bs-accordion-btn-focus-box-shadow:none;--bs-accordion-border-radius:var(--r)}
@@ -322,7 +323,7 @@ export function buildSite(cfg: SiteConfig, opts: BuildOptions): BuiltSite {
         return wrap(s, `<div class="container"><div class="row align-items-center g-5"><div class="col-lg-6"${R}>${body(false)}</div>${d.image ? `<div class="col-lg-6"${R}><img class="img-fluid rounded-brand shadow" src="${e(img(d.image))}" alt="${e(d.title)}"></div>` : ''}</div></div>`, 'hero');
       }
       case 'about': {
-        const bullets = (d.bullets || []).map((b: any, i: number) => (b.text ? `<li><span class="tick">✓</span>${F(s, `bullets.${i}.text`, b.text)}</li>` : '')).join('');
+        const bullets = (d.bullets || []).map((b: any, i: number) => (b.text ? `<li><span class="tick">${iconHtml('check')}</span>${F(s, `bullets.${i}.text`, b.text)}</li>` : '')).join('');
         const text = `<div class="col-lg-6"${R}>${d.title ? `<h2 class="section-title">${F(s, 'title', d.title)}</h2>` : ''}${paras(d.text)}${bullets ? `<ul class="ticks">${bullets}</ul>` : ''}</div>`;
         const pic = d.image ? `<div class="col-lg-6${d.imageSide === 'left' ? ' order-lg-first' : ''}"${R}><img class="img-fluid rounded-brand shadow-sm" loading="lazy" src="${e(img(d.image))}" alt="${e(d.title)}"></div>` : '';
         return wrap(s, `<div class="container"><div class="row align-items-center g-5">${text}${pic}</div></div>`);
@@ -331,12 +332,12 @@ export function buildSite(cfg: SiteConfig, opts: BuildOptions): BuiltSite {
         const its: any[] = d.items || [];
         const ic = (it: any, i: number) => `<h3 class="h5">${F(s, `items.${i}.title`, it.title)}</h3><p class="mb-0">${F(s, `items.${i}.text`, it.text, true)}</p>`;
         if (d.variant === 'list')
-          return wrap(s, `<div class="container" style="max-width:900px">${head(s)}<div class="feat-rows">${its.map((it, i) => `<div class="feat-row"${R}><div class="icon">${e(it.icon)}</div><div>${ic(it, i)}</div></div>`).join('')}</div></div>`);
+          return wrap(s, `<div class="container" style="max-width:900px">${head(s)}<div class="feat-rows">${its.map((it, i) => `<div class="feat-row"${R}><div class="icon">${iconHtml(it.icon)}</div><div>${ic(it, i)}</div></div>`).join('')}</div></div>`);
         if (d.variant === 'steps')
           return wrap(s, `<div class="container" style="max-width:900px">${head(s)}<ol class="feat-steps">${its.map((it, i) => `<li${R}><span class="step-n">${i + 1}</span><div>${ic(it, i)}</div></li>`).join('')}</ol></div>`);
         if (d.variant === 'minimal')
-          return wrap(s, `<div class="container">${head(s)}<div class="row row-cols-1 row-cols-md-2 row-cols-lg-${e(d.columns)} g-4">${its.map((it, i) => `<div class="col"><div class="feat-min"${R}><div class="icon">${e(it.icon)}</div>${ic(it, i)}</div></div>`).join('')}</div></div>`);
-        const cards = its.map((it: any, i: number) => `<div class="col"><div class="card h-100 feature"${R}><div class="card-body p-4"><div class="icon">${e(it.icon)}</div><h3 class="h5">${F(s, `items.${i}.title`, it.title)}</h3><p class="mb-0">${F(s, `items.${i}.text`, it.text, true)}</p></div></div></div>`).join('');
+          return wrap(s, `<div class="container">${head(s)}<div class="row row-cols-1 row-cols-md-2 row-cols-lg-${e(d.columns)} g-4">${its.map((it, i) => `<div class="col"><div class="feat-min"${R}><div class="icon">${iconHtml(it.icon)}</div>${ic(it, i)}</div></div>`).join('')}</div></div>`);
+        const cards = its.map((it: any, i: number) => `<div class="col"><div class="card h-100 feature"${R}><div class="card-body p-4"><div class="icon">${iconHtml(it.icon)}</div><h3 class="h5">${F(s, `items.${i}.title`, it.title)}</h3><p class="mb-0">${F(s, `items.${i}.text`, it.text, true)}</p></div></div></div>`).join('');
         return wrap(s, `<div class="container">${head(s)}<div class="row row-cols-1 row-cols-md-2 row-cols-lg-${e(d.columns)} g-4">${cards}</div></div>`);
       }
       case 'stats': {
@@ -425,7 +426,7 @@ export function buildSite(cfg: SiteConfig, opts: BuildOptions): BuiltSite {
   // Sources tried in order. Live views: our own address first, then the two CDNs. Exports: the bundled copy, or the two CDNs.
   const bsCss = opts.bootstrap ? [opts.bootstrap.css] : opts.mode === 'export' ? [BS_CDN.css, BS_BACKUP.css] : [BS_LOCAL.css, BS_CDN.css, BS_BACKUP.css];
   const bsJs = opts.bootstrap ? [opts.bootstrap.js] : opts.mode === 'export' ? [BS_CDN.js, BS_BACKUP.js] : [BS_LOCAL.js, BS_CDN.js, BS_BACKUP.js];
-  const fav = `data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>${cfg.meta.favicon || '🚀'}</text></svg>`)}`;
+  const fav = faviconFor(cfg.meta.favicon || 'rocket');
   const inJs = (x: string) => x.replace(/<\/script/gi, '<\\/script');
   const inCss = (x: string) => x.replace(/<\/style/gi, '<\\/style');
   const html = `<!doctype html>

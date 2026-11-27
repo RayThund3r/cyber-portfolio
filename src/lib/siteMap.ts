@@ -14,6 +14,7 @@ export interface RouteInfo {
 export const ROUTES: RouteInfo[] = [
   { path: '/', label: 'HOME', title: 'Home', aliases: ['home', 'homepage', 'home page', 'main page', 'landing', 'start', 'root', 'top page'] },
   { path: '/portfolio', label: 'PORTFOLIO', title: 'Portfolio archive', aliases: ['portfolio', 'archive', 'projects', 'project page', 'work', 'my work', 'gallery', 'showcase', 'case studies'] },
+  { path: '/art', label: 'ART', title: 'Art gallery', aliases: ['art', 'art page', 'my art', 'artwork', 'graphic design', 'graphics', 'design work', 'logos', 'posters', 'illustrations', 'designs'] },
   { path: '/services', label: 'SERVICES', title: 'Services', aliases: ['services', 'service page', 'what you offer', 'offerings', 'pricing page', 'rates page', 'timelines'] },
   { path: '/contact', label: 'CONTACT', title: 'Contact', aliases: ['contact', 'contact page', 'contact form', 'form', 'booking', 'book', 'hire', 'get in touch', 'inquiry'] },
   { path: '/games', label: 'GAMES', title: 'Games', aliases: ['games', 'game page', 'games page', 'arcade', 'brain games', 'play'] },

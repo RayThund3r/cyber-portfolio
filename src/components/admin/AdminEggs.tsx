@@ -10,7 +10,7 @@ const KONAMI = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'Ar
 const typing = (t: EventTarget | null) => { const el = t as HTMLElement | null; return !!el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)); };
 const QUOTES = [
   'There is no cloud. It is just someone else’s computer. (Except yours, apparently.)',
-  'It works on my machine. ✅',
+  'It works on my machine.',
   'Have you tried turning it off and on again?',
   'The best code is the code you did not have to write.',
   'Ship it. Then fix it. Then ship it again.',
@@ -29,18 +29,18 @@ export default function AdminEggs() {
       const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
       k = key === KONAMI[k] ? k + 1 : key === KONAMI[0] ? 1 : 0;
       if (k === KONAMI.length) {
-        k = 0; setRoot(true); triggerFx('matrix'); say('ROOT MODE ENGAGED. (Cosmetic. You were already the admin.) 😎', 5000);
+        k = 0; setRoot(true); triggerFx('matrix'); say('ROOT MODE ENGAGED. (Cosmetic. You were already the admin.)', 5000);
         window.setTimeout(() => setRoot(false), 6000);
         return;
       }
-      if (key === 'g') { const now = Date.now(); if (now - lastG < 450) { window.scrollTo({ top: 0, behavior: 'smooth' }); say('gg ⬆️', 1500); } lastG = now; }
+      if (key === 'g') { const now = Date.now(); if (now - lastG < 450) { window.scrollTo({ top: 0, behavior: 'smooth' }); say('gg (top)', 1500); } lastG = now; }
       if (key.length !== 1) return;
       buf = (buf + key).slice(-8);
       const hit = (w: string) => buf.endsWith(w);
-      if (hit('coffee')) say('☕ Brewing... 100% (never done). Take a real break, you earned it.');
+      if (hit('coffee')) say('Brewing... 100% (never done). Take a real break, you earned it.');
       else if (hit('matrix')) { triggerFx('matrix'); say('Wake up, admin...'); }
-      else if (hit('party')) { triggerFx('confetti'); say('Party mode! 🎉 Something good happened, right?'); }
-      else if (hit('uptime')) say(`Session uptime: ${Math.max(1, Math.round(performance.now() / 60000))} min. The site has been fine without you, probably. 🙂`);
+      else if (hit('party')) { triggerFx('confetti'); say('Party mode! Something good happened, right?'); }
+      else if (hit('uptime')) say(`Session uptime: ${Math.max(1, Math.round(performance.now() / 60000))} min. The site has been fine without you, probably.`);
       else if (hit('root')) say('uid=0(admin) gid=0(admin) groups=0(admin). Welcome back.');
       else if (hit('hello')) say(QUOTES[q++ % QUOTES.length], 4500);
       else if (hit('42')) say('The answer. Now what was the question? Probably: "how many unread requests?"');

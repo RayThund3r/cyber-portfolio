@@ -99,7 +99,7 @@ export default function StudioEditor({ slug, onBack, onAuthLost }: { slug: strin
   if (loadErr) return <div className="space-y-3"><p className="text-red-400 text-sm">{loadErr}</p><button className={btn} onClick={onBack}>← Back</button></div>;
   if (!data) return <p className="text-sm text-zinc-400">Loading…</p>;
   const g = STUDIO_GROUPS.find((x) => x.id === group)!;
-  const label = { idle: '', dirty: 'Unsaved changes…', saving: 'Saving…', saved: 'Saved ✓', error: 'Not saved' }[save];
+  const label = { idle: '', dirty: 'Unsaved changes…', saving: 'Saving…', saved: 'Saved', error: 'Not saved' }[save];
 
   return (
     <div className="space-y-4">
@@ -109,7 +109,7 @@ export default function StudioEditor({ slug, onBack, onAuthLost }: { slug: strin
         <span className={`font-mono text-[11px] ${save === 'error' ? 'text-red-400' : 'text-zinc-400'}`} role="status">{label}</span>
         <div className="ml-auto flex flex-wrap gap-2">
           <button className={primary} onClick={saveNow} disabled={save === 'saving'}>Save</button>
-          <a className={btn} href={`/api/studio?download=${encodeURIComponent(slug)}`}>⬇ Download site (.zip)</a>
+          <a className={btn} href={`/api/studio?download=${encodeURIComponent(slug)}`}>Download site (.zip)</a>
           <a className={btn} href={`/api/studio?backup=${encodeURIComponent(slug)}`} title="Settings and pictures, to restore this site later"><Icon name="save" size={13} className="mr-1 align-[-2px]" />Backup</a>
           <button className={btn} onClick={togglePublish}>{published ? 'Unpublish demo' : 'Publish live demo'}</button>
         </div>

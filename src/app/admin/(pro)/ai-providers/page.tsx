@@ -102,7 +102,7 @@ function TestBox({ r, onPick }: { r?: TestRes; onPick?: (m: string) => void }) {
       {r.warning && <p className="mt-2 text-xs text-amber-300">Heads up: {r.warning}. Choose another model soon.</p>}
       {!r.ok && r.suggestions && r.suggestions.length > 0 && onPick && (
         <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs"><span className="text-zinc-500">Try:</span>
-          {r.suggestions.map((m) => <button key={m} type="button" onClick={() => onPick(m)} className={`cursor-pointer rounded-full border px-2.5 py-1 font-mono transition ${m === r.pick ? 'border-accent text-accent' : 'border-zinc-700 text-zinc-300 hover:border-accent'}`}>{m}{m === r.pick ? ' ★' : ''}</button>)}
+          {r.suggestions.map((m) => <button key={m} type="button" onClick={() => onPick(m)} className={`cursor-pointer rounded-full border px-2.5 py-1 font-mono transition ${m === r.pick ? 'border-accent text-accent' : 'border-zinc-700 text-zinc-300 hover:border-accent'}`}>{m}{m === r.pick ? ' (picked)' : ''}</button>)}
         </div>
       )}
     </div>

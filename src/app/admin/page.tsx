@@ -16,20 +16,24 @@ import SitesPanel from '@/components/admin/SitesPanel';
 import InsightsPanel from '@/components/admin/InsightsPanel';
 import DataPanel from '@/components/admin/DataPanel';
 import CustomersPanel from '@/components/admin/CustomersPanel';
+import CalendarPanel from '@/components/admin/CalendarPanel';
+import ArtPanel from '@/components/admin/ArtPanel';
 import ContentPanel from '@/components/admin/ContentPanel';
 import SettingsPanel from '@/components/admin/SettingsPanel';
 import StudioPanel from '@/components/studio/StudioPanel';
 
 import Icon, { type IconName } from '@/components/ui/Icon';
-type Tab = 'overview' | 'tickets' | 'customers' | 'content' | 'settings' | 'studio' | 'templates' | 'sites' | 'portfolio' | 'insights' | 'data';
+type Tab = 'overview' | 'tickets' | 'calendar' | 'customers' | 'content' | 'settings' | 'studio' | 'templates' | 'sites' | 'portfolio' | 'art' | 'insights' | 'data';
 const TAB_META: Record<Tab, { label: string; icon: IconName; title: string; sub: string }> = {
   overview: { label: 'Overview', icon: 'home', title: 'Overview', sub: 'What needs you now, and how the business is doing.' },
   tickets: { label: 'Requests', icon: 'mail', title: 'Requests', sub: 'Repairs, design briefs and website orders: search, update and reply.' },
+  calendar: { label: 'Calendar', icon: 'calendar', title: 'Calendar', sub: 'Booked visits by day, and what is coming up.' },
   customers: { label: 'Customers', icon: 'user', title: 'Customers', sub: 'Everyone who has contacted you, grouped from their requests.' },
   studio: { label: 'Studio', icon: 'layout', title: 'Studio', sub: 'Complete business websites you design for clients.' },
   templates: { label: 'Templates', icon: 'cube', title: 'Website templates', sub: 'The starting points customers pick in the builder, and their prices.' },
   sites: { label: 'Customer sites', icon: 'globe', title: 'Customer sites', sub: 'Sites customers are building or have ordered.' },
   portfolio: { label: 'Portfolio', icon: 'star', title: 'Portfolio', sub: 'The projects shown on your public site.' },
+  art: { label: 'Art', icon: 'palette', title: 'Art gallery', sub: 'Your graphic design work: upload pieces, set categories, reorder.' },
   content: { label: 'Content', icon: 'lightbulb', title: 'Site content', sub: 'Reviews, prices, FAQ, guides, your repair promise and map: what visitors see and trust.' },
   settings: { label: 'Settings', icon: 'wrench', title: 'Site settings', sub: 'Business details, maintenance mode and optional features.' },
   insights: { label: 'Activity', icon: 'compass', title: 'Activity log', sub: 'Visits, unanswered chat questions, errors and sign-ins.' },
@@ -102,6 +106,7 @@ export default function AdminPage() {
             renderEditor={(t, onSaved) => <TicketEditor t={t} onSaved={onSaved} />}
           />
         )}
+        {tab === 'calendar' && <CalendarPanel tickets={live.tickets} onOpenTicket={openTicket} />}
         {tab === 'customers' && <CustomersPanel tickets={live.tickets} onOpenTicket={openTicket} />}
         {tab === 'content' && <ContentPanel />}
         {tab === 'settings' && <SettingsPanel />}
@@ -109,6 +114,7 @@ export default function AdminPage() {
         {tab === 'templates' && <TemplatesPanel />}
         {tab === 'sites' && <SitesPanel />}
         {tab === 'portfolio' && <PortfolioPanel />}
+        {tab === 'art' && <ArtPanel />}
         {tab === 'insights' && <InsightsPanel />}
         {tab === 'data' && <DataPanel tickets={live.tickets} />}
       </div>

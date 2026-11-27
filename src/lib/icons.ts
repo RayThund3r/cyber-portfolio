@@ -166,7 +166,62 @@ export const EMOJI_TO_ICON: Record<string, string> = {
 /** One regex matching emoji and pictographic symbols (so unknown ones can be dropped and never show as a coloured emoji). */
 export const EMOJI_RE = /(?:[\u{1F300}-\u{1FAFF}]|[\u{2600}-\u{27BF}]|[\u2B50\u2B06\u2B07\u23F0\u23F1\u23F3\u231A\u2705\u274C\u2753\u2757\u2764\u21A9\u21AA\u29C9\u270E])\uFE0F?/gu;
 
+/** Emoji that have no entry above, mapped to the nearest icon. Anything still unknown is dropped, never shown as an emoji. */
+const EXTRA: Record<string, string> = {
+  '♡': 'heart', '♥': 'heart', '💜': 'heart', '💛': 'heart', '💚': 'heart', '💙': 'heart', '🧡': 'heart', '💌': 'mail', '★': 'star', '☆': 'star',
+  '🌍': 'globe', '🌎': 'globe', '🌏': 'globe', '🧮': 'bar-chart', '📐': 'edit', '🔢': 'list', '🔤': 'edit', '🔠': 'edit', '✍': 'edit',
+  '🧪': 'sparkles', '🧬': 'sparkles', '⚛': 'sparkles', '🪐': 'moon', '🌕': 'moon', '🌗': 'moon', '☾': 'moon', '⏳': 'clock', '⌚': 'clock', '🗓': 'calendar',
+  '🗣': 'mic', '💧': 'cloud', '🌊': 'cloud', '🌧': 'cloud', '🌈': 'cloud', '🌀': 'cloud', '❄': 'cloud', '🌅': 'sun', '🏔': 'map', '☰': 'menu',
+  '👀': 'eye', '🩺': 'heart-pulse', '💉': 'heart-pulse', '💊': 'heart-pulse', '🩸': 'heart-pulse', '🌡': 'heart-pulse', '🔌': 'zap', '🔋': 'zap',
+  '🎂': 'gift', '🧁': 'gift', '🥧': 'gift', '🧠': 'cpu', '🙏': 'smile', '🙌': 'smile', '🖖': 'smile', '🤫': 'smile', '🤓': 'smile', '🤔': 'help-circle',
+  '🙅': 'ban', '👨': 'user', '👦': 'user', '🧔': 'user', '👔': 'user', '🧑': 'user', '🧒': 'user', '🧍': 'user', '👶': 'user', '💃': 'user', '📺': 'monitor',
+  '📻': 'music', '🧹': 'wrench', '🧼': 'wrench', '🧰': 'wrench', '🧵': 'scissors', '📶': 'wifi', '📲': 'smartphone', '🖱': 'monitor', '🪲': 'code',
+  '🎲': 'target', '🏀': 'trophy', '🏏': 'trophy', '🏐': 'trophy', '🏓': 'trophy', '🎣': 'target', '🪙': 'dollar', '💸': 'dollar', '💱': 'dollar',
+  '🥐': 'utensils', '🥪': 'utensils', '🥡': 'utensils', '🍞': 'utensils', '🌽': 'leaf', '🥚': 'utensils', '🍅': 'leaf', '🌯': 'utensils', '🥂': 'wine',
+  '💍': 'sparkles', '💒': 'sparkles', '⛪': 'building', '🏫': 'graduation', '🏪': 'store', '🎛': 'sliders', '🛟': 'shield', '🚲': 'car', '💆': 'heart',
+  '💄': 'sparkles', '📣': 'megaphone', '🔻': 'arrow-down', '📑': 'file-text', '❗': 'alert-circle', '❚': 'minus', '✆': 'phone', '✚': 'plus',
+  '🎆': 'sparkles', '🎃': 'sparkles', '🎄': 'sparkles', '🧧': 'gift', '🪔': 'flame', '♨': 'flame', '🐣': 'leaf', '🕊': 'leaf', '👾': 'code',
+  '🦟': 'leaf', '🐝': 'leaf', '🐱': 'leaf', '🐦': 'leaf', '🦍': 'leaf', '🐋': 'leaf', '🐘': 'leaf', '🐆': 'leaf', '🦒': 'leaf', '🦇': 'leaf', '🦴': 'heart-pulse',
+  '🗳': 'check-circle', '🔽': 'arrow-down',
+};
+
+const RANGES: Array<[number, number, string]> = [
+  [0x1f600, 0x1f64f, 'smile'], [0x1f910, 0x1f92f, 'smile'], [0x1f970, 0x1f97f, 'smile'], [0x1f400, 0x1f43f, 'leaf'], [0x1f980, 0x1f9af, 'leaf'],
+  [0x1f32d, 0x1f37f, 'utensils'], [0x1f950, 0x1f96f, 'utensils'], [0x1f680, 0x1f6ff, 'car'],
+];
+
 export function emojiToIcon(e: string): string | null {
   const key = e.replace(/\uFE0F/g, '');
-  return EMOJI_TO_ICON[key] ?? null;
+  const direct = EMOJI_TO_ICON[key] ?? EXTRA[key];
+  if (direct) return direct;
+  const cp = key.codePointAt(0) ?? 0;
+  for (const [a, b, n] of RANGES) if (cp >= a && cp <= b) return n;
+  return null;
+}
+
+/** Remove every emoji / pictograph from a string (for titles, labels and other places that cannot hold an icon). */
+export function stripEmoji(text: string): string {
+  return text.replace(EMOJI_RE, '').replace(/\uFE0F/g, '').replace(/ {2,}/g, ' ').trim();
+}
+
+/** A stored "icon" value (an icon name, or an emoji saved by an older version) -> an inline SVG. Unknown values give ''. */
+export function iconHtml(value: string, size: string | number = '1em'): string {
+  const v = (value || '').trim();
+  if (!v) return '';
+  const draw = (n: string) => iconSvg(n, { cls: 'ico' }).replace(/width="24" height="24"/, `width="${size}" height="${size}"`);
+  if (ICONS[v]) return draw(v);
+  const m = v.match(new RegExp(EMOJI_RE.source, EMOJI_RE.flags));
+  const n = m ? emojiToIcon(m[0]) : null;
+  return n && ICONS[n] ? draw(n) : '';
+}
+
+/** Icon names that can be picked for a card (shown in the builder's icon picker). */
+export const PICKABLE_ICONS = ['star', 'rocket', 'lightbulb', 'wrench', 'smartphone', 'laptop', 'palette', 'shopping-cart', 'heart', 'check-circle', 'phone', 'trophy', 'utensils', 'coffee', 'lock', 'zap', 'globe', 'users', 'trending-up', 'graduation', 'camera', 'truck', 'gift', 'shield', 'mail', 'map-pin', 'calendar', 'clock', 'scissors', 'home', 'briefcase', 'leaf'];
+
+/** A stored favicon value (icon name, or an emoji from an older project) -> a data-URL icon. */
+export function faviconFor(value: string, color?: string): string {
+  const v = (value || '').trim();
+  let n = ICONS[v] ? v : '';
+  if (!n) { const m = v.match(new RegExp(EMOJI_RE.source, EMOJI_RE.flags)); n = (m && emojiToIcon(m[0])) || 'star'; }
+  return iconFavicon(n, color);
 }

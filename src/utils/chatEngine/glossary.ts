@@ -168,8 +168,8 @@ export function tryGlossary(input: string, allowBare = false): TermQuery | null 
 export function termReply(q: TermQuery): { human: string; expert: string; suggestions: string[] } {
   const title = q.term.names[0].replace(/\b\w/g, (c) => c.toUpperCase()).replace(/\b(Ssd|Hdd|Cpu|Gpu|Ram|Dns|Ip|Vpn|Api|Html|Css|Ux|Ui|Seo|Ssl|Cmyk|Rgb|Dpi|Oled|Lcd|Bios|Os|Pwa|Mah|Svg|Ai|Ml|Llm|Sql|Db|Hdmi|Sim|Ios|Momo)\b/g, (x) => x.toUpperCase()).replace(/^Wifi$/, 'Wi-Fi').replace(/^Ui Ux$/, 'UI vs UX');
   const lines = [`**${title}**`, q.term.def];
-  if (q.simple) lines.push(`🧒 In simple terms: ${q.term.eli5}`);
-  else lines.push(`💡 Like this: ${q.term.eli5}`);
+  if (q.simple) lines.push(`In simple terms: ${q.term.eli5}`);
+  else lines.push(`Like this: ${q.term.eli5}`);
   if (q.term.more) lines.push(q.term.more[0].toUpperCase() + q.term.more.slice(1));
   return {
     human: lines.join('\n\n'),

@@ -51,7 +51,7 @@ function Preview({ f, onClose }: { f: SharedFile; onClose: () => void }) {
             <p className="truncate font-mono text-xs text-zinc-100">{i.name}</p>
             <p className="font-mono text-[10px] text-zinc-500">{i.summary}</p>
           </div>
-          <button type="button" onClick={onClose} aria-label="Close preview" className="flex min-h-9 min-w-9 cursor-pointer items-center justify-center rounded-lg text-zinc-400 hover:text-zinc-100">✕</button>
+          <button type="button" onClick={onClose} aria-label="Close preview" className="flex min-h-9 min-w-9 cursor-pointer items-center justify-center rounded-lg text-zinc-400 hover:text-zinc-100"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg></button>
         </div>
         {i.excerpt ? (
           <pre className="mt-2 min-h-0 flex-1 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-zinc-950 p-2.5 font-mono text-[11px] leading-relaxed text-zinc-300">{i.excerpt}</pre>
@@ -134,7 +134,7 @@ export default function AttachmentTray({
       {error && (
         <p role="alert" className="flex items-start justify-between gap-2 pb-1 text-[11px] text-amber-400">
           <span>{error}</span>
-          <button type="button" onClick={onDismissError} aria-label="Dismiss" className="cursor-pointer text-zinc-500 hover:text-zinc-200">✕</button>
+          <button type="button" onClick={onDismissError} aria-label="Dismiss" className="cursor-pointer text-zinc-500 hover:text-zinc-200"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg></button>
         </p>
       )}
       {pending.length > 0 && <p className="pb-1 font-mono text-[10px] text-zinc-600">The assistant reads the text of attached files to answer you (sensitive numbers are masked). Don’t attach IDs or passwords.</p>}

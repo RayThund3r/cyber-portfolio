@@ -60,7 +60,7 @@ function render(g: GameInfo, part: Part, expert: boolean): GameAnswer | null {
   const body = guideText(guide, part);
   const sug = ['Play ' + g.title, 'Tips for ' + g.title, 'Which game should I play?'];
   return {
-    human: `Here's **${g.title}** in a nutshell. 🎮\n\n${body}\n\nWant me to open it? Say "play ${g.id}".`,
+    human: `Here's **${g.title}** in a nutshell.\n\n${body}\n\nWant me to open it? Say "play ${g.id}".`,
     expert: expert ? `GAME // ${g.title}\n${body}` : '',
     suggestions: sug,
   };
@@ -97,7 +97,7 @@ export function tryGameKnowledge(raw: string, opts: GameKnowledgeOpts = {}): Gam
       if (LOSING.test(q) && part === 'all') {
         const tip = guide.tips[Math.floor((ctx!.ts || 0) % guide.tips.length)] || guide.tips[0];
         const mood = ctx!.status === 'lost' ? 'Rough round, they happen to everyone.' : "You've got this, it's just a bad patch.";
-        const text = `${mood} 😄 Try this in **${cg.title}**: ${tip}\n\nWant the full guide? Say "tips for ${cg.id}" or tap HOW TO PLAY.`;
+        const text = `${mood} Try this in **${cg.title}**: ${tip}\n\nWant the full guide? Say "tips for ${cg.id}" or tap HOW TO PLAY.`;
         return { human: text, expert: `GAME // ${cg.title}: ${tip}`, suggestions: ['Tips for ' + cg.title, 'Rules of ' + cg.title, 'Which game should I play?'] };
       }
       return render(cg, part, expertOn);

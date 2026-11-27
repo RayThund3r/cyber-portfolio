@@ -1,6 +1,7 @@
 // src/components/builder/FieldForm.tsx — renders ANY schema fields as a friendly, no-code form.
 'use client';
 
+import { iconHtml, PICKABLE_ICONS } from '@/lib/icons';
 import { useState } from 'react';
 import type { Field } from '@/lib/builder/schema';
 import Icon from '@/components/ui/IconAny';
@@ -20,7 +21,7 @@ export interface FormCtx {
 
 const inp = 'w-full bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-cyan-500 disabled:opacity-50';
 const small = 'px-2 py-1 rounded border border-zinc-700 text-[11px] font-mono hover:border-zinc-500 disabled:opacity-30 cursor-pointer';
-const EMOJIS = ['⭐', '🚀', '💡', '🔧', '📱', '💻', '🎨', '🛒', '❤️', '✅', '📞', '🏆', '🍲', '☕', '🔒', '⚡', '🌍', '🤝', '📈', '🎓'];
+
 
 export const resolveImg = (v: string, assets: Record<string, string>) => (v?.startsWith('asset:') ? assets[v.slice(6)] || '' : v || '');
 
@@ -77,13 +78,28 @@ function FieldRow({ f, v, set, setMany, ctx, tag }: { f: Field; v: any; set: (v:
           </span>
         </Label>
       );
-    case 'emoji':
+    case 'emoji': {
+      const cur = iconHtml(String(v ?? '')) ? String(v) : '';
       return (
         <Label f={f}>
-          <input className={`${inp} mb-1.5`} disabled={dis} maxLength={8} value={v ?? ''} onChange={(e) => set(e.target.value, tag)} />
-          <span className="flex flex-wrap gap-1">{EMOJIS.map((em) => <button type="button" key={em} disabled={dis} onClick={() => set(em, tag)} className="w-7 h-7 rounded hover:bg-zinc-800 cursor-pointer">{em}</button>)}</span>
+          <span className="flex flex-wrap gap-1" role="group" aria-label={f.label}>
+            {PICKABLE_ICONS.map((n) => (
+              <button
+                type="button"
+                key={n}
+                disabled={dis}
+                aria-label={n.replace(/-/g, ' ')}
+                aria-pressed={cur === n}
+                title={n.replace(/-/g, ' ')}
+                onClick={() => set(n, tag)}
+                className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg transition-colors ${cur === n ? 'bg-cyan-500/20 text-cyan-300' : 'text-zinc-300 hover:bg-zinc-800'}`}
+                dangerouslySetInnerHTML={{ __html: iconHtml(n, '18px') }}
+              />
+            ))}
+          </span>
         </Label>
       );
+    }
     case 'url':
       return (
         <Label f={f}>
@@ -130,7 +146,7 @@ function ImageField({ f, v, set, ctx }: { f: Field; v: string; set: (v: string) 
           <div className="flex flex-wrap gap-1.5">
             {ctx.upload && (
               <label className={`${small} ${ctx.disabled || busy ? 'opacity-40 pointer-events-none' : ''}`}>
-                {busy ? 'Uploading…' : '⬆ Upload picture'}
+                {busy ? 'Uploading…' : 'Upload picture'}
                 <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={(e) => { pick(e.target.files?.[0]); e.target.value = ''; }} />
               </label>
             )}
@@ -202,7 +218,7 @@ function PasscodeField({ f, v, setMany, ctx }: { f: Field; v: string; setMany: (
   return (
     <div>
       <span className="block text-[11px] font-mono text-zinc-400 mb-1">{f.label}</span>
-      <p className={`text-xs mb-2 ${v ? 'text-emerald-300' : 'text-zinc-400'}`}>{v ? '✓ Your own passcode is set (stored scrambled — nobody can read it back).' : 'No passcode set yet — we will generate a strong one and put it in your download (ADMIN-PASSCODE.txt).'}</p>
+      <p className={`text-xs mb-2 ${v ? 'text-emerald-300' : 'text-zinc-400'}`}>{v ? 'Your own passcode is set (stored scrambled — nobody can read it back).' : 'No passcode set yet — we will generate a strong one and put it in your download (ADMIN-PASSCODE.txt).'}</p>
       <div className="flex gap-2">
         <input type="password" autoComplete="new-password" className={inp} disabled={ctx.disabled} value={val} placeholder="Choose a passcode (8+ characters)" onChange={(e) => setVal(e.target.value)} />
         <button type="button" disabled={ctx.disabled || !val} className={small} onClick={save}>Set</button>

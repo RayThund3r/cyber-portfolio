@@ -134,7 +134,7 @@ export function tryDates(input: string, now: Date = new Date()): DateAnswer | nu
     const end = unit === 'year' ? new Date(now.getFullYear(), 11, 31) : new Date(now.getFullYear(), now.getMonth() + 1, 0);
     const left = daysBetween(now, end);
     return {
-      human: `There ${left === 1 ? 'is' : 'are'} **${plural(left, 'day')}** left this ${unit} (until ${long(end)}). 📅`,
+      human: `There ${left === 1 ? 'is' : 'are'} **${plural(left, 'day')}** left this ${unit} (until ${long(end)}).`,
       expert: `DATE // ${left} days remaining this ${unit}.`,
     };
   }
@@ -142,22 +142,22 @@ export function tryDates(input: string, now: Date = new Date()): DateAnswer | nu
   if ((m = new RegExp(`\\bhow many days (?:are )?(?:there )?in (${MONTHS.join('|')})(?: (\\d{4}))?\\b`).exec(s))) {
     const mi = MONTHS.indexOf(m[1]), y = m[2] ? +m[2] : now.getFullYear();
     const n = new Date(y, mi + 1, 0).getDate();
-    return { human: `${m[1][0].toUpperCase() + m[1].slice(1)} ${y} has **${n} days**. 📅`, expert: `DATE // ${m[1]} ${y}: ${n} days.` };
+    return { human: `${m[1][0].toUpperCase() + m[1].slice(1)} ${y} has **${n} days**.`, expert: `DATE // ${m[1]} ${y}: ${n} days.` };
   }
   if ((m = /\b(?:is|was) (\d{4}) a leap year\b/.exec(s)) || (m = /\bleap year (\d{4})\b/.exec(s))) {
     const y = +m[1], leap = (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
-    return { human: `${y} ${leap ? 'is' : "isn't"} a leap year${leap ? ' (366 days)' : ' (365 days)'}. 📅`, expert: `DATE // ${y} leap: ${leap}.` };
+    return { human: `${y} ${leap ? 'is' : "isn't"} a leap year${leap ? ' (366 days)' : ' (365 days)'}.`, expert: `DATE // ${y} leap: ${leap}.` };
   }
   // "N days/weeks from now", "in N weeks what date", "date 90 days ago"
   if ((m = /\b(\d{1,4}) (days?|weeks?|fortnights?|months?|years?) (from now|from today|ahead|later)\b/.exec(s)) || (m = /\bin (\d{1,4}) (days?|weeks?|fortnights?|months?|years?)\b.*\b(date|day)\b/.exec(s)) || (m = /\b(?:date|day) (?:in )?(\d{1,4}) (days?|weeks?|fortnights?|months?|years?)(?: from now)?$/.exec(s))) {
     const n = +m[1], unit = m[2];
     const d = /month/.test(unit) ? new Date(now.getFullYear(), now.getMonth() + n, now.getDate()) : /year/.test(unit) ? new Date(now.getFullYear() + n, now.getMonth(), now.getDate()) : new Date(now.getFullYear(), now.getMonth(), now.getDate() + n * UNIT_DAYS[unit]);
-    return { human: `${plural(n, unit.replace(/s$/, ''))} from today is **${long(d)}**. 📅`, expert: `DATE // +${n} ${unit} = ${long(d)}.` };
+    return { human: `${plural(n, unit.replace(/s$/, ''))} from today is **${long(d)}**.`, expert: `DATE // +${n} ${unit} = ${long(d)}.` };
   }
   if ((m = /\b(\d{1,4}) (days?|weeks?|fortnights?|months?|years?) ago\b/.exec(s))) {
     const n = +m[1], unit = m[2];
     const d = /month/.test(unit) ? new Date(now.getFullYear(), now.getMonth() - n, now.getDate()) : /year/.test(unit) ? new Date(now.getFullYear() - n, now.getMonth(), now.getDate()) : new Date(now.getFullYear(), now.getMonth(), now.getDate() - n * UNIT_DAYS[unit]);
-    return { human: `${plural(n, unit.replace(/s$/, ''))} ago was **${long(d)}**. 📅`, expert: `DATE // -${n} ${unit} = ${long(d)}.` };
+    return { human: `${plural(n, unit.replace(/s$/, ''))} ago was **${long(d)}**.`, expert: `DATE // -${n} ${unit} = ${long(d)}.` };
   }
 
   // countdown / days since
@@ -169,7 +169,7 @@ export function tryDates(input: string, now: Date = new Date()): DateAnswer | nu
       const days = daysBetween(now, t.date);
       const named = t.label !== long(t.date) && !['today', 'tomorrow', ...DAYS.map((d) => d[0].toUpperCase() + d.slice(1))].includes(t.label);
       return {
-        human: `${named ? `**${t.label}** (${long(t.date)}) is ` : `**${long(t.date)}** is `}${phraseFor(days)}${weeksNote(days)}. ⏳`,
+        human: `${named ? `**${t.label}** (${long(t.date)}) is ` : `**${long(t.date)}** is `}${phraseFor(days)}${weeksNote(days)}.`,
         expert: `DATE // ${t.label}: ${days} days (${t.date.toISOString().slice(0, 10)}).`,
       };
     }
@@ -179,7 +179,7 @@ export function tryDates(input: string, now: Date = new Date()): DateAnswer | nu
     const t = parseTarget(since[since.length - 1], now);
     if (t && (t.explicitYear || daysBetween(now, t.date) <= 0)) {
       const days = daysBetween(t.date, now);
-      if (days >= 0) return { human: `It's been **${plural(days, 'day')}** since ${t.label}${weeksNote(days)}. ⏳`, expert: `DATE // ${days} days since ${t.label}.` };
+      if (days >= 0) return { human: `It's been **${plural(days, 'day')}** since ${t.label}${weeksNote(days)}.`, expert: `DATE // ${days} days since ${t.label}.` };
     }
   }
   // "what day is 25 dec 2026" / "what day of the week is ..." / "when is christmas"
@@ -187,7 +187,7 @@ export function tryDates(input: string, now: Date = new Date()): DateAnswer | nu
     const t = parseTarget(m[1], now);
     if (t && (NAMED.some((h) => h.names.test(m![1])) || /\d/.test(m![1]))) {
       const days = daysBetween(now, t.date);
-      return { human: `**${t.label === long(t.date) ? long(t.date) : `${t.label} — ${long(t.date)}`}** (${phraseFor(days)}). 📅`, expert: `DATE // ${long(t.date)}.` };
+      return { human: `**${t.label === long(t.date) ? long(t.date) : `${t.label} — ${long(t.date)}`}** (${phraseFor(days)}).`, expert: `DATE // ${long(t.date)}.` };
     }
   }
   return null;

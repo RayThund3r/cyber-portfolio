@@ -62,9 +62,7 @@ const ChatLauncher = forwardRef<HTMLButtonElement, Props>(function ChatLauncher(
             aria-label="Dismiss"
             onClick={() => setNudge(false)}
             className="absolute right-1.5 top-1.5 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full text-zinc-500 hover:bg-white/5 hover:text-zinc-200"
-          >
-            ✕
-          </button>
+          ><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg></button>
         </div>
       )}
       <button

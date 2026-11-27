@@ -129,13 +129,13 @@ export function answerTable(question: string, name: string, t: Table): string | 
     const seen = new Map<string, number>();
     for (const r of t.rows) { const k = r.join('\u0001'); seen.set(k, (seen.get(k) || 0) + 1); }
     const dupes = [...seen.values()].filter((c) => c > 1).reduce((a, c) => a + c - 1, 0);
-    return dupes ? `I found **${dupes}** duplicate row${dupes === 1 ? '' : 's'} (identical in every column)${lower}.` : `No duplicate rows${lower ? ' in what I read' : ''}. ✅`;
+    return dupes ? `I found **${dupes}** duplicate row${dupes === 1 ? '' : 's'} (identical in every column)${lower}.` : `No duplicate rows${lower ? ' in what I read' : ''}.`;
   }
   if (/\b(missing|empty|blank|null|incomplete)\b/.test(s)) {
     const col = findColumn(question, cols);
     if (col) return `**${q(col.name)}** is empty in **${col.missing}** of ${n} rows.`;
     const bad = cols.filter((c) => c.missing > 0);
-    return bad.length ? `Empty cells:\n${bad.slice(0, 10).map((c) => `- ${q(c.name)}: ${c.missing} of ${n}`).join('\n')}` : `Nothing is missing: every cell is filled. ✅`;
+    return bad.length ? `Empty cells:\n${bad.slice(0, 10).map((c) => `- ${q(c.name)}: ${c.missing} of ${n}`).join('\n')}` : `Nothing is missing: every cell is filled.`;
   }
   const unique = /\b(unique|distinct|different)\b/.test(s);
   const common = /\b(most common|most frequent|commonest|popular|appears? (the )?most|top)\b/.test(s);
@@ -212,7 +212,7 @@ export function answerLog(question: string, name: string, p: LogProfile): string
   const s = question.toLowerCase();
   const lower = p.partial ? ' (at least; I only read the start of a large log)' : '';
   if (/\bmost (common|frequent|repeated)\b.*\berror|\brepeat(ed|ing)\b|\bkeeps? (happening|failing)\b|\bmain (error|problem)\b/.test(s)) {
-    return p.top.length ? `Most repeated error in **${q(name)}**:\n${p.top.map(([m, c]) => `- ${q(m, 110)} (${c}×)`).join('\n')}` : `I don't see any error lines in **${q(name)}**. ✅`;
+    return p.top.length ? `Most repeated error in **${q(name)}**:\n${p.top.map(([m, c]) => `- ${q(m, 110)} (${c}×)`).join('\n')}` : `I don't see any error lines in **${q(name)}**.`;
   }
   if (/\bhow many\b.*\b(errors?|warnings?|lines)\b|\bcount\b.*\b(errors?|warnings?)\b/.test(s)) {
     if (/\bwarn/.test(s)) return `**${p.levels.warning || 0}** warning line${p.levels.warning === 1 ? '' : 's'}${lower}.`;

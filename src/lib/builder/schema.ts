@@ -49,7 +49,7 @@ export const TA = (key: string, label: string, def = '', x: Partial<Field> = {})
 export const CODE = (key: string, label: string, def = '', x: Partial<Field> = {}): Field => ({ key, label, type: 'code', def, ...x });
 export const IMG = (key: string, label: string, def = '', x: Partial<Field> = {}): Field => ({ key, label, type: 'image', def, ...x });
 export const URLF = (key: string, label: string, def = '', x: Partial<Field> = {}): Field => ({ key, label, type: 'url', def, ...x });
-export const EMO = (key: string, label: string, def = '⭐'): Field => ({ key, label, type: 'emoji', def });
+export const EMO = (key: string, label: string, def = 'star'): Field => ({ key, label, type: 'emoji', def });
 export const SEL = (key: string, label: string, options: Field['options'], def: string, x: Partial<Field> = {}): Field => ({ key, label, type: 'select', options, def, ...x });
 export const TOG = (key: string, label: string, def = true, x: Partial<Field> = {}): Field => ({ key, label, type: 'toggle', def, ...x });
 export const COL = (key: string, label: string, def: string): Field => ({ key, label, type: 'color', def });
@@ -66,13 +66,13 @@ const STYLE: Field[] = [
 export interface SectionDef { type: SectionType; label: string; icon: string; fixed?: 'top' | 'bottom'; fields: Field[] }
 
 export const SECTION_DEFS: Record<SectionType, SectionDef> = {
-  navbar: { type: 'navbar', label: 'Top menu', icon: '🧭', fixed: 'top', fields: [
+  navbar: { type: 'navbar', label: 'Top menu', icon: 'compass', fixed: 'top', fields: [
     TOG('sticky', 'Keep menu visible when scrolling', true),
     SEL('style', 'Menu style', o(['solid', 'Solid'], ['transparent', 'Transparent until scrolled']), 'solid'),
     T('ctaText', 'Menu button text (empty = no button)', 'Get in touch', { max: 24 }),
     URLF('ctaUrl', 'Menu button link', '#'),
   ] },
-  hero: { type: 'hero', label: 'Hero / banner', icon: '🚀', fields: [
+  hero: { type: 'hero', label: 'Hero / banner', icon: 'rocket', fields: [
     SEL('variant', 'Layout', o(['centered', 'Centered text'], ['split', 'Text + image'], ['image', 'Full background image']), 'split'),
     T('eyebrow', 'Small label above title', 'Welcome', { max: 40 }),
     T('title', 'Headline', 'We build things people love', { max: 120 }),
@@ -85,7 +85,7 @@ export const SECTION_DEFS: Record<SectionType, SectionDef> = {
     SEL('overlay', 'Image darkness (background layout)', o(['light', 'Light'], ['medium', 'Medium'], ['dark', 'Dark']), 'medium'),
     ...STYLE,
   ] },
-  about: { type: 'about', label: 'About / story', icon: '📖', fields: [
+  about: { type: 'about', label: 'About / story', icon: 'book', fields: [
     T('title', 'Title', 'About us', { max: 100 }),
     TA('text', 'Text', 'Tell your story here. Who are you, what do you stand for, and why should people trust you?\n\nUse a blank line to start a new paragraph.', { max: 2500 }),
     IMG('image', 'Image', 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=1200&auto=format&fit=crop'),
@@ -93,24 +93,24 @@ export const SECTION_DEFS: Record<SectionType, SectionDef> = {
     LIST('bullets', 'Highlights (short ticks)', [T('text', 'Text', '', { max: 100 })], [{ text: 'Friendly, reliable service' }, { text: 'Fair and clear pricing' }], { itemLabel: 'Highlight', titleKey: 'text', max: 8 }),
     ...STYLE,
   ] },
-  features: { type: 'features', label: 'Services / features', icon: '✨', fields: [
+  features: { type: 'features', label: 'Services / features', icon: 'sparkles', fields: [
     T('title', 'Title', 'What we offer', { max: 100 }),
     TA('subtitle', 'Intro (optional)', 'A quick look at how we can help you.', { max: 300 }),
     SEL('variant', 'Layout', o(['cards', 'Cards'], ['list', 'Rows with icon'], ['steps', 'Numbered steps'], ['minimal', 'Minimal (no boxes)']), 'cards'),
     SEL('columns', 'Cards per row', o(['2', '2'], ['3', '3'], ['4', '4']), '3'),
-    LIST('items', 'Cards', [EMO('icon', 'Icon', '⭐'), T('title', 'Title', 'Service name', { max: 60 }), TA('text', 'Description', 'Describe this service in a sentence or two.', { max: 300 })],
-      [{ icon: '🚀', title: 'Fast delivery', text: 'We get things done quickly without cutting corners.' }, { icon: '💡', title: 'Smart ideas', text: 'Fresh thinking tailored to your needs.' }, { icon: '🤝', title: 'Friendly support', text: 'Real people ready to help whenever you need us.' }],
+    LIST('items', 'Cards', [EMO('icon', 'Icon', 'star'), T('title', 'Title', 'Service name', { max: 60 }), TA('text', 'Description', 'Describe this service in a sentence or two.', { max: 300 })],
+      [{ icon: 'rocket', title: 'Fast delivery', text: 'We get things done quickly without cutting corners.' }, { icon: 'lightbulb', title: 'Smart ideas', text: 'Fresh thinking tailored to your needs.' }, { icon: 'users', title: 'Friendly support', text: 'Real people ready to help whenever you need us.' }],
       { itemLabel: 'Card', titleKey: 'title', max: 12 }),
     ...STYLE,
   ] },
-  stats: { type: 'stats', label: 'Numbers / stats', icon: '📊', fields: [
+  stats: { type: 'stats', label: 'Numbers / stats', icon: 'bar-chart', fields: [
     SEL('variant', 'Layout', o(['plain', 'Plain'], ['cards', 'Cards']), 'plain'),
     LIST('items', 'Numbers', [T('value', 'Number', '100', { max: 10 }), T('suffix', 'After the number (e.g. + or %)', '+', { max: 4 }), T('label', 'Label', 'Happy clients', { max: 40 })],
       [{ value: '120', suffix: '+', label: 'Happy clients' }, { value: '8', suffix: '', label: 'Years of experience' }, { value: '300', suffix: '+', label: 'Projects done' }, { value: '24', suffix: '/7', label: 'Support' }],
       { itemLabel: 'Number', titleKey: 'label', max: 6 }),
     ...STYLE,
   ] },
-  gallery: { type: 'gallery', label: 'Photo gallery', icon: '🖼️', fields: [
+  gallery: { type: 'gallery', label: 'Photo gallery', icon: 'image', fields: [
     T('title', 'Title', 'Our work', { max: 100 }),
     TA('subtitle', 'Intro (optional)', '', { max: 300 }),
     SEL('variant', 'Layout', o(['grid', 'Even grid'], ['masonry', 'Masonry (natural heights)'], ['strip', 'Scrolling strip']), 'grid'),
@@ -123,7 +123,7 @@ export const SECTION_DEFS: Record<SectionType, SectionDef> = {
       ], { itemLabel: 'Photo', titleKey: 'caption', max: 24 }),
     ...STYLE,
   ] },
-  testimonials: { type: 'testimonials', label: 'Testimonials', icon: '💬', fields: [
+  testimonials: { type: 'testimonials', label: 'Testimonials', icon: 'message-circle', fields: [
     T('title', 'Title', 'What customers say', { max: 100 }),
     SEL('variant', 'Layout', o(['cards', 'Cards'], ['carousel', 'Sliding carousel']), 'cards'),
     LIST('items', 'Testimonials', [TA('quote', 'Quote', 'Wonderful service — highly recommended!', { max: 400 }), T('name', 'Name', 'Customer name', { max: 60 }), T('role', 'Role / place', 'Kampala', { max: 60 }), IMG('avatar', 'Photo (optional)', '')],
@@ -131,7 +131,7 @@ export const SECTION_DEFS: Record<SectionType, SectionDef> = {
       { itemLabel: 'Testimonial', titleKey: 'name', max: 10 }),
     ...STYLE,
   ] },
-  pricing: { type: 'pricing', label: 'Pricing plans', icon: '💰', fields: [
+  pricing: { type: 'pricing', label: 'Pricing plans', icon: 'dollar', fields: [
     T('title', 'Title', 'Simple pricing', { max: 100 }),
     TA('subtitle', 'Intro (optional)', 'Pick the option that fits you.', { max: 300 }),
     LIST('plans', 'Plans', [T('name', 'Plan name', 'Basic', { max: 40 }), T('price', 'Price', 'UGX 50,000', { max: 30 }), T('period', 'Per (e.g. month)', '/ month', { max: 20 }), TA('features', 'Features (one per line)', 'Feature one\nFeature two', { max: 600 }), T('buttonText', 'Button text', 'Choose', { max: 24 }), URLF('buttonUrl', 'Button link', '#'), TOG('highlight', 'Highlight as best value', false)],
@@ -141,7 +141,7 @@ export const SECTION_DEFS: Record<SectionType, SectionDef> = {
       { itemLabel: 'Plan', titleKey: 'name', max: 4 }),
     ...STYLE,
   ] },
-  team: { type: 'team', label: 'Team', icon: '👥', fields: [
+  team: { type: 'team', label: 'Team', icon: 'users', fields: [
     T('title', 'Title', 'Meet the team', { max: 100 }),
     TA('subtitle', 'Intro (optional)', '', { max: 300 }),
     SEL('variant', 'Layout', o(['round', 'Round photos'], ['cards', 'Cards']), 'round'),
@@ -150,7 +150,7 @@ export const SECTION_DEFS: Record<SectionType, SectionDef> = {
       { itemLabel: 'Person', titleKey: 'name', max: 12 }),
     ...STYLE,
   ] },
-  faq: { type: 'faq', label: 'FAQ', icon: '❓', fields: [
+  faq: { type: 'faq', label: 'FAQ', icon: 'help-circle', fields: [
     T('title', 'Title', 'Frequently asked questions', { max: 100 }),
     SEL('variant', 'Layout', o(['accordion', 'Collapsing list'], ['open', 'All answers visible, two columns']), 'accordion'),
     LIST('items', 'Questions', [T('q', 'Question', 'How does it work?', { max: 150 }), TA('a', 'Answer', 'Explain it clearly here.', { max: 800 })],
@@ -158,24 +158,24 @@ export const SECTION_DEFS: Record<SectionType, SectionDef> = {
       { itemLabel: 'Question', titleKey: 'q', max: 15 }),
     ...STYLE,
   ] },
-  cta: { type: 'cta', label: 'Call-to-action banner', icon: '📣', fields: [
+  cta: { type: 'cta', label: 'Call-to-action banner', icon: 'megaphone', fields: [
     T('title', 'Title', 'Ready to get started?', { max: 100 }),
     TA('text', 'Text', 'Tell us what you need and we will get back to you quickly.', { max: 300 }),
     T('buttonText', 'Button text', 'Contact us', { max: 24 }),
     URLF('buttonUrl', 'Button link', '#'),
     ...STYLE.map((f) => (f.key === 'bg' ? { ...f, def: 'primary' } : f)),
   ] },
-  text: { type: 'text', label: 'Free text block', icon: '📝', fields: [
+  text: { type: 'text', label: 'Free text block', icon: 'file-text', fields: [
     T('title', 'Title', 'A section about anything', { max: 100 }),
     TA('body', 'Text', 'Write anything here. Use a blank line to start a new paragraph.', { max: 4000 }),
     SEL('align', 'Alignment', o(['left', 'Left'], ['center', 'Centered']), 'left'),
     ...STYLE,
   ] },
-  html: { type: 'html', label: 'Custom HTML block', icon: '🧩', fields: [
+  html: { type: 'html', label: 'Custom HTML block', icon: 'layers', fields: [
     CODE('html', 'HTML (Bootstrap 5 classes work here)', '<div class="container text-center">\n  <h2>My custom block</h2>\n  <p>Edit this HTML — anything you write appears on the page.</p>\n</div>', { max: 20000, help: 'For people who know a little HTML. Everything else on the page can be edited without code.' }),
     ...STYLE,
   ] },
-  contact: { type: 'contact', label: 'Contact', icon: '📞', fields: [
+  contact: { type: 'contact', label: 'Contact', icon: 'phone', fields: [
     T('title', 'Title', 'Get in touch', { max: 100 }),
     TA('subtitle', 'Intro', 'Send us a message and we will reply as soon as we can.', { max: 300 }),
     T('email', 'Email', '', { max: 100, placeholder: 'hello@yourbusiness.com' }),
@@ -188,7 +188,7 @@ export const SECTION_DEFS: Record<SectionType, SectionDef> = {
     T('submitText', 'Send button text', 'Send message', { max: 24 }),
     ...STYLE,
   ] },
-  footer: { type: 'footer', label: 'Footer', icon: '🔻', fixed: 'bottom', fields: [
+  footer: { type: 'footer', label: 'Footer', icon: 'arrow-down', fixed: 'bottom', fields: [
     TA('about', 'Short description', 'A short line about your business.', { max: 300 }),
     LIST('links', 'Footer links', [T('label', 'Label', 'Link', { max: 30 }), URLF('url', 'Link', '#')], [{ label: 'Home', url: '#' }], { itemLabel: 'Link', titleKey: 'label', max: 8 }),
     URLF('facebook', 'Facebook link', ''), URLF('instagram', 'Instagram link', ''), URLF('x', 'X (Twitter) link', ''),
@@ -208,15 +208,15 @@ export const CODE_FIELDS: Field[] = [
 
 /** Showcase categories. Template.category holds one of these ids. */
 export const CATEGORIES = [
-  { id: 'shop', label: 'Online Shops', icon: '🛍️' },
-  { id: 'booking', label: 'Bookings & Quotes', icon: '📅' },
-  { id: 'business', label: 'Business & Corporate', icon: '💼' },
-  { id: 'portfolio', label: 'Portfolio & Creative', icon: '🎨' },
-  { id: 'food', label: 'Food & Hospitality', icon: '🍽️' },
-  { id: 'beauty', label: 'Health & Beauty', icon: '💆' },
-  { id: 'startup', label: 'Startup & Apps', icon: '🚀' },
-  { id: 'events', label: 'Events & Education', icon: '🎉' },
-  { id: 'realestate', label: 'Real Estate', icon: '🏠' },
+  { id: 'shop', label: 'Online Shops', icon: 'shopping-bag' },
+  { id: 'booking', label: 'Bookings & Quotes', icon: 'calendar' },
+  { id: 'business', label: 'Business & Corporate', icon: 'briefcase' },
+  { id: 'portfolio', label: 'Portfolio & Creative', icon: 'palette' },
+  { id: 'food', label: 'Food & Hospitality', icon: 'utensils' },
+  { id: 'beauty', label: 'Health & Beauty', icon: 'heart' },
+  { id: 'startup', label: 'Startup & Apps', icon: 'rocket' },
+  { id: 'events', label: 'Events & Education', icon: 'sparkles' },
+  { id: 'realestate', label: 'Real Estate', icon: 'home' },
   { id: 'blank', label: 'Blank & Starter', icon: '⬜' },
 ] as const;
 export const categoryOf = (id: string) => CATEGORIES.find((c) => c.id === id) ?? CATEGORIES[0];
@@ -261,7 +261,7 @@ export const SITE_FIELDS: { title: string; key: 'meta' | 'brand' | 'theme'; fiel
   { title: 'Search engines & browser tab', key: 'meta', fields: [
     T('title', 'Page title (shown in browser tab & Google)', 'Your Business — what you do', { max: 70 }),
     TA('description', 'Short description for Google', 'One or two sentences about your business.', { max: 160 }),
-    EMO('favicon', 'Browser tab icon', '🚀'),
+    EMO('favicon', 'Browser tab icon', 'rocket'),
     SEL('lang', 'Language', o(['en', 'English'], ['sw', 'Kiswahili'], ['fr', 'French'], ['ar', 'Arabic'], ['pt', 'Portuguese']), 'en'),
   ] },
 ];

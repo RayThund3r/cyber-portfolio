@@ -140,7 +140,7 @@ const SYMPTOM_PHRASE: Record<SymptomId, string> = {
 function empathy(state: DialogueState, mode: PersonaMode): string {
   if (mode === 'EXPERT') return '';
   const mood = state.ent.mood || 0;
-  if (mood >= 2) return "I'm sorry this is stressing you out — let's sort it out together, one step at a time. 💛 ";
+  if (mood >= 2) return "I'm sorry this is stressing you out — let's sort it out together, one step at a time. ";
   if (mood === 1) return "That sounds frustrating — let's get to the bottom of it. ";
   return '';
 }
@@ -255,7 +255,7 @@ function startDiagnose(symptom: SymptomId, state: DialogueState, mode: PersonaMo
   const ctx = makeCtx(state.ent.device);
   const urgentLead =
     symptom === 'water'
-      ? t(mode, '⚠️ **First, switch it off and don’t charge it.** Quick questions so I can advise properly.\n\n', 'URGENT // Power off. Do not charge.\n')
+      ? t(mode, '**First, switch it off and don’t charge it.** Quick questions so I can advise properly.\n\n', 'URGENT // Power off. Do not charge.\n')
       : '';
   const lead = `${urgentLead}${empathy(state, mode)}${mode === 'EXPERT' ? '' : tree.intro(ctx) + '\n\n'}`;
   if (!state.ent.device) return askDevice(flow, state, mode, lead);
@@ -321,7 +321,7 @@ function concludeDiagnosis(flow: ActiveFlow, state: DialogueState, mode: Persona
       .filter(Boolean)
       .join('\n');
   } else {
-    const head = c.urgent ? `⚠️ ${c.urgent}\n\n` : '';
+    const head = c.urgent ? `${c.urgent}\n\n` : '';
     reply =
       `${head}**Here’s my read on your ${label}** (${SYMPTOM_LABEL[symptom]})\n\n` +
       `**Most likely, in order**\n${c.causes.map((x, i) => `${i + 1}. **${x.name}** — ${x.why}`).join('\n')}\n\n` +
@@ -493,7 +493,7 @@ function concludeProject(flow: ActiveFlow, state: DialogueState, mode: PersonaMo
   const reply =
     mode === 'EXPERT'
       ? `BRIEF_READY //\n${plain.join('\n')}\nSERVICE // ${svc.title} · ${svc.timeline}\nDELIVERABLES // ${svc.deliverables.join(', ')}\nNEXT // Dispatch brief to owner.`
-      : `${empathy(state, mode)}**Here’s your brief** 🎯\n\n${lines.map((l) => `- ${l}`).join('\n')}\n\n` +
+      : `${empathy(state, mode)}**Here’s your brief**\n\n${lines.map((l) => `- ${l}`).join('\n')}\n\n` +
         `**What this usually includes** (${svc.title})\n${svc.deliverables.map((x) => `- ${x}`).join('\n')}\n\n` +
         `**Timeline:** ${timeline}.` +
         (rush ? '\n\nBecause you need it fast, mention the deadline when you send this — the owner can tell you what’s possible.' : '') +
@@ -625,7 +625,7 @@ function handleActive(raw: string, n: string, state: DialogueState, mode: Person
   const ent = state.ent;
 
   if (CANCEL.test(n)) {
-    return { reply: t(mode, 'No problem — I’ve dropped that. 👍 Ask me anything else, or start again whenever you like.', 'FLOW // Cancelled.'), suggestions: ['My device is not working', 'I need a logo', 'Show me your projects'], state: { ...state, flow: undefined }, flow: true };
+    return { reply: t(mode, 'No problem — I’ve dropped that. Ask me anything else, or start again whenever you like.', 'FLOW // Cancelled.'), suggestions: ['My device is not working', 'I need a logo', 'Show me your projects'], state: { ...state, flow: undefined }, flow: true };
   }
   if (RESTART.test(n)) {
     if (flow.id === 'diagnose') return startDiagnose(flow.data.symptom as SymptomId, { ...state, flow: undefined }, mode, flow.data.intent === 'quote' ? 'quote' : undefined);
@@ -971,7 +971,7 @@ function followUp(raw: string, n: string, state: DialogueState, mode: PersonaMod
 
   if (MY_NAME.test(n)) {
     const name = hooks.name;
-    return out(name ? t(mode, `You're **${name}** — nice to talk with you again. 😊`, `OPERATOR // ${name}`) : t(mode, "I don't know your name yet — tell me with “my name is …” and I'll remember it for this chat.", 'OPERATOR // Alias not set.'));
+    return out(name ? t(mode, `You're **${name}** — nice to talk with you again.`, `OPERATOR // ${name}`) : t(mode, "I don't know your name yet — tell me with “my name is …” and I'll remember it for this chat.", 'OPERATOR // Alias not set.'));
   }
   if (MY_DEVICE.test(n)) {
     return out(ent.device || ent.brand ? t(mode, `You've mentioned a **${deviceLabel(ent)}**${ent.symptom ? ` with a problem: ${SYMPTOM_LABEL[ent.symptom]}` : ''}.`, `CONTEXT // ${deviceLabel(ent)}`) : t(mode, "You haven't told me yet — what device is it?", 'CONTEXT // Device unknown.'), ent.device ? undefined : DEVICE_CHOICES.map((d) => d.label));
@@ -997,13 +997,13 @@ function followUp(raw: string, n: string, state: DialogueState, mode: PersonaMod
     const svc = SERVICES[tl.svc];
     const custom = svc.timeline === 'Custom Scope';
     return out(
-      t(mode, custom ? `For ${tl.label} the timeline depends on scope — the owner will give you a date once they've seen the brief. 🗓️` : `For ${tl.label} the usual turnaround is **${svc.timeline}**. It can be longer if a part has to be ordered or the job is complex, and the owner will confirm once they've seen the details.`, `ETA // ${svc.timeline}. Owner confirms.`),
+      t(mode, custom ? `For ${tl.label} the timeline depends on scope — the owner will give you a date once they've seen the brief.` : `For ${tl.label} the usual turnaround is **${svc.timeline}**. It can be longer if a part has to be ordered or the job is complex, and the owner will confirm once they've seen the details.`, `ETA // ${svc.timeline}. Owner confirms.`),
       ['Send this to the owner', last.kind === 'diagnosis' ? 'Book a repair' : 'Show me your projects']
     );
   }
   if (HOW_MUCH.test(n) && (last.kind === 'diagnosis' || last.kind === 'project' || last.kind === 'decision')) {
     return out(
-      t(mode, "I can't give an honest price from here — it depends on the exact model, the part and what the owner finds on inspection, so I won't guess a number. 🙂 The quickest way to a real quote is to send what we've worked out; it saves them asking the same questions again.", 'PRICE // Not estimable remotely. Dispatch details for a quote.'),
+      t(mode, "I can't give an honest price from here — it depends on the exact model, the part and what the owner finds on inspection, so I won't guess a number. The quickest way to a real quote is to send what we've worked out; it saves them asking the same questions again.", 'PRICE // Not estimable remotely. Dispatch details for a quote.'),
       ['Send this to the owner', 'Open contact page']
     );
   }
@@ -1023,7 +1023,7 @@ function followUp(raw: string, n: string, state: DialogueState, mode: PersonaMod
       );
     }
     return out(
-      t(mode, "That's the end of what I can safely try from here — so it likely needs a hands-on check. 🔧 I can send the details to the owner (including what you've already tried) so they can pick it up quickly.", 'ESCALATE // Remote options exhausted. Dispatch to owner.'),
+      t(mode, "That's the end of what I can safely try from here — so it likely needs a hands-on check. I can send the details to the owner (including what you've already tried) so they can pick it up quickly.", 'ESCALATE // Remote options exhausted. Dispatch to owner.'),
       ['Send this to the owner', 'Book a repair'],
       { state: { ...state, last: { ...last, stage } } }
     );
@@ -1139,7 +1139,7 @@ export function runDialogue(raw: string, mode: PersonaMode, state: DialogueState
 
   if (CONTINUE.test(n) || CANCEL.test(n) || BACK.test(n)) {
     return {
-      reply: t(mode, "We're not in the middle of anything right now. 🙂 Tell me what you need — a repair, a design or a website — or pick one below.", 'FLOW // Nothing active.'),
+      reply: t(mode, "We're not in the middle of anything right now. Tell me what you need — a repair, a design or a website — or pick one below.", 'FLOW // Nothing active.'),
       suggestions: ['My device is not working', 'I need a logo', 'Build me a website', 'Get a quote'],
       state,
       flow: false,
@@ -1225,7 +1225,7 @@ function flowMeta(raw: string, n: string, state: DialogueState, mode: PersonaMod
 
   if (HOW_MUCH.test(n)) {
     return out(
-      t(mode, "I can't give an honest price from here — it depends on the exact model, the part and the scope — so I won't guess a number. 🙂 Finish these quick questions and I'll package the details so the owner can quote properly." + resume, 'PRICE // Not estimable remotely. Finish intake; dispatch for quote.' + resume)
+      t(mode, "I can't give an honest price from here — it depends on the exact model, the part and the scope — so I won't guess a number. Finish these quick questions and I'll package the details so the owner can quote properly." + resume, 'PRICE // Not estimable remotely. Finish intake; dispatch for quote.' + resume)
     );
   }
 

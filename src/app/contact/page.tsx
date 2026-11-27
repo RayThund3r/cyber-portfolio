@@ -62,6 +62,14 @@ function ContactInner() {
     }
   }, [urlType, nonce]);
 
+  // Arriving from the Art gallery (?ref=<piece title>): start the message for the visitor
+  const refTitle = params.get('ref');
+  useEffect(() => {
+    if (!refTitle) return;
+    const line = `I would like a design similar to "${refTitle.replace(/[\r\n"]+/g, ' ').slice(0, 80)}" from your art gallery. `;
+    setFormData((f) => (f.details.includes(line) ? f : { ...f, details: f.details.trim() ? f.details : line }));
+  }, [refTitle]);
+
   // A validation error can sit above the fold on a phone (the submit button is at the bottom);
   // bring it into view so a tap on DISPATCH never looks like it did nothing.
   const errorRef = useRef<HTMLDivElement>(null);
@@ -476,7 +484,7 @@ function ContactInner() {
                           COLLECTING...
                         </>
                       ) : scannedData ? (
-                        '✓ INFO ATTACHED'
+                        'INFO ATTACHED'
                       ) : (
                         'ATTACH_BROWSER_&_DEVICE_INFO →'
                       )}

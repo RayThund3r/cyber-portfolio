@@ -147,7 +147,7 @@ export async function POST(req: Request) {
               p.status = body.paymentStatus;
               const tpl = x.kind === 'template';
               if (tpl && p.status === 'CONFIRMED') x.status = 'COMPLETED';
-              x.history.push({ at: new Date().toISOString(), status: x.status, note: p.status === 'CONFIRMED' ? (tpl ? 'Payment confirmed — your website download is unlocked. 🎉' : 'Deposit confirmed — thank you!') : 'We could not verify your payment — please contact us.' });
+              x.history.push({ at: new Date().toISOString(), status: x.status, note: p.status === 'CONFIRMED' ? (tpl ? 'Payment confirmed — your website download is unlocked.' : 'Deposit confirmed — thank you!') : 'We could not verify your payment — please contact us.' });
             }
           }
           if (status && status !== x.status) x.status = status;

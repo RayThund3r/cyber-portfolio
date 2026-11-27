@@ -25,6 +25,7 @@ export const NAV_GROUPS: Array<{ label: string; items: NavItem[] }> = [
   { label: 'Work', items: [
     { href: '/admin?tab=overview', tab: 'overview', label: 'Overview', icon: 'home', key: 'd', hint: 'What needs you now' },
     { href: '/admin?tab=tickets', tab: 'tickets', label: 'Requests', icon: 'mail', key: 'r', hint: 'Repairs, design and website orders' },
+    { href: '/admin?tab=calendar', tab: 'calendar', label: 'Calendar', icon: 'calendar', hint: 'Booked visits by day' },
     { href: '/admin?tab=customers', tab: 'customers', label: 'Customers', icon: 'user', hint: 'People grouped from their requests' },
   ] },
   { label: 'Build', items: [
@@ -32,6 +33,7 @@ export const NAV_GROUPS: Array<{ label: string; items: NavItem[] }> = [
     { href: '/admin?tab=templates', tab: 'templates', label: 'Templates', icon: 'cube', hint: 'Builder starting templates and prices' },
     { href: '/admin?tab=sites', tab: 'sites', label: 'Customer sites', icon: 'globe', hint: 'Sites customers are building' },
     { href: '/admin?tab=portfolio', tab: 'portfolio', label: 'Portfolio', icon: 'star', hint: 'Your projects on the public site' },
+    { href: '/admin?tab=art', tab: 'art', label: 'Art', icon: 'palette', hint: 'Your graphic design gallery' },
   ] },
   { label: 'Website', items: [
     { href: '/admin?tab=content', tab: 'content', label: 'Content', icon: 'lightbulb', hint: 'Reviews, prices, FAQ, guides, promise and map' },

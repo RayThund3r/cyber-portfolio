@@ -190,7 +190,7 @@ export interface ProcessingResult {
   trace?: string[];
   /** The reply already dealt with the shared file(s). */
   fileHandled?: boolean;
-  /** Id of the knowledge entry used for the reply (lets the widget offer 👍/👎 learning). */
+  /** Id of the knowledge entry used for the reply (lets the widget offer/learning). */
   matchedEntryId?: string;
 }
 

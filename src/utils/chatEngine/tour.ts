@@ -90,7 +90,7 @@ export function tryTour(raw: string, mode: PersonaMode, memory: SessionMemory): 
   const i = start ? 0 : at + 1;
   if (i >= STOPS.length) {
     return {
-      human: "That's the whole tour. 🎉 Want to see the work, get a quote, or pass a message to the owner?",
+      human: "That's the whole tour. Want to see the work, get a quote, or pass a message to the owner?",
       expert: 'TOUR // complete',
       suggestions: ['Show me your projects', 'Get a quote', 'Message the owner'],
       learn: { tour: -1 },

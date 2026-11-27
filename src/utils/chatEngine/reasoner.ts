@@ -126,63 +126,63 @@ interface Evidence {
 const EVIDENCE: Evidence[] = [
   {
     rx: /\b(charg\w*|work\w*|power\w*)\b.{0,30}\b(with|on|using|from)\b.{0,12}\b(another|a different|different|other|my (friend'?s|brother'?s|sister'?s)|a new|spare)\b.{0,12}\b(cable|charger|adapter|adaptor|plug|socket|outlet|wire)\b|\b(another|different|other|spare|new)\b.{0,10}\b(cable|charger|adapter|adaptor|plug|socket|outlet)\b.{0,25}\b(works?|worked|charges|charged|fixed|helped|solved)\b/,
-    human: "That's a useful clue: if it charges with another cable or charger, the **phone/laptop itself is probably fine** — the original cable, charger or wall socket was the weak link. 🔌\n\nWhat I'd do: retire the old one (frayed or bent cables can overheat), buy a quality replacement that matches the device's rating, and keep an eye on it. If it ever stops charging on **every** cable, tell me and we'll look at the charging port and battery instead.",
+    human: "That's a useful clue: if it charges with another cable or charger, the **phone/laptop itself is probably fine** — the original cable, charger or wall socket was the weak link.\n\nWhat I'd do: retire the old one (frayed or bent cables can overheat), buy a quality replacement that matches the device's rating, and keep an eye on it. If it ever stops charging on **every** cable, tell me and we'll look at the charging port and battery instead.",
     expert: 'EVIDENCE // Charges on alternate cable/charger -> accessory fault (not port/battery). ACTION // Replace accessory. Re-test; if all accessories fail -> port/battery.',
     chips: ["It still won't charge", 'Book a repair', 'Send this to the owner'],
     trace: ['You said it charges with a different cable or charger.', 'A fault in the device would show up on every cable, so the accessory is the likely culprit.'],
   },
   {
     rx: /\b(still|even with|doesn'?t|does not|won'?t|will not|not)\b.{0,40}\b(charg\w*|power\w*)\b.{0,40}\b(another|different|new|any|every|all|other)\b.{0,12}\b(cable|charger|adapter|adaptor|plug|socket|outlet)s?\b|\b(tried|used)\b.{0,15}\b(different|another|several|three|two|many|all|new)\b.{0,12}\b(cables?|chargers?)\b.{0,30}\b(still|same|nothing|no luck|doesn'?t|won'?t)\b/,
-    human: "Good test — that **rules out the cable and charger**. So the fault is in the device: most often the **charging port** (lint or a loose/damaged connector), then the **battery**, then the charging circuit on the board. 🔍\n\nSafe things to try: power it off, then look into the port with a torch and gently clear lint with a wooden or plastic toothpick (never metal). Try a different wall socket once. If neither helps, it needs a hands-on check — port and battery replacements are common, quick jobs.",
+    human: "Good test — that **rules out the cable and charger**. So the fault is in the device: most often the **charging port** (lint or a loose/damaged connector), then the **battery**, then the charging circuit on the board.\n\nSafe things to try: power it off, then look into the port with a torch and gently clear lint with a wooden or plastic toothpick (never metal). Try a different wall socket once. If neither helps, it needs a hands-on check — port and battery replacements are common, quick jobs.",
     expert: 'EVIDENCE // Fails on all accessories -> device-side. CAUSES // 1) port debris/damage 2) battery 3) charge IC. ACTION // Power off, inspect port (non-metal), re-test; else dispatch.',
     chips: ['Book a repair', 'Send this to the owner', 'Why do you say that?'],
     trace: ['It does not charge even with other cables or chargers.', 'That removes the accessories from the list, so the port, battery or board is left.'],
   },
   {
     rx: /\b(works?|working|runs?|fine|ok|okay|normal)\b.{0,25}\b(when|while|only when|if)\b.{0,15}\b(plugged|charging|on charge|connected to (power|the charger|mains))\b.{0,40}\b(not|doesn'?t|won'?t|dies?|off|shuts?)\b.{0,20}\b(battery|unplugged)\b|\b(only (works?|turns? on|runs?|stays? on)|dies?|shuts? (down|off)) (when|as soon as|the moment|once) (i )?(unplug\w*|disconnect\w*|remove\w*)\b/,
-    human: "Running fine on the charger but dying the moment you unplug it points strongly to a **worn-out or failing battery** — the charger is supplying the power while the battery isn't holding any. 🔋\n\nIt's usually a straightforward replacement (the battery is the part that wears out first). I'd avoid leaving a swollen or very hot battery plugged in; if the case is bulging, stop using it and tell the owner right away.",
+    human: "Running fine on the charger but dying the moment you unplug it points strongly to a **worn-out or failing battery** — the charger is supplying the power while the battery isn't holding any.\n\nIt's usually a straightforward replacement (the battery is the part that wears out first). I'd avoid leaving a swollen or very hot battery plugged in; if the case is bulging, stop using it and tell the owner right away.",
     expert: 'EVIDENCE // Runs on AC, dies on battery -> battery cell wear. ACTION // Battery replacement. SAFETY // Bulging cell: stop use.',
     chips: ['Book a repair', 'Send this to the owner', 'Why do you say that?'],
     trace: ['It only stays on while plugged in.', 'That means the power supply works but the battery no longer holds charge.'],
   },
   {
     rx: /\b(external|another|second|different|other)\b.{0,12}\b(monitor|screen|display|tv|projector)\b.{0,40}\b(works?|worked|shows?|showing|fine|ok|okay|picture|image)\b|\b(works?|shows?|fine)\b.{0,20}\b(on|with|via|through)\b.{0,10}\b(an? )?(external|another|different)\b.{0,10}\b(monitor|screen|display|tv)\b|\b(hdmi|vga)\b.{0,30}\b(works?|shows?|fine|ok)\b/,
-    human: "If the picture shows up on an **external monitor** but the built-in screen stays black, the computer's graphics and system are alive — the problem is the **laptop's own display panel, its cable, or the backlight**, not the motherboard. 🖥️\n\nThat's good news: those are repairable parts. Try a gentle brightness-up key and shine a torch at an angle onto the black screen — a faint image means a backlight fault. Then it's a hands-on job.",
+    human: "If the picture shows up on an **external monitor** but the built-in screen stays black, the computer's graphics and system are alive — the problem is the **laptop's own display panel, its cable, or the backlight**, not the motherboard.\n\nThat's good news: those are repairable parts. Try a gentle brightness-up key and shine a torch at an angle onto the black screen — a faint image means a backlight fault. Then it's a hands-on job.",
     expert: 'EVIDENCE // External display OK, internal blank -> panel/cable/backlight. GPU/board likely OK. ACTION // Torch test for backlight; dispatch.',
     chips: ['Book a repair', 'Send this to the owner', 'Why do you say that?'],
     trace: ['The picture appears on a second display.', 'So the graphics output works and the built-in screen path is the problem.'],
   },
   {
     rx: /\b(works?|working|fine|ok|okay|opens?|reads?|detected|recogni[sz]ed|shows?)\b.{0,30}\b(on|in|with)\b.{0,10}\b(another|a different|different|other|my (friend'?s|brother'?s)|second)\b.{0,12}\b(pc|computer|laptop|phone|port|usb|machine)\b/,
-    human: "If it works on **another computer or port**, the device itself is fine — the fault is on the **first machine's side**: that USB port, a driver, or a setting. 🔧\n\nTry a different port on the original machine, restart it, and check that the device shows up in Device Manager (Windows) or System Information (Mac). If the port is dead on every device you plug in, that's a hardware repair on that machine.",
+    human: "If it works on **another computer or port**, the device itself is fine — the fault is on the **first machine's side**: that USB port, a driver, or a setting.\n\nTry a different port on the original machine, restart it, and check that the device shows up in Device Manager (Windows) or System Information (Mac). If the port is dead on every device you plug in, that's a hardware repair on that machine.",
     expert: 'EVIDENCE // Device OK on alt host -> original host port/driver. ACTION // Alt port, reboot, driver check; port repair if dead.',
     chips: ['Fix my computer', 'Book a repair', 'Send this to the owner'],
     trace: ['It works on a different machine or port.', 'So the device is healthy and the original host is the suspect.'],
   },
   {
     rx: /\b(safe mode|clean boot|new (user|profile|account)|another (user|account|profile))\b.{0,40}\b(works?|fine|ok|okay|fast|faster|no (problem|issue|crash)|normal)\b|\b(works?|fine|ok|fast|normal)\b.{0,30}\b(in|on|with|under)\b.{0,6}\b(safe mode|a new (user|profile|account))\b/,
-    human: "Fine in **safe mode or a new user profile** but not normally means the hardware is probably healthy — the culprit is **software**: a startup program, a driver, or a corrupted profile. 💡\n\nNext: uninstall recent programs/drivers, disable startup apps one by one, and run a full malware scan. If you'd rather not dig, a clean reinstall of the OS is the reliable fix (back up first).",
+    human: "Fine in **safe mode or a new user profile** but not normally means the hardware is probably healthy — the culprit is **software**: a startup program, a driver, or a corrupted profile.\n\nNext: uninstall recent programs/drivers, disable startup apps one by one, and run a full malware scan. If you'd rather not dig, a clean reinstall of the OS is the reliable fix (back up first).",
     expert: 'EVIDENCE // OK in safe mode/new profile -> software/driver/profile corruption. ACTION // Remove recent installs, disable startup, malware scan, or clean OS install (backup first).',
     chips: ['Book a repair', 'Back up my files first', 'Send this to the owner'],
     trace: ['It behaves in safe mode or a fresh profile.', 'Safe mode loads minimal software, so the fault is in what normally loads.'],
   },
   {
     rx: /\b(i )?(already|have|ve)?\s*(tried|did|done)\b.{0,20}\b(restart\w*|reboot\w*|turning it off and on|power cycl\w*|hard reset|force restart)\b|\b(restart\w*|reboot\w*|force restart|hard reset)\b.{0,25}\b(didn'?t|did not|doesn'?t|does not|no|not)\b.{0,12}\b(help|work|fix|change)\b/,
-    human: "Thanks — a restart that changes nothing **rules out a one-off software glitch**, which narrows things down. 🧩 The problem is more likely something persistent: a failing component, corrupted system files or a bad update.\n\nTell me the **device** and **exactly what it does** (won't turn on, black screen, restarts…) and I'll walk through the likely causes in order.",
+    human: "Thanks — a restart that changes nothing **rules out a one-off software glitch**, which narrows things down. The problem is more likely something persistent: a failing component, corrupted system files or a bad update.\n\nTell me the **device** and **exactly what it does** (won't turn on, black screen, restarts…) and I'll walk through the likely causes in order.",
     expert: 'EVIDENCE // Restart ineffective -> persistent fault (hardware/OS corruption), not transient glitch. REQUEST // Device + symptom.',
     chips: ['My phone is broken', 'My laptop is broken', 'My PC won’t start', 'Send this to the owner'],
     trace: ['A restart did not change the behaviour.', 'Transient glitches usually clear on restart, so this is likely persistent.'],
   },
   {
     rx: /\b(dried|drying|left it|let it dry|waited|rice)\b.{0,40}\b(days?|hours?|night|week|weeks)\b.{0,50}\b(still|but|and)\b.{0,25}\b(won'?t|doesn'?t|not|no|dead)\b.{0,15}\b(turn on|power on|start|work|charge|boot|switch on)\b/,
-    human: "Drying it for days and it **still won't switch on** suggests the water has left **corrosion or a short** on the board — that doesn't dry away. 💧 Please **stop trying to power or charge it** (each attempt can burn more components).\n\nA hands-on clean-up (opening it, cleaning the board, testing components) gives it the best chance, and the sooner the better. If there's data on it, tell the owner so it's handled carefully.",
+    human: "Drying it for days and it **still won't switch on** suggests the water has left **corrosion or a short** on the board — that doesn't dry away. Please **stop trying to power or charge it** (each attempt can burn more components).\n\nA hands-on clean-up (opening it, cleaning the board, testing components) gives it the best chance, and the sooner the better. If there's data on it, tell the owner so it's handled carefully.",
     expert: 'EVIDENCE // Dried, still dead -> corrosion/short. ACTION // Stop power attempts. Board-level cleaning; flag data.',
     chips: ['Book a repair', 'Send this to the owner', 'Can my data be saved?'],
     trace: ['It was dried for a long time and still does not work.', 'Moisture damage leaves corrosion that drying cannot remove.'],
   },
   {
     rx: /\b(fan|fans)\b.{0,30}\b(loud|noisy|spins? fast|screaming|roaring|always (on|running))\b.{0,60}\b(hot|heat\w*|warm|burning)\b|\b(hot|heat\w*|warm)\b.{0,40}\b(fan|fans)\b.{0,30}\b(loud|noisy|spins? fast|screaming|roaring|always (on|running))\b/,
-    human: "A loud fan **plus** heat while the laptop otherwise runs means it's struggling to shed heat: usually **dust-clogged vents or heatsink**, then **dried thermal paste**. 🌡️ That's maintenance, not a failure — cleaning and re-pasting often drops temperatures dramatically.\n\nUntil then: use it on a hard flat surface (not a bed), and compressed air through the vents (power off) can help. If it shuts itself off, don't keep forcing it.",
+    human: "A loud fan **plus** heat while the laptop otherwise runs means it's struggling to shed heat: usually **dust-clogged vents or heatsink**, then **dried thermal paste**. That's maintenance, not a failure — cleaning and re-pasting often drops temperatures dramatically.\n\nUntil then: use it on a hard flat surface (not a bed), and compressed air through the vents (power off) can help. If it shuts itself off, don't keep forcing it.",
     expert: 'EVIDENCE // Loud fan + heat, stable otherwise -> airflow restriction / thermal paste. ACTION // Clean vents, repaste.',
     chips: ['Book a repair', 'How long will it take?', 'Send this to the owner'],
     trace: ['The fan is loud and the machine is hot but still running.', 'That pattern is a cooling problem rather than a failed part.'],
@@ -239,7 +239,7 @@ function estimate(n: string, mode: PersonaMode, dlg: DialogueState, now: Date): 
   const tl = SERVICES[SERVICE_IDX[svc]].timeline;
   if (!range) {
     return reply(
-      t(mode, `For ${SERVICE_NOUN[svc]} the time depends on the **scope** (pages, features, revisions), so I can't put a date on it. 🗓️ If you send the details, the owner can give you a real delivery date. Starting ${when.label} won't change that.`, `ESTIMATE // ${tl}. Date not computable.`),
+      t(mode, `For ${SERVICE_NOUN[svc]} the time depends on the **scope** (pages, features, revisions), so I can't put a date on it. If you send the details, the owner can give you a real delivery date. Starting ${when.label} won't change that.`, `ESTIMATE // ${tl}. Date not computable.`),
       'ESTIMATE // Scope-dependent.',
       { suggestions: ['Send this to the owner', 'Build me a website', 'Get a quote'], topic: 'WEB_DEV', keepTopic: true }
     );
@@ -250,7 +250,7 @@ function estimate(n: string, mode: PersonaMode, dlg: DialogueState, now: Date): 
   const span = range[0] === range[1] ? fmtDay(from) : `${fmtDay(from)} to ${fmtDay(to)}`;
   const trace = [`Service: ${SERVICES[SERVICE_IDX[svc]].title}`, `Usual turnaround: ${tl}`, `Start: ${fmtDay(start)}`, `Range: ${span}`];
   return reply(
-    t(mode, `If it's with the owner on **${when.offset <= 1 || /^next/i.test(when.label) ? `${when.label}, ${fmtDay(start)}` : fmtDay(start)}**, ${SERVICE_NOUN[svc]} usually take **${tl}**, so think **${span}**. 🗓️\n\nThat's the typical range, **not a promise**: a part that has to be ordered, the queue, and what the owner finds on inspection can all change it. I also don't know the working days, so ask the owner to confirm the date when you send the details.`, `ETA // ${span} (typical ${tl}). Not guaranteed; owner confirms.`),
+    t(mode, `If it's with the owner on **${when.offset <= 1 || /^next/i.test(when.label) ? `${when.label}, ${fmtDay(start)}` : fmtDay(start)}**, ${SERVICE_NOUN[svc]} usually take **${tl}**, so think **${span}**.\n\nThat's the typical range, **not a promise**: a part that has to be ordered, the queue, and what the owner finds on inspection can all change it. I also don't know the working days, so ask the owner to confirm the date when you send the details.`, `ETA // ${span} (typical ${tl}). Not guaranteed; owner confirms.`),
     `ETA // ${span}.`,
     { suggestions: ['Book a repair', 'Send this to the owner', 'What could delay it?'], keepTopic: true, trace }
   );
@@ -371,7 +371,7 @@ function advice(n: string, mode: PersonaMode, dlg: DialogueState, memory: Sessio
   if (pages) {
     if (!biz) {
       return reply(
-        t(mode, 'It depends on the kind of site: a portfolio is usually **3 - 5 pages**, a small business **4 - 6**, a shop grows from there. 📄 What is it for — a salon, shop, restaurant, school, freelancer…? Tell me and I\'ll list the exact pages.', 'PAGES // Typical 3-6. Specify business type.'),
+        t(mode, 'It depends on the kind of site: a portfolio is usually **3 - 5 pages**, a small business **4 - 6**, a shop grows from there. What is it for — a salon, shop, restaurant, school, freelancer…? Tell me and I\'ll list the exact pages.', 'PAGES // Typical 3-6. Specify business type.'),
         'PAGES // Specify business type.',
         { suggestions: ['A salon', 'A shop', 'A restaurant', 'A portfolio'], topic: 'WEB_DEV', keepTopic: true }
       );
@@ -413,13 +413,13 @@ function vague(n: string, mode: PersonaMode, dlg: DialogueState): ReasonReply | 
   if (dev) {
     const label = deviceLabel(dlg.ent).toLowerCase();
     return reply(
-      t(mode, `Sorry it's giving you trouble. 😕 What is your ${label} actually doing?`, `QUERY // ${label}: symptom?`),
+      t(mode, `Sorry it's giving you trouble. What is your ${label} actually doing?`, `QUERY // ${label}: symptom?`),
       'QUERY // Symptom?',
       { suggestions: [`My ${label} won't turn on`, `My ${label} screen is black`, `My ${label} won't charge`, `My ${label} is overheating`, `My ${label} is slow`], topic: 'HARDWARE_REPAIR', keepTopic: true }
     );
   }
   return reply(
-    t(mode, "Sorry to hear that — let's sort it out. 🔧 What is it that's acting up: a **phone**, a **laptop / PC**, or something else (a design or website)?", 'QUERY // Which device or project?'),
+    t(mode, "Sorry to hear that — let's sort it out. What is it that's acting up: a **phone**, a **laptop / PC**, or something else (a design or website)?", 'QUERY // Which device or project?'),
     'QUERY // Device?',
     { suggestions: ['My phone is broken', 'My laptop is broken', 'My PC won’t start', 'It’s a website or design'], keepTopic: true }
   );
@@ -440,7 +440,7 @@ function statement(raw: string, n: string, mode: PersonaMode, dlg: DialogueState
   const d = (ent.device || dev || 'device') as string;
   const noun = d === 'desktop' ? 'desktop PC' : d === 'pc' ? 'computer' : d;
   return reply(
-    t(mode, `Got it — **${label}**. 👍 What's going on with it: a fault, a slowdown, an upgrade, or something else?`, `CONTEXT // ${label}. Query: issue?`),
+    t(mode, `Got it — **${label}**. What's going on with it: a fault, a slowdown, an upgrade, or something else?`, `CONTEXT // ${label}. Query: issue?`),
     `CONTEXT // ${label}.`,
     { suggestions: [`My ${noun} won't turn on`, `My ${noun} is slow`, `My ${noun} won't charge`, 'Repair or replace it?'], topic: 'HARDWARE_REPAIR', keepTopic: true }
   );
@@ -475,7 +475,7 @@ function nextStep(n: string, mode: PersonaMode, dlg: DialogueState): ReasonReply
       });
     }
     return reply(
-      t(mode, "That's everything I can safely suggest from here. 🔧 The next step is a hands-on check — I can send the details to the owner (with what you've already tried) so it's picked up quickly.", 'NEXT // Remote steps exhausted. Dispatch to owner.'),
+      t(mode, "That's everything I can safely suggest from here. The next step is a hands-on check — I can send the details to the owner (with what you've already tried) so it's picked up quickly.", 'NEXT // Remote steps exhausted. Dispatch to owner.'),
       'NEXT // dispatch.',
       { suggestions: ['Send this to the owner', 'Book a repair'], keepTopic: true }
     );
@@ -494,7 +494,7 @@ function nextStep(n: string, mode: PersonaMode, dlg: DialogueState): ReasonReply
   }
   if (last?.text && !RECOMMEND.test(n)) {
     return reply(
-      t(mode, "The best next step is to tell me the **device** and **what exactly is happening** — I'll ask a couple of quick questions and narrow it down. Or, if you'd rather talk to a person, I can send everything so far to the owner. 📨", 'NEXT // Provide device + symptom, or dispatch to owner.'),
+      t(mode, "The best next step is to tell me the **device** and **what exactly is happening** — I'll ask a couple of quick questions and narrow it down. Or, if you'd rather talk to a person, I can send everything so far to the owner.", 'NEXT // Provide device + symptom, or dispatch to owner.'),
       'NEXT // device + symptom.',
       { suggestions: ['My device is not working', 'I need a logo', 'Send this to the owner'], keepTopic: true }
     );

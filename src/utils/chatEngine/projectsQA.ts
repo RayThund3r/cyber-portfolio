@@ -103,7 +103,7 @@ function answerOf(n: string, mode: PersonaMode, memory: SessionMemory): ProjectA
         const id = prev[i < 0 ? prev.length - 1 : i];
         const p = ALL_PROJECTS.find((x) => x.id === id);
         if (p) {
-          const human = t(mode, `Opening **${shortTitle(p)}** for you. 📂`, `OPEN // PROJECT_${p.id}`);
+          const human = t(mode, `Opening **${shortTitle(p)}** for you.`, `OPEN // PROJECT_${p.id}`);
           return { human, expert: `OPEN // PROJECT_${p.id}`, suggestions: ['Next project', 'Show me your projects', 'Book a repair'], list: [p.id], open: p.id };
         }
       }

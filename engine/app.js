@@ -5,6 +5,10 @@
   var $ = function (s, e) { return (e || document).querySelector(s); };
   var $$ = function (s, e) { return Array.prototype.slice.call((e || document).querySelectorAll(s)); };
   var esc = Core.esc, num = Core.num;
+  // small line icons for the generated site (no emoji, no icon font)
+  var ICP = { check: '<path d="M20 6 9 17l-5-5"/>', x: '<path d="M18 6 6 18M6 6l12 12"/>', sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M5 19l1.5-1.5M17.5 6.5 19 5"/>', moon: '<path d="M21 13A9 9 0 1 1 11 3a7 7 0 0 0 10 10z"/>', menu: '<path d="M3 6h18M3 12h18M3 18h18"/>', pause: '<path d="M8 5v14M16 5v14"/>', play: '<path d="M7 4.5v15l12-7.500z"/>', heart: '<path d="M12 20s-7-4.400-7-10a4 4 0 0 1 7-2.600A4 4 0 0 1 19 10c0 5.600-7 10-7 10z"/>', cart: '<circle cx="9" cy="20" r="1.400"/><circle cx="18" cy="20" r="1.400"/><path d="M3 4h2.500l2.200 11h10.500l2-8H6.500"/>', chat: '<path d="M4 5h16v11H9l-5 4z"/>', chart: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>', bag: '<path d="M6 8h12l1 12H5z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/>', receipt: '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>', calendar: '<rect x="3.500" y="5" width="17" height="15" rx="2"/><path d="M8 3v4M16 3v4M3.500 10h17"/>', mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>', gear: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.900 4.900 7 7M17 17l2.100 2.100M4.900 19.100 7 17M17 7l2.100-2.100"/>', lock: '<rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>', trash: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 12h10l1-12M9 7V4h6v3"/>', download: '<path d="M12 3v12M7 10l5 5 5-5M4 20h16"/>', upload: '<path d="M12 16V4M7 9l5-5 5 5M4 20h16"/>', print: '<path d="M7 9V3h10v6M7 17H4v-6h16v6h-3M7 14h10v7H7z"/>', warn: '<path d="M12 3 2 20h20z"/><path d="M12 10v4M12 17v.1"/>', clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>' };
+  var IC = function (n, fill) { return '<svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="' + (fill ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (ICP[n] || '') + '</svg>'; };
+
 
   var BASE;
   try { BASE = JSON.parse($('#site-data').textContent); } catch (e) { BASE = null; }
@@ -87,8 +91,8 @@
   }
   function cloudBanner() {
     if (!cloud()) return '';
-    var m = CL ? ['✅', 'Live: orders, bookings and messages from every device appear here.'] : CLERR === 'auth' ? ['⚠', 'Cloud sign-in failed — this passcode does not match the one registered for the cloud inbox. Showing this device only.'] : CLERR === 'locked' ? ['⏳', 'Too many failed attempts — the cloud inbox is locked for a few minutes. Showing this device only.'] : TOKEN && !CLERR ? ['⋯', 'Connecting to the cloud inbox…'] : ['⚠', 'Cloud inbox unreachable — showing this device only.'];
-    return '<div class="note" style="margin-bottom:14px">' + m[0] + ' ' + esc(m[1]) + ' <button class="btn ghost sm" data-act="crefresh" style="margin-left:8px">↻ Refresh</button></div>';
+    var m = CL ? ['check', 'Live: orders, bookings and messages from every device appear here.'] : CLERR === 'auth' ? ['warn', 'Cloud sign-in failed — this passcode does not match the one registered for the cloud inbox. Showing this device only.'] : CLERR === 'locked' ? ['clock', 'Too many failed attempts — the cloud inbox is locked for a few minutes. Showing this device only.'] : TOKEN && !CLERR ? ['⋯', 'Connecting to the cloud inbox…'] : ['warn', 'Cloud inbox unreachable — showing this device only.'];
+    return '<div class="note" style="margin-bottom:14px">' + IC(m[0]) + ' ' + esc(m[1]) + ' <button class="btn ghost sm" data-act="crefresh" style="margin-left:8px">↻ Refresh</button></div>';
   }
 
   /* ---------- translations (UI chrome only; your own text stays as you wrote it) ---------- */
@@ -114,7 +118,7 @@
   function openSheet(html, wide) {
     closeSheet(true); lastFocus = document.activeElement;
     var ov = document.createElement('div'); ov.className = 'ov'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-modal', 'true');
-    ov.innerHTML = '<div class="sh' + (wide ? ' wide' : '') + '"><i class="grab"></i><button class="x" data-act="close" aria-label="' + esc(t('Close')) + '">✕</button><div id="shb">' + html + '</div></div>';
+    ov.innerHTML = '<div class="sh' + (wide ? ' wide' : '') + '"><i class="grab"></i><button class="x" data-act="close" aria-label="' + esc(t('Close')) + '">' + IC('x') + '</button><div id="shb">' + html + '</div></div>';
     document.body.appendChild(ov); document.body.style.overflow = 'hidden'; SHEET = ov;
     requestAnimationFrame(function () { ov.classList.add('open'); var f = $('input,select,textarea,button:not(.x)', ov); if (f && f.focus) try { f.focus({ preventScroll: true }); } catch (e) { /* ignore */ } });
   }
@@ -188,8 +192,8 @@
     return (b.announce ? '<div class="ann">' + esc(b.announce) + '</div>' : '') +
       '<header class="nav"><div class="w nv"><a class="logo" href="#home" aria-label="' + esc(b.name) + '">' + mark + (logo ? '' : '<span class="t">' + esc(b.name) + '</span>') + '</a><nav class="nl" aria-label="Main">' + links + '</nav>' +
       '<div class="na">' + (on('lang') ? '<button class="ib" data-act="lang" aria-label="Language" title="English / Kiswahili">' + (LG === 'sw' ? 'SW' : 'EN') + '</button>' : '') +
-      (on('theme') ? '<button class="ib" data-act="theme" aria-label="Theme">' + (isDark() ? '☀' : '☾') + '</button>' : '') +
-      '<a class="btn sm" href="' + cta[0] + '">' + esc(t(cta[1])) + '</a><button class="ib" id="mb" data-act="menu" aria-label="Menu" aria-expanded="false">☰</button></div></div>' +
+      (on('theme') ? '<button class="ib" data-act="theme" aria-label="Theme">' + (isDark() ? IC('sun') : IC('moon')) + '</button>' : '') +
+      '<a class="btn sm" href="' + cta[0] + '">' + esc(t(cta[1])) + '</a><button class="ib" id="mb" data-act="menu" aria-label="Menu" aria-expanded="false">' + IC('menu') + '</button></div></div>' +
       '<div class="menu" id="menu">' + links + '<a href="' + cta[0] + '">' + esc(t(cta[1])) + ' →</a></div></header>';
   }
 
@@ -202,7 +206,7 @@
       return '<div class="slide' + (i ? '' : ' on') + '"><div class="bg">' + pic(s.u) + '</div><div class="cap"><div class="w"><span class="eyebrow">' + esc(b.name) + '</span><h1>' + esc(s.t) + '</h1><p>' + esc(s.s || '') + '</p>' + (s.cta ? '<a class="btn" href="' + esc(link) + '">' + esc(s.cta) + '</a>' : '') + '</div></div></div>';
     }).join('');
     return '<section id="home" style="padding:0"><div class="sl" data-fx="' + esc(h.fx || 'fade') + '" style="--slt:' + Math.max(2, num(h.sec, 5.5)) + 's">' + slides +
-      (many ? '<button class="ar l" data-act="prev" aria-label="Previous">‹</button><button class="ar r" data-act="next" aria-label="Next">›</button><div class="ctl"><div class="dots">' + sl.map(function (_, i) { return '<i data-act="dot" data-i="' + i + '"' + (i ? '' : ' class="on"') + '></i>'; }).join('') + '</div><button id="pp" data-act="pause" aria-label="Pause">❚❚</button></div><div class="prog"><i></i></div>' : '') + '</div></section>';
+      (many ? '<button class="ar l" data-act="prev" aria-label="Previous">‹</button><button class="ar r" data-act="next" aria-label="Next">›</button><div class="ctl"><div class="dots">' + sl.map(function (_, i) { return '<i data-act="dot" data-i="' + i + '"' + (i ? '' : ' class="on"') + '></i>'; }).join('') + '</div><button id="pp" data-act="pause" aria-label="Pause">' + IC('pause') + '</button></div><div class="prog"><i></i></div>' : '') + '</div></section>';
   }
 
   function vAbout() {
@@ -224,7 +228,7 @@
   function card(p, i) {
     var im = imgOf(p), sold = Core.stockOf(p) <= 0, fav = FAV.indexOf(p.id) >= 0;
     return '<article class="pc rv" style="--d:' + (i % 8) * 0.04 + 's" data-act="open" data-id="' + esc(p.id) + '"><div class="ph">' + (im[0] ? '<img src="' + esc(im[0]) + '" alt="' + esc(p.name) + '" loading="lazy" decoding="async">' : '') +
-      (sold ? '<span class="tag">' + esc(t('Sold out')) + '</span>' : '') + (on('fav') ? '<button class="heart" data-act="fav" data-id="' + esc(p.id) + '" aria-label="Favourite" aria-pressed="' + fav + '">' + (fav ? '♥' : '♡') + '</button>' : '') + '</div>' +
+      (sold ? '<span class="tag">' + esc(t('Sold out')) + '</span>' : '') + (on('fav') ? '<button class="heart" data-act="fav" data-id="' + esc(p.id) + '" aria-label="Favourite" aria-pressed="' + fav + '">' + (fav ? IC('heart', 1) : IC('heart')) + '</button>' : '') + '</div>' +
       '<div class="pi"><small>' + esc(p.category || '') + '</small><h3>' + esc(p.name) + '</h3><span class="pr">' + esc(M(p.price)) + '</span><button class="btn sm"' + (sold ? ' disabled' : '') + ' data-act="add" data-id="' + esc(p.id) + '">' + esc(t('Add')) + '</button></div></article>';
   }
   function gridHTML() {
@@ -235,7 +239,7 @@
     var c = SITE.cat, cats = Core.categories(PRODUCTS);
     return '<section id="catalog"><div class="w">' + head(c.eyebrow, c.title || 'Shop', c.intro) + '<div class="tools"><input class="srch" id="q" data-in="q" type="search" placeholder="' + esc(t('Search…')) + '" aria-label="' + esc(t('Search…')) + '" value="' + esc(FILT.q) + '">' +
       '<select class="sel" id="sort" data-ch="sort" aria-label="' + esc(t('Sort')) + '"><option value="">' + esc(t('Sort')) + '</option><option value="low"' + (FILT.sort === 'low' ? ' selected' : '') + '>' + esc(t('Price: low → high')) + '</option><option value="high"' + (FILT.sort === 'high' ? ' selected' : '') + '>' + esc(t('Price: high → low')) + '</option><option value="name"' + (FILT.sort === 'name' ? ' selected' : '') + '>' + esc(t('Name A–Z')) + '</option></select>' +
-      (on('fav') ? '<button class="chip' + (FILT.fav ? ' on' : '') + '" data-act="favonly">♥ ' + esc(t('Favourites')) + '</button>' : '') + '</div>' +
+      (on('fav') ? '<button class="chip' + (FILT.fav ? ' on' : '') + '" data-act="favonly">' + IC('heart',1) + ' ' + esc(t('Favourites')) + '</button>' : '') + '</div>' +
       '<div class="chips" id="chips">' + cats.map(function (k) { return '<button class="chip' + (k === FILT.cat ? ' on' : '') + '" data-act="cat" data-v="' + esc(k) + '">' + esc(k === 'All' ? t('All') : k) + '</button>'; }).join('') + '</div><div class="grid" id="grid">' + gridHTML() + '</div></div></section>';
   }
 
@@ -299,8 +303,8 @@
   function cartCount() { return Core.cartRows(CART, PRODUCTS).reduce(function (a, r) { return a + r.q; }, 0); }
   function fabs() {
     var n = cartCount();
-    return (MODE() === 'shop' ? '<button class="fab cart" data-act="cart" aria-label="' + esc(t('Your order')) + '">🛒' + (n ? '<b id="cartn">' + n + '</b>' : '<b id="cartn" style="display:none">0</b>') + '</button>' : '') +
-      (SITE.b.wa ? '<a class="fab wa" href="' + esc(wa('Hello ' + SITE.b.name + ', ')) + '" target="_blank" rel="noopener" aria-label="WhatsApp">💬</a>' : '') + '<button class="topb" data-act="top" aria-label="' + esc(t('Back to top')) + '">↑</button>';
+    return (MODE() === 'shop' ? '<button class="fab cart" data-act="cart" aria-label="' + esc(t('Your order')) + '">' + IC('cart') + '' + (n ? '<b id="cartn">' + n + '</b>' : '<b id="cartn" style="display:none">0</b>') + '</button>' : '') +
+      (SITE.b.wa ? '<a class="fab wa" href="' + esc(wa('Hello ' + SITE.b.name + ', ')) + '" target="_blank" rel="noopener" aria-label="WhatsApp">' + IC('chat') + '</a>' : '') + '<button class="topb" data-act="top" aria-label="' + esc(t('Back to top')) + '">↑</button>';
   }
 
   var app = $('#app');
@@ -349,7 +353,7 @@
     var x0 = null; LB.el.addEventListener('touchstart', function (e) { x0 = e.touches[0].clientX; }, { passive: true });
     LB.el.addEventListener('touchend', function (e) { if (x0 == null) return; var dx = e.changedTouches[0].clientX - x0; x0 = null; if (Math.abs(dx) > 50) lbMove(dx < 0 ? 1 : -1); }, { passive: true });
   }
-  function lbShow() { if (!LB) return; var it = LB.list[LB.i]; if (!it) return lbClose(); LB.el.innerHTML = '<button class="x" data-act="lbx" aria-label="' + esc(t('Close')) + '">✕</button>' + (LB.list.length > 1 ? '<button class="ar l" data-act="lbp" aria-label="Previous">‹</button><button class="ar r" data-act="lbn" aria-label="Next">›</button>' : '') + '<img src="' + esc(it.u) + '" alt="' + esc(it.c || '') + '"><div class="lbc">' + esc(it.c || '') + (LB.list.length > 1 ? ' · ' + (LB.i + 1) + '/' + LB.list.length : '') + '</div>'; }
+  function lbShow() { if (!LB) return; var it = LB.list[LB.i]; if (!it) return lbClose(); LB.el.innerHTML = '<button class="x" data-act="lbx" aria-label="' + esc(t('Close')) + '">' + IC('x') + '</button>' + (LB.list.length > 1 ? '<button class="ar l" data-act="lbp" aria-label="Previous">‹</button><button class="ar r" data-act="lbn" aria-label="Next">›</button>' : '') + '<img src="' + esc(it.u) + '" alt="' + esc(it.c || '') + '"><div class="lbc">' + esc(it.c || '') + (LB.list.length > 1 ? ' · ' + (LB.i + 1) + '/' + LB.list.length : '') + '</div>'; }
   function lbMove(d) { if (LB) { LB.i = (LB.i + d + LB.list.length) % LB.list.length; lbShow(); } }
   function lbClose() { if (!LB) return; if (LB.el.parentNode) LB.el.parentNode.removeChild(LB.el); LB = null; if (!SHEET) document.body.style.overflow = ''; }
 
@@ -361,14 +365,14 @@
     openSheet('<div class="ph" data-act="plb" data-id="' + esc(p.id) + '" data-i="' + k + '">' + (im[k] ? '<img src="' + esc(im[k]) + '" alt="' + esc(p.name) + '">' : '') + '</div>' +
       (im.length > 1 ? '<div class="thumbs">' + im.map(function (u, i) { return '<button class="' + (i === k ? 'on' : '') + '" data-act="thumb" data-id="' + esc(p.id) + '" data-i="' + i + '" aria-label="Photo ' + (i + 1) + '"><img src="' + esc(u) + '" alt=""></button>'; }).join('') + '</div>' : '') +
       '<small style="color:var(--mut);text-transform:uppercase;letter-spacing:.08em">' + esc(p.category || '') + '</small><h3>' + esc(p.name) + '</h3><div class="pr" style="font-size:22px;margin:6px 0">' + esc(M(p.price)) + '</div><p>' + esc(p.description || '').replace(/\n/g, '<br>') + '</p>' +
-      '<div class="act" style="margin-top:14px"><button class="btn" data-act="add" data-id="' + esc(p.id) + '"' + (sold ? ' disabled' : '') + '>' + esc(sold ? t('Sold out') : t('Add to cart')) + '</button>' + (on('fav') ? '<button class="btn ghost" data-act="fav" data-id="' + esc(p.id) + '" data-keep="1">' + (fav ? '♥' : '♡') + '</button>' : '') +
-      (SITE.b.wa ? '<a class="btn wa" target="_blank" rel="noopener" href="' + esc(wa('Hello, I am interested in: ' + p.name + ' (' + M(p.price) + ')')) + '">💬</a>' : '') + '</div>' +
+      '<div class="act" style="margin-top:14px"><button class="btn" data-act="add" data-id="' + esc(p.id) + '"' + (sold ? ' disabled' : '') + '>' + esc(sold ? t('Sold out') : t('Add to cart')) + '</button>' + (on('fav') ? '<button class="btn ghost" data-act="fav" data-id="' + esc(p.id) + '" data-keep="1">' + (fav ? IC('heart', 1) : IC('heart')) + '</button>' : '') +
+      (SITE.b.wa ? '<a class="btn wa" target="_blank" rel="noopener" href="' + esc(wa('Hello, I am interested in: ' + p.name + ' (' + M(p.price) + ')')) + '">' + IC('chat') + '</a>' : '') + '</div>' +
       (rel.length ? '<h4 style="margin:22px 0 8px">More like this</h4>' + rel.map(function (r) { return '<div class="rw" data-act="open" data-id="' + esc(r.id) + '" style="cursor:pointer"><div class="th">' + (imgOf(r)[0] ? '<img src="' + esc(imgOf(r)[0]) + '" alt="">' : '') + '</div><div><b>' + esc(r.name) + '</b><br><small>' + esc(M(r.price)) + '</small></div></div>'; }).join('') : ''), true);
   }
   function addToCart(id, q) {
     var p = findP(id); if (!p) return; if (Core.stockOf(p) <= 0) return toast(t('Sold out'));
     CART = Core.cartAdd(CART, id, q || 1); CART = Core.cartRows(CART, PRODUCTS).map(function (r) { return { id: r.p.id, q: r.q }; }); ls.s('cart', CART);
-    var n = $('#cartn'); if (n) { n.style.display = ''; n.textContent = cartCount(); } toast(p.name + ' ✓');
+    var n = $('#cartn'); if (n) { n.style.display = ''; n.textContent = cartCount(); } toast(p.name + ' added');
   }
   function payOptions() { var p = SITE.cat.pay, o = []; if (p.mtn) o.push(['mtn', 'MTN Mobile Money']); if (p.airtel) o.push(['airtel', 'Airtel Money']); if (p.bank) o.push(['bank', 'Bank transfer']); if (p.link) o.push(['link', 'Pay online']); if (p.cash !== false) o.push(['cash', t('Cash')]); return o; }
   function readCK() {
@@ -414,8 +418,8 @@
     DB.orders.unshift(o); DB.orders = DB.orders.slice(0, 500); saveDB(); deliver('order', o);
     CART = []; ls.s('cart', CART); CK.promo = ''; CK.code = ''; var n = $('#cartn'); if (n) n.style.display = 'none';
     var link = wa(orderMsg(o));
-    openSheet('<h3>' + esc(t('Order placed')) + ' ✓</h3><p>' + esc(t('Reference')) + ': <b>' + esc(o.ref) + '</b></p><div class="note">' + payText(o.pay, o.total, o.ref) + '</div>' +
-      '<div class="act" style="margin-top:14px">' + (link ? '<a class="btn wa" target="_blank" rel="noopener" href="' + esc(link) + '">💬 ' + esc(t('Send on WhatsApp')) + '</a>' : '') + (on('track') ? '<button class="btn ghost" data-act="track" data-ref="' + esc(o.ref) + '">' + esc(t('Track order')) + '</button>' : '') + '<button class="btn ghost" data-act="close">' + esc(t('Close')) + '</button></div>');
+    openSheet('<h3>' + esc(t('Order placed')) + '</h3><p>' + esc(t('Reference')) + ': <b>' + esc(o.ref) + '</b></p><div class="note">' + payText(o.pay, o.total, o.ref) + '</div>' +
+      '<div class="act" style="margin-top:14px">' + (link ? '<a class="btn wa" target="_blank" rel="noopener" href="' + esc(link) + '">' + IC('chat') + ' ' + esc(t('Send on WhatsApp')) + '</a>' : '') + (on('track') ? '<button class="btn ghost" data-act="track" data-ref="' + esc(o.ref) + '">' + esc(t('Track order')) + '</button>' : '') + '<button class="btn ghost" data-act="close">' + esc(t('Close')) + '</button></div>');
   }
   function openTrack(ref) {
     openSheet('<h3>' + esc(t('Track order')) + '</h3><div class="fm"><label>' + esc(t('Reference')) + '<input id="tr_r" value="' + esc(ref || '') + '"></label><label>' + esc(t('Phone / WhatsApp')) + '<input id="tr_p" type="tel"></label><button class="btn" data-act="trackgo">' + esc(t('Track order')) + '</button></div><div id="tr_o"></div>');
@@ -447,9 +451,9 @@
   function finishBook(b, delivered) {
     DB.bookings.unshift(b); DB.bookings = DB.bookings.slice(0, 500); saveDB(); deliver('booking', b, delivered); BK.time = ''; var sl = $('#slots'); if (sl) sl.innerHTML = slotsHTML();
     var msg = '*' + SITE.b.name + ' — booking ' + b.ref + '*\n' + b.name + ' · ' + b.phone + '\n' + b.svc + '\n' + b.date + ' ' + b.time + (b.note ? '\n' + b.note : ''), link = wa(msg), p2 = SITE.cat.pay || {};
-    openSheet('<h3>' + esc(t('Confirm booking')) + ' ✓</h3><p>' + esc(b.svc) + '<br><b>' + esc(b.date + ' · ' + b.time) + '</b><br>' + esc(t('Reference')) + ': <b>' + esc(b.ref) + '</b></p>' +
+    openSheet('<h3>' + esc(t('Confirm booking')) + '</h3><p>' + esc(b.svc) + '<br><b>' + esc(b.date + ' · ' + b.time) + '</b><br>' + esc(t('Reference')) + ': <b>' + esc(b.ref) + '</b></p>' +
       (b.dep ? '<div class="note">Deposit: <b>' + esc(M(b.dep)) + '</b>' + (p2.mtn ? ' — MTN <b>' + esc(p2.mtn) + '</b>' : '') + (p2.airtel ? ' — Airtel <b>' + esc(p2.airtel) + '</b>' : '') + '</div>' : '') +
-      '<div class="act" style="margin-top:14px">' + (link ? '<a class="btn wa" target="_blank" rel="noopener" href="' + esc(link) + '">💬 ' + esc(t('Send on WhatsApp')) + '</a>' : '') + '<button class="btn ghost" data-act="close">' + esc(t('Close')) + '</button></div>');
+      '<div class="act" style="margin-top:14px">' + (link ? '<a class="btn wa" target="_blank" rel="noopener" href="' + esc(link) + '">' + IC('chat') + ' ' + esc(t('Send on WhatsApp')) + '</a>' : '') + '<button class="btn ghost" data-act="close">' + esc(t('Close')) + '</button></div>');
   }
   function doEnquiry(kind, n, p, m, extra) {
     if (n.length < 2) return toast(t('Your name')); if (!Core.phoneOk(p) && !/@/.test(p)) return toast(t('Phone / WhatsApp')); if (m.length < 3) return toast(t('Message'));
@@ -457,7 +461,7 @@
     var e = { ref: Core.ref('ENQ', Date.now(), Math.random, used), at: Date.now(), kind: kind, name: n, contact: p, msg: m, svc: extra || '', st: 'New' };
     DB.enquiries.unshift(e); DB.enquiries = DB.enquiries.slice(0, 300); saveDB(); deliver('enquiry', e);
     var link = wa('*' + SITE.b.name + ' — ' + kind + '*\n' + n + ' · ' + p + (extra ? '\n' + extra : '') + '\n' + m);
-    openSheet('<h3>✓</h3><p>' + esc(t('Thank you! We will reply soon.')) + '</p><div class="act">' + (link ? '<a class="btn wa" target="_blank" rel="noopener" href="' + esc(link) + '">💬 ' + esc(t('Send on WhatsApp')) + '</a>' : '') + '<button class="btn ghost" data-act="close">' + esc(t('Close')) + '</button></div>');
+    openSheet('<h3>' + IC('check') + '</h3><p>' + esc(t('Thank you! We will reply soon.')) + '</p><div class="act">' + (link ? '<a class="btn wa" target="_blank" rel="noopener" href="' + esc(link) + '">' + IC('chat') + ' ' + esc(t('Send on WhatsApp')) + '</a>' : '') + '<button class="btn ghost" data-act="close">' + esc(t('Close')) + '</button></div>');
   }
 
   /* ---------- owner admin (convenience, not security: everything is stored on this device) ---------- */
@@ -486,8 +490,8 @@
       else fail();
     });
   }
-  var AT_TABS = [['dash', '📊', 'Dashboard'], ['prod', '🛍', 'Products'], ['ord', '🧾', 'Orders'], ['bk', '📅', 'Bookings'], ['enq', '✉', 'Enquiries'], ['set', '⚙', 'Settings'], ['sec', '🔒', 'Backup']];
-  function tabs(cls) { return AT_TABS.filter(function (x) { return !(x[0] === 'prod' && MODE() !== 'shop') && !(x[0] === 'ord' && MODE() !== 'shop') && !(x[0] === 'bk' && MODE() !== 'book'); }).map(function (x) { return '<button class="' + (AT === x[0] ? 'on' : '') + '" data-act="at" data-v="' + x[0] + '">' + x[1] + ' <span>' + x[2] + '</span></button>'; }).join(''); }
+  var AT_TABS = [['dash', 'chart', 'Dashboard'], ['prod', 'bag', 'Products'], ['ord', 'receipt', 'Orders'], ['bk', 'calendar', 'Bookings'], ['enq', 'mail', 'Enquiries'], ['set', 'gear', 'Settings'], ['sec', 'lock', 'Backup']];
+  function tabs(cls) { return AT_TABS.filter(function (x) { return !(x[0] === 'prod' && MODE() !== 'shop') && !(x[0] === 'ord' && MODE() !== 'shop') && !(x[0] === 'bk' && MODE() !== 'book'); }).map(function (x) { return '<button class="' + (AT === x[0] ? 'on' : '') + '" data-act="at" data-v="' + x[0] + '">' + IC(x[1]) + ' <span>' + x[2] + '</span></button>'; }).join(''); }
   var inp = function (id, label, v, type, ph) { return '<label>' + esc(label) + '<input id="' + id + '"' + (type ? ' type="' + type + '"' : '') + ' value="' + esc(v == null ? '' : v) + '"' + (ph ? ' placeholder="' + esc(ph) + '"' : '') + '></label>'; };
   var area = function (id, label, v, rows) { return '<label>' + esc(label) + '<textarea id="' + id + '" rows="' + (rows || 3) + '">' + esc(v == null ? '' : v) + '</textarea></label>'; };
   var dt = function (ms) { var d = new Date(ms); return d.getDate() + '/' + (d.getMonth() + 1) + ' ' + ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); };
@@ -502,7 +506,7 @@
   }
   function aProd() {
     return '<h2>Products</h2><div class="act" style="margin-bottom:14px"><button class="btn" data-act="pnew">+ New product</button></div>' + (PRODUCTS.length ? PRODUCTS.map(function (p) {
-      return '<div class="rw"><div class="th">' + (imgOf(p)[0] ? '<img src="' + esc(imgOf(p)[0]) + '" alt="">' : '') + '</div><div><b>' + esc(p.name) + '</b><br><small>' + esc(p.category || '') + ' · ' + esc(M(p.price)) + ' · stock ' + esc(p.stock == null ? '∞' : p.stock) + '</small></div><button class="btn ghost sm" data-act="pedit" data-id="' + esc(p.id) + '">Edit</button><button class="btn ghost sm" data-act="pdel" data-id="' + esc(p.id) + '">🗑</button></div>'; }).join('') : '<p class="empty">No products yet.</p>');
+      return '<div class="rw"><div class="th">' + (imgOf(p)[0] ? '<img src="' + esc(imgOf(p)[0]) + '" alt="">' : '') + '</div><div><b>' + esc(p.name) + '</b><br><small>' + esc(p.category || '') + ' · ' + esc(M(p.price)) + ' · stock ' + esc(p.stock == null ? '∞' : p.stock) + '</small></div><button class="btn ghost sm" data-act="pedit" data-id="' + esc(p.id) + '">Edit</button><button class="btn ghost sm" data-act="pdel" data-id="' + esc(p.id) + '">' + IC('trash') + '</button></div>'; }).join('') : '<p class="empty">No products yet.</p>');
   }
   function pForm(p) {
     p = p || { id: '', name: '', category: '', price: '', stock: 10, description: '', images: [] };
@@ -510,26 +514,26 @@
       area('pf_i', 'Picture links (one per line)', arr(p.images).join('\n'), 3) + '<label>Or upload pictures<input id="pf_f" type="file" accept="image/*" multiple data-ch="pimg"></label><input type="hidden" id="pf_id" value="' + esc(p.id) + '"><button class="btn full" data-act="psave">Save</button></div>';
   }
   function aOrd() {
-    return '<h2>Orders</h2><div class="act" style="margin-bottom:12px"><button class="btn ghost sm" data-act="csv" data-v="orders">⬇ CSV</button></div>' + (src('orders').length ? src('orders').map(function (o) {
-      return '<div class="cd" style="margin-bottom:10px"><div class="act" style="justify-content:space-between"><b>' + esc(o.ref) + '</b><small>' + dt(o.at) + '</small></div><div>' + esc(o.name) + ' · ' + esc(o.phone) + '</div><div style="color:var(--mut);font-size:14px">' + o.items.map(function (i) { return esc(i.q + '× ' + i.n); }).join(', ') + '</div><div class="act" style="margin-top:8px"><b>' + esc(M(o.total)) + '</b>' + sel('', ['Pending', 'Paid', 'Ready', 'Delivered', 'Cancelled'], o.st, 'ostat', o.ref) + '<button class="btn ghost sm" data-act="rcpt" data-id="' + esc(o.ref) + '">Receipt</button><a class="btn wa sm" target="_blank" rel="noopener" href="' + esc(Core.waUrl(o.phone, 'Hello ' + o.name + ', about your order ' + o.ref + ' (' + o.st + ')')) + '">💬</a></div></div>'; }).join('') : '<p class="empty">No orders on this device yet.</p>');
+    return '<h2>Orders</h2><div class="act" style="margin-bottom:12px"><button class="btn ghost sm" data-act="csv" data-v="orders">' + IC('download') + ' CSV</button></div>' + (src('orders').length ? src('orders').map(function (o) {
+      return '<div class="cd" style="margin-bottom:10px"><div class="act" style="justify-content:space-between"><b>' + esc(o.ref) + '</b><small>' + dt(o.at) + '</small></div><div>' + esc(o.name) + ' · ' + esc(o.phone) + '</div><div style="color:var(--mut);font-size:14px">' + o.items.map(function (i) { return esc(i.q + '× ' + i.n); }).join(', ') + '</div><div class="act" style="margin-top:8px"><b>' + esc(M(o.total)) + '</b>' + sel('', ['Pending', 'Paid', 'Ready', 'Delivered', 'Cancelled'], o.st, 'ostat', o.ref) + '<button class="btn ghost sm" data-act="rcpt" data-id="' + esc(o.ref) + '">Receipt</button><a class="btn wa sm" target="_blank" rel="noopener" href="' + esc(Core.waUrl(o.phone, 'Hello ' + o.name + ', about your order ' + o.ref + ' (' + o.st + ')')) + '">' + IC('chat') + '</a></div></div>'; }).join('') : '<p class="empty">No orders on this device yet.</p>');
   }
   function aBk() {
-    return '<h2>Bookings</h2><div class="act" style="margin-bottom:12px"><button class="btn ghost sm" data-act="csv" data-v="bookings">⬇ CSV</button></div>' + (src('bookings').length ? src('bookings').map(function (b) {
-      return '<div class="cd" style="margin-bottom:10px"><div class="act" style="justify-content:space-between"><b>' + esc(b.ref) + '</b><small>' + esc(b.date + ' ' + b.time) + '</small></div><div>' + esc(b.name) + ' · ' + esc(b.phone) + ' · ' + esc(b.svc) + '</div><div class="act" style="margin-top:8px">' + (b.dep ? '<small>Deposit ' + esc(M(b.dep)) + '</small>' : '') + sel('', ['Pending', 'Confirmed', 'Done', 'Cancelled', 'Conflict'], b.st, 'bstat', b.ref) + '<a class="btn wa sm" target="_blank" rel="noopener" href="' + esc(Core.waUrl(b.phone, 'Hello ' + b.name + ', your booking ' + b.ref + ' for ' + b.date + ' ' + b.time + ' is ' + b.st)) + '">💬</a></div></div>'; }).join('') : '<p class="empty">No bookings on this device yet.</p>');
+    return '<h2>Bookings</h2><div class="act" style="margin-bottom:12px"><button class="btn ghost sm" data-act="csv" data-v="bookings">' + IC('download') + ' CSV</button></div>' + (src('bookings').length ? src('bookings').map(function (b) {
+      return '<div class="cd" style="margin-bottom:10px"><div class="act" style="justify-content:space-between"><b>' + esc(b.ref) + '</b><small>' + esc(b.date + ' ' + b.time) + '</small></div><div>' + esc(b.name) + ' · ' + esc(b.phone) + ' · ' + esc(b.svc) + '</div><div class="act" style="margin-top:8px">' + (b.dep ? '<small>Deposit ' + esc(M(b.dep)) + '</small>' : '') + sel('', ['Pending', 'Confirmed', 'Done', 'Cancelled', 'Conflict'], b.st, 'bstat', b.ref) + '<a class="btn wa sm" target="_blank" rel="noopener" href="' + esc(Core.waUrl(b.phone, 'Hello ' + b.name + ', your booking ' + b.ref + ' for ' + b.date + ' ' + b.time + ' is ' + b.st)) + '">' + IC('chat') + '</a></div></div>'; }).join('') : '<p class="empty">No bookings on this device yet.</p>');
   }
   function aEnq() {
-    return '<h2>Enquiries</h2><div class="act" style="margin-bottom:12px"><button class="btn ghost sm" data-act="csv" data-v="enquiries">⬇ CSV</button></div>' + (src('enquiries').length ? src('enquiries').map(function (e) {
-      return '<div class="cd" style="margin-bottom:10px"><div class="act" style="justify-content:space-between"><b>' + esc(e.name) + '</b><small>' + dt(e.at) + ' · ' + esc(e.kind) + '</small></div><div>' + esc(e.contact) + (e.svc ? ' · ' + esc(e.svc) : '') + '</div><p style="margin:6px 0">' + esc(e.msg) + '</p><div class="act"><button class="btn ghost sm" data-act="edone" data-id="' + esc(e.ref) + '">' + (e.st === 'New' ? 'Mark done' : '✓ Done') + '</button><button class="btn ghost sm" data-act="edel" data-id="' + esc(e.ref) + '">🗑</button></div></div>'; }).join('') : '<p class="empty">No enquiries yet.</p>');
+    return '<h2>Enquiries</h2><div class="act" style="margin-bottom:12px"><button class="btn ghost sm" data-act="csv" data-v="enquiries">' + IC('download') + ' CSV</button></div>' + (src('enquiries').length ? src('enquiries').map(function (e) {
+      return '<div class="cd" style="margin-bottom:10px"><div class="act" style="justify-content:space-between"><b>' + esc(e.name) + '</b><small>' + dt(e.at) + ' · ' + esc(e.kind) + '</small></div><div>' + esc(e.contact) + (e.svc ? ' · ' + esc(e.svc) : '') + '</div><p style="margin:6px 0">' + esc(e.msg) + '</p><div class="act"><button class="btn ghost sm" data-act="edone" data-id="' + esc(e.ref) + '">' + (e.st === 'New' ? 'Mark done' : 'Done') + '</button><button class="btn ghost sm" data-act="edel" data-id="' + esc(e.ref) + '">' + IC('trash') + '</button></div></div>'; }).join('') : '<p class="empty">No enquiries yet.</p>');
   }
   function aSet() {
     var b = SITE.b, c = SITE.cat, p = c.pay || {}, k = SITE.bk || {}, days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'], closed = arr(k.closed).map(Number);
     return '<h2>Settings</h2><div class="fm cd"><h3>Business</h3>' + inp('s_name', 'Business name', b.name) + inp('s_tag', 'Tagline', b.tag) + '<div class="two">' + inp('s_phone', 'Phone', b.phone) + inp('s_wa', 'WhatsApp number', b.wa) + '</div>' + inp('s_email', 'Email', b.email) + inp('s_addr', 'Address', b.addr) + inp('s_hours', 'Opening hours', b.hours) + inp('s_ann', 'Announcement bar (optional)', b.announce) + '</div>' +
       (MODE() === 'shop' ? '<div class="fm cd" style="margin-top:14px"><h3>Payments & delivery</h3><div class="two">' + inp('s_mtn', 'MTN MoMo number', p.mtn) + inp('s_mtnn', 'MTN account name', p.mtnn) + inp('s_air', 'Airtel Money number', p.airtel) + inp('s_airn', 'Airtel account name', p.airteln) + '</div>' + inp('s_bank', 'Bank details', p.bank) + inp('s_link', 'Online payment link (optional)', p.link) + inp('s_fee', 'Delivery fee (' + cur() + ')', c.fee, 'number') + area('s_promo', 'Promo codes (one per line, e.g. WELCOME10=10% or SAVE5000=5000)', c.promos, 3) + '</div>' : '') +
       (MODE() === 'book' ? '<div class="fm cd" style="margin-top:14px"><h3>Booking</h3>' + inp('s_slots', 'Time slots (comma separated)', k.slots) + inp('s_ahead', 'Days open for booking', k.ahead, 'number') + '<div class="act">' + days.map(function (d, i) { return '<label class="chk" style="display:flex;gap:6px;align-items:center"><input type="checkbox" class="s_cl" value="' + i + '"' + (closed.indexOf(i) >= 0 ? ' checked' : '') + '>' + d + ' closed</label>'; }).join('') + '</div>' + area('s_dep', 'Deposits (one per line: Service=Amount)', k.deposit, 3) + '</div>' : '') +
-      '<div class="act" style="margin-top:14px"><button class="btn" data-act="sset">Save changes</button><button class="btn ghost" data-act="publish">⬆ Publish (download site-data.json)</button></div><div class="note">Your changes are saved on this device. To show them to <b>all visitors</b>, click Publish and upload the downloaded <code>site-data.json</code> next to your <code>index.html</code>.</div>';
+      '<div class="act" style="margin-top:14px"><button class="btn" data-act="sset">Save changes</button><button class="btn ghost" data-act="publish">' + IC('upload') + ' Publish (download site-data.json)</button></div><div class="note">Your changes are saved on this device. To show them to <b>all visitors</b>, click Publish and upload the downloaded <code>site-data.json</code> next to your <code>index.html</code>.</div>';
   }
   function aSec() {
-    return '<h2>Backup & security</h2><div class="fm cd"><h3>Change owner passcode</h3>' + inp('pw1', 'New passcode (8+ characters)', '', 'password') + '<button class="btn" data-act="pw">Change passcode</button></div><div class="act cd" style="margin-top:14px"><button class="btn ghost" data-act="bkx">⬇ Export backup</button><label class="btn ghost" style="cursor:pointer">⬆ Import backup<input type="file" accept="application/json,.json" data-ch="bki" style="display:none"></label><button class="btn red" data-act="reset">Reset everything on this device</button></div>';
+    return '<h2>Backup & security</h2><div class="fm cd"><h3>Change owner passcode</h3>' + inp('pw1', 'New passcode (8+ characters)', '', 'password') + '<button class="btn" data-act="pw">Change passcode</button></div><div class="act cd" style="margin-top:14px"><button class="btn ghost" data-act="bkx">' + IC('download') + ' Export backup</button><label class="btn ghost" style="cursor:pointer">' + IC('upload') + ' Import backup<input type="file" accept="application/json,.json" data-ch="bki" style="display:none"></label><button class="btn red" data-act="reset">Reset everything on this device</button></div>';
   }
   function renderAdmin() {
     document.documentElement.removeAttribute('data-menu'); document.title = 'Owner admin — ' + SITE.b.name;
@@ -549,13 +553,13 @@
       if (MODE() === 'shop') p.cat = Object.assign({}, p.cat || SITE.cat, { fee: num(val('s_fee')), promos: $('#s_promo').value, pay: { mtn: val('s_mtn'), mtnn: val('s_mtnn'), airtel: val('s_air'), airteln: val('s_airn'), bank: val('s_bank'), link: val('s_link'), cash: SITE.cat.pay.cash !== false } });
       if (MODE() === 'book') p.bk = Object.assign({}, p.bk || SITE.bk, { slots: val('s_slots'), ahead: Core.clamp(num(val('s_ahead'), 14), 1, 120), closed: $$('.s_cl').filter(function (c) { return c.checked; }).map(function (c) { return +c.value; }), deposit: $('#s_dep').value });
     });
-    toast('Saved ✓'); renderAdmin();
+    toast('Saved'); renderAdmin();
   }
   function saveProduct() {
     var name = val('pf_n'); if (!name) return toast('Name is required'); var id = val('pf_id') || 'p' + Date.now().toString(36), imgs = $('#pf_i').value.split(/\r?\n/).map(function (s) { return s.trim(); }).filter(Boolean);
     var np = { id: id, name: name.slice(0, 80), category: val('pf_c').slice(0, 40), price: Math.max(0, num(val('pf_p'))), stock: Math.max(0, Math.floor(num(val('pf_s'), 10))), description: $('#pf_d').value.slice(0, 2000), images: imgs.slice(0, 6) };
     var list = PRODUCTS.map(function (p) { return p.id === id ? np : p; }); if (!PRODUCTS.some(function (p) { return p.id === id; })) list.push(np);
-    patchOwn(function (p) { p.cat = Object.assign({}, p.cat || SITE.cat, { products: list }); }); closeSheet(); toast('Saved ✓'); renderAdmin();
+    patchOwn(function (p) { p.cat = Object.assign({}, p.cat || SITE.cat, { products: list }); }); closeSheet(); toast('Saved'); renderAdmin();
   }
   function resize(file, max) {
     return new Promise(function (res, rej) { var r = new FileReader(); r.onerror = rej; r.onload = function () { var im = new Image(); im.onerror = rej; im.onload = function () { var s = Math.min(1, max / Math.max(im.width, im.height)), c = document.createElement('canvas'); c.width = Math.round(im.width * s); c.height = Math.round(im.height * s); c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); res(c.toDataURL('image/jpeg', 0.76)); }; im.src = r.result; }; r.readAsDataURL(file); });
@@ -566,7 +570,7 @@
   function download(name, text, type) { try { var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: type || 'application/json' })); a.download = name; document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); if (a.parentNode) a.parentNode.removeChild(a); }, 500); } catch (e) { toast('Download failed'); } }
   function receipt(ref) {
     var o = DB.orders.filter(function (x) { return x.ref === ref; })[0]; if (!o) return;
-    openSheet('<h3>' + esc(SITE.b.name) + '</h3><p>' + esc(t('Reference')) + ' <b>' + esc(o.ref) + '</b> · ' + dt(o.at) + '<br>' + esc(o.name) + ' · ' + esc(o.phone) + '</p>' + o.items.map(function (i) { return '<div class="rw"><div><b>' + esc(i.n) + '</b><br><small>' + i.q + ' × ' + esc(M(i.p)) + '</small></div><b>' + esc(M(i.p * i.q)) + '</b></div>'; }).join('') + '<div class="tot">' + (o.disc ? '<div><span>Discount</span><b>−' + esc(M(o.disc)) + '</b></div>' : '') + (o.fee ? '<div><span>Delivery</span><b>' + esc(M(o.fee)) + '</b></div>' : '') + '<div class="g"><span>Total</span><b>' + esc(M(o.total)) + '</b></div></div><button class="btn" data-act="print">🖨 Print</button>');
+    openSheet('<h3>' + esc(SITE.b.name) + '</h3><p>' + esc(t('Reference')) + ' <b>' + esc(o.ref) + '</b> · ' + dt(o.at) + '<br>' + esc(o.name) + ' · ' + esc(o.phone) + '</p>' + o.items.map(function (i) { return '<div class="rw"><div><b>' + esc(i.n) + '</b><br><small>' + i.q + ' × ' + esc(M(i.p)) + '</small></div><b>' + esc(M(i.p * i.q)) + '</b></div>'; }).join('') + '<div class="tot">' + (o.disc ? '<div><span>Discount</span><b>−' + esc(M(o.disc)) + '</b></div>' : '') + (o.fee ? '<div><span>Delivery</span><b>' + esc(M(o.fee)) + '</b></div>' : '') + '<div class="g"><span>Total</span><b>' + esc(M(o.total)) + '</b></div></div><button class="btn" data-act="print">' + IC('print') + ' Print</button>');
   }
 
   /* ---------- the ONE click handler ---------- */
@@ -575,20 +579,20 @@
     menu: function (a) { var m = $('#menu'); if (!m) return; var o = m.classList.toggle('open'); a.setAttribute('aria-expanded', String(o)); },
     theme: function () { var d = !isDark(); TH = d ? 'dark' : 'light'; ls.s('th', TH); setTheme(TH); render(); }, lang: function () { LG = LG === 'sw' ? 'en' : 'sw'; ls.s('lg', LG); render(); },
     prev: function () { slGo(SL.i - 1); slAuto(); }, next: function () { slGo(SL.i + 1); slAuto(); }, dot: function (a) { slGo(+a.dataset.i); slAuto(); },
-    pause: function (a) { SL.paused = !SL.paused; a.textContent = SL.paused ? '▶' : '❚❚'; slGo(SL.i); slAuto(); },
+    pause: function (a) { SL.paused = !SL.paused; a.innerHTML = SL.paused ? IC('play') : IC('pause'); slGo(SL.i); slAuto(); },
     cat: function (a) { FILT.cat = a.dataset.v; $$('#chips .chip').forEach(function (c) { c.classList.toggle('on', c.dataset.v === FILT.cat); }); redraw(); },
     favonly: function (a) { FILT.fav = !FILT.fav; a.classList.toggle('on', FILT.fav); redraw(); },
     open: function (a) { openProduct(a.dataset.id); }, thumb: function (a) { openProduct(a.dataset.id, +a.dataset.i); },
     plb: function (a) { var p = findP(a.dataset.id); if (p) lbOpen(imgOf(p).map(function (u) { return { u: u, c: p.name }; }), +a.dataset.i || 0); },
-    fav: function (a, ev) { ev.stopPropagation(); var id = a.dataset.id, i = FAV.indexOf(id); if (i >= 0) FAV.splice(i, 1); else FAV.push(id); ls.s('fav', FAV); if (a.dataset.keep) a.textContent = i >= 0 ? '♡' : '♥'; else { a.textContent = i >= 0 ? '♡' : '♥'; a.setAttribute('aria-pressed', String(i < 0)); if (FILT.fav) redraw(); } },
+    fav: function (a, ev) { ev.stopPropagation(); var id = a.dataset.id, i = FAV.indexOf(id); if (i >= 0) FAV.splice(i, 1); else FAV.push(id); ls.s('fav', FAV); if (a.dataset.keep) a.innerHTML = i >= 0 ? IC('heart') : IC('heart', 1); else { a.innerHTML = i >= 0 ? IC('heart') : IC('heart', 1); a.setAttribute('aria-pressed', String(i < 0)); if (FILT.fav) redraw(); } },
     add: function (a, ev) { ev.stopPropagation(); addToCart(a.dataset.id, 1); }, cart: function () { openCart(); },
     inc: function (a) { addToCart(a.dataset.id, 1); reCart(); }, dec: function (a) { var i; for (i = 0; i < CART.length; i++) if (CART[i].id === a.dataset.id) { CART[i].q--; if (CART[i].q < 1) CART.splice(i, 1); break; } ls.s('cart', CART); var n = $('#cartn'); if (n) { n.textContent = cartCount(); n.style.display = cartCount() ? '' : 'none'; } reCart(); },
-    promo: function () { readCK(); var sub = Core.cartTotals(Core.cartRows(CART, PRODUCTS), 0, 0).sub, r = Core.applyPromo(CK.promo, PROMOS, sub); CK.code = r.code; toast(r.code ? r.code + ' ✓' : 'Invalid code'); reCart(); },
+    promo: function () { readCK(); var sub = Core.cartTotals(Core.cartRows(CART, PRODUCTS), 0, 0).sub, r = Core.applyPromo(CK.promo, PROMOS, sub); CK.code = r.code; toast(r.code ? r.code + ' applied' : 'Invalid code'); reCart(); },
     place: placeOrder, track: function (a) { openTrack(a && a.dataset.ref); }, trackgo: trackGo,
     lb: function (a) { var items = arr((SITE.gal || {}).items).filter(function (x) { return x && Core.url(x.u, true); }).map(function (x) { return { u: Core.url(x.u, true), c: x.c }; }); lbOpen(items, +a.dataset.i || 0); }, lbx: lbClose, lbp: function () { lbMove(-1); }, lbn: function () { lbMove(1); },
     day: function (a) { BK.day = a.dataset.v; BK.time = ''; var d = $('#days'), s = $('#slots'); if (d) d.innerHTML = daysHTML(); if (s) s.innerHTML = slotsHTML(); fetchSlots(BK.day); }, slot: function (a) { BK.time = a.dataset.v; var s = $('#slots'); if (s) s.innerHTML = slotsHTML(); },
     book: doBook, quote: function () { doEnquiry('Quote', val('qt_n'), val('qt_p'), val('qt_m'), val('qt_s')); }, contact: function () { doEnquiry('Message', val('ct_n'), val('ct_p'), val('ct_m')); },
-    news: function () { var e = val('nl'); if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) return toast(t('Your email')); if (DB.subs.indexOf(e) < 0) { DB.subs.push(e); saveDB(); deliver('subscriber', { email: e }); } toast('✓'); },
+    news: function () { var e = val('nl'); if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) return toast(t('Your email')); if (DB.subs.indexOf(e) < 0) { DB.subs.push(e); saveDB(); deliver('subscriber', { email: e }); } toast('Saved'); },
     login: doLogin, logout: function () { authed = false; TOKEN = ''; CL = null; CLERR = ''; location.hash = '#home'; }, at: function (a) { AT = a.dataset.v; renderAdmin(); if (CL || TOKEN) cloudRefresh(); },
     pnew: function () { openSheet(pForm(), true); }, pedit: function (a) { openSheet(pForm(findP(a.dataset.id)), true); }, psave: saveProduct,
     pdel: function (a) { var id = a.dataset.id; confirmDlg('Delete this product?', function () { patchOwn(function (p) { p.cat = Object.assign({}, p.cat || SITE.cat, { products: PRODUCTS.filter(function (x) { return x.id !== id; }) }); }); renderAdmin(); }, 'Delete'); },
@@ -597,7 +601,7 @@
     publish: function () { var d = Core.merge(BASE, OWN && OWN.patch ? OWN.patch : {}); d.updatedAt = Date.now(); delete d.preview; download('site-data.json', JSON.stringify(d, null, 1)); toast('Upload site-data.json to your hosting'); },
     pw: function () {
       var p = val('pw1'); if (p.length < 8) return toast('Use 8+ characters');
-      var apply = function () { patchOwn(function (x) { x.adm = { h: Core.hashPass(KEY, p) }; }); toast('Passcode changed ✓'); };
+      var apply = function () { patchOwn(function (x) { x.adm = { h: Core.hashPass(KEY, p) }; }); toast('Passcode changed'); };
       if (!cloud()) return apply();
       if (!TOKEN) return toast('Sign in again to change the passcode.');
       var nt = Core.cloudToken(KEY, p);   // the cloud inbox must learn the new passcode too, or the owner would be locked out of it
@@ -618,10 +622,10 @@
   document.addEventListener('change', function (ev) {
     var e = ev.target, k = e && e.dataset && e.dataset.ch; if (!k) return;
     if (k === 'sort') { FILT.sort = e.value; redraw(); } else if (k === 'ckdl') reCart();
-    else if (k === 'ostat') { setStatus('orders', e.dataset.id, e.value); toast('✓'); }
-    else if (k === 'bstat') { setStatus('bookings', e.dataset.id, e.value); toast('✓'); }
-    else if (k === 'pimg') { var files = Array.prototype.slice.call(e.files || []).slice(0, 6); Promise.all(files.map(function (f) { return resize(f, 900); })).then(function (urls) { var ta = $('#pf_i'); if (ta) ta.value = (ta.value ? ta.value + '\n' : '') + urls.join('\n'); toast(urls.length + ' ✓'); }, function () { toast('Could not read that picture'); }); }
-    else if (k === 'bki') { var f2 = e.files && e.files[0]; if (!f2) return; var r = new FileReader(); r.onload = function () { try { var d = JSON.parse(r.result); if (d.db && Array.isArray(d.db.orders)) { DB = d.db; ['bookings', 'enquiries', 'subs'].forEach(function (x) { if (!Array.isArray(DB[x])) DB[x] = []; }); saveDB(); } if (d.own && d.own.patch) { OWN = d.own; ls.s('own', OWN); compute(); } toast('Backup restored ✓'); renderAdmin(); } catch (x) { toast('That file is not a valid backup'); } }; r.readAsText(f2); }
+    else if (k === 'ostat') { setStatus('orders', e.dataset.id, e.value); toast('Saved'); }
+    else if (k === 'bstat') { setStatus('bookings', e.dataset.id, e.value); toast('Saved'); }
+    else if (k === 'pimg') { var files = Array.prototype.slice.call(e.files || []).slice(0, 6); Promise.all(files.map(function (f) { return resize(f, 900); })).then(function (urls) { var ta = $('#pf_i'); if (ta) ta.value = (ta.value ? ta.value + '\n' : '') + urls.join('\n'); toast(urls.length + ' added'); }, function () { toast('Could not read that picture'); }); }
+    else if (k === 'bki') { var f2 = e.files && e.files[0]; if (!f2) return; var r = new FileReader(); r.onload = function () { try { var d = JSON.parse(r.result); if (d.db && Array.isArray(d.db.orders)) { DB = d.db; ['bookings', 'enquiries', 'subs'].forEach(function (x) { if (!Array.isArray(DB[x])) DB[x] = []; }); saveDB(); } if (d.own && d.own.patch) { OWN = d.own; ls.s('own', OWN); compute(); } toast('Backup restored'); renderAdmin(); } catch (x) { toast('That file is not a valid backup'); } }; r.readAsText(f2); }
   });
   document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') { if (LB) lbClose(); else closeSheet(); } else if (LB && ev.key === 'ArrowLeft') lbMove(-1); else if (LB && ev.key === 'ArrowRight') lbMove(1); else if (ev.key === 'Enter' && ev.target && ev.target.id === 'pw') doLogin(); });
   window.addEventListener('scroll', onScroll, { passive: true });

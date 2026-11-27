@@ -51,7 +51,7 @@ const need = (b: Partial<Brief>): 'kind' | 'name' | null => (!b.kind ? 'kind' : 
 
 function ask(step: 'kind' | 'name' | 'more', brief: Partial<Brief>): SbResult {
   const state: SbState = { step, brief, misses: 0 };
-  if (step === 'kind') return { reply: 'Happy to build you a starter website right here. 🛠️ What kind of business is it?', suggestions: [...KIND_CHIPS, 'Cancel'], state };
+  if (step === 'kind') return { reply: 'Happy to build you a starter website right here. What kind of business is it?', suggestions: [...KIND_CHIPS, 'Cancel'], state };
   const ind = industryById(brief.kind || 'business');
   if (step === 'name') return { reply: `Nice, a ${ind?.label || 'business'} site. What is the business called?`, suggestions: ['Cancel'], state };
   return {

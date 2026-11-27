@@ -175,8 +175,8 @@ export function dataAnswer(files: FileInsight[], raw: string): string | null {
 function listAnswer(files: FileInsight[], raw: string): string | null {
   const q = raw.toLowerCase().replace(/[^\w\s]/g, ' ').replace(/\s+/g, ' ').trim();
   if (!/^(?:what|which|list|show|how many)(?: me)?(?: are| is)?(?: the| my| all| of)*(?: files?| attachments?| documents?)(?: do i have| have i shared| did i (?:share|send|upload)| are (?:here|shared|there)| i (?:shared|sent|uploaded)| in (?:this )?chat)?$|^(?:what do you have|what have i (?:shared|sent|uploaded)|list files?|my files?)$/.test(q)) return null;
-  if (!files.length) return 'No files have been shared yet. Use the 📎 button, drag a file in, or paste an image.';
-  return `Files I can see in this chat (${files.length}):\n${files.map((f) => `- **${f.name}**: ${f.summary}`).join('\n')}\n\nRemove one with the ✕ on its chip under the message box.`;
+  if (!files.length) return 'No files have been shared yet. Use the button, drag a file in, or paste an image.';
+  return `Files I can see in this chat (${files.length}):\n${files.map((f) => `- **${f.name}**: ${f.summary}`).join('\n')}\n\nRemove one with the on its chip under the message box.`;
 }
 
 function tableAnswer(files: FileInsight[], raw: string): string | null {
@@ -249,7 +249,7 @@ export function buildFileReply(files: FileInsight[], raw: string, mode: PersonaM
   }
 
   const out: string[] = [];
-  out.push(isNew ? 'Got it! 📎 I looked at your file right here in your browser — nothing has been uploaded.' : 'Here is what I know about your file:');
+  out.push(isNew ? 'Got it! I looked at your file right here in your browser — nothing has been uploaded.' : 'Here is what I know about your file:');
   for (const f of list) {
     out.push(`\n**${f.name}** — ${f.summary}`);
     if (f.note) out.push(f.note + '.');
@@ -283,7 +283,7 @@ export function buildFileReply(files: FileInsight[], raw: string, mode: PersonaM
 export function handoffReply(mode: PersonaMode, hasFiles: boolean): string {
   return mode === 'EXPERT'
     ? `HANDOFF // Opening dispatch form.${hasFiles ? ' Attached files can be included.' : ''} Nothing is sent until you confirm.`
-    : `Sure — I'll pass it on. 📨 Add your name and email so the owner can reply, and choose what to include${hasFiles ? ' (your files are optional)' : ''}. Nothing is sent until you press **Send**.`;
+    : `Sure — I'll pass it on. Add your name and email so the owner can reply, and choose what to include${hasFiles ? ' (your files are optional)' : ''}. Nothing is sent until you press **Send**.`;
 }
 
 /* ------------------------------------------------------------------ language-model context */

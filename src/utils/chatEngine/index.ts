@@ -219,7 +219,7 @@ async function route(
 
   // 1a. "Don't take me to the portfolio": the opposite of a command. Nothing is run.
   if (negated) {
-    return finish(memory, raw, mode === 'EXPERT' ? 'NAV // Cancelled. No action taken.' : 'No problem, I\'ll stay right here. 👍 Tell me where you\'d like to go whenever you\'re ready.', 'system', {
+    return finish(memory, raw, mode === 'EXPERT' ? 'NAV // Cancelled. No action taken.' : 'No problem, I\'ll stay right here. Tell me where you\'d like to go whenever you\'re ready.', 'system', {
       topic: 'SYSTEM',
       suggestions: ['Show me your projects', 'Open services', 'Book a repair'],
     });
@@ -303,7 +303,7 @@ async function route(
   // 2a-. Game guides: "how do I play snake", "tips for chess", and "I'm losing" while a game is open.
   // A bare follow-up ("tell me more", "why?") with nothing said yet has nothing to refer to.
   if ((memory.conversationHistory?.length ?? 0) === 0 && /^(?:tell me more|more|why|why not|explain( it)?( more| simpler| again)?|simpler|go on|continue|elaborate|what do you mean)\??$/i.test(raw.trim())) {
-    return finish(memory, raw, "I'm not sure what to expand on yet. 🙂 Ask me something first, for example **\"my phone won't charge\"**, **\"what is an SSD?\"** or **\"how much for a logo?\"**, and then I can go deeper.", 'rules', { suggestions: ['My phone won\'t charge', 'What is an SSD?', 'What can you do?'] });
+    return finish(memory, raw, "I'm not sure what to expand on yet. Ask me something first, for example **\"my phone won't charge\"**, **\"what is an SSD?\"** or **\"how much for a logo?\"**, and then I can go deeper.", 'rules', { suggestions: ['My phone won\'t charge', 'What is an SSD?', 'What can you do?'] });
   }
   // Pasted error text (a log line, a blue-screen code, a stack trace): explain it instead of guessing what the topic is.
   if (raw.length >= 25 && raw.length <= 6000 && !hasFiles) {
@@ -376,10 +376,10 @@ async function route(
     const reply = result
       ? mode === 'EXPERT'
         ? `CALC // ${calc.expr} = ${result}`
-        : `${calc.expr} = **${result}** 🧮`
+        : `${calc.expr} = **${result}**`
       : mode === 'EXPERT'
       ? 'CALC // Undefined result (division by zero or overflow).'
-      : "That one's undefined (dividing by zero breaks maths) 😄 Try another calculation?";
+      : "That one's undefined (dividing by zero breaks maths) Try another calculation?";
     return finish(memory, raw, reply, 'system', {
       topic: 'GENERAL_QA',
       learn: result ? { lastNum: calc.value } : undefined,
@@ -492,7 +492,7 @@ async function route(
     return finish(
       memory,
       raw,
-      mode === 'EXPERT' ? 'SYS_ACK // Standing by.' : 'No problem! I\'m here if you need anything else. 😊',
+      mode === 'EXPERT' ? 'SYS_ACK // Standing by.' : 'No problem! I\'m here if you need anything else.',
       'rules'
     );
   }
@@ -504,7 +504,7 @@ async function route(
       raw,
       mode === 'EXPERT'
         ? 'SYS_INPUT_ERR // Unparseable character sequence.'
-        : "Hmm, I couldn't make sense of that one 😄 Try asking in a sentence — for example \"my laptop won't turn on\" or \"I need a logo\".",
+        : "Hmm, I couldn't make sense of that one Try asking in a sentence — for example \"my laptop won't turn on\" or \"I need a logo\".",
       'rules',
       { suggestions: FALLBACK_SUGGESTIONS }
     );
@@ -624,7 +624,7 @@ async function route(
       raw,
       mode === 'EXPERT'
         ? 'SYS_SCOPE // Live data (prices, weather, news, local listings) is outside this node. Use a search engine.'
-        : "I can't check live info like current prices, weather, news or what's nearby from here — a quick web search will do better for that. I can still help with advice on repairs, design and websites, or take you to the contact section for a quote. 🙂",
+        : "I can't check live info like current prices, weather, news or what's nearby from here — a quick web search will do better for that. I can still help with advice on repairs, design and websites, or take you to the contact section for a quote.",
       'rules',
       { suggestions: FALLBACK_SUGGESTIONS }
     );
@@ -636,7 +636,7 @@ async function route(
   const hintShown = !!memory.userContext?.aiHintShown;
   const canHint = !hintShown && !isAIAvailable() && mode === 'HUMAN';
   const aiHint = canHint
-    ? "\n\n💡 Tip: tap **ENABLE AI** at the top of this window and I can chat about almost anything."
+    ? "\n\nTip: tap **ENABLE AI** at the top of this window and I can chat about almost anything."
     : '';
 
   if (best && best.confidence >= 0.45) {
@@ -658,7 +658,7 @@ async function route(
   // can't answer: say so plainly and offer to ask the owner, instead of a generic menu.
   const aboutBusiness = /\b(your|you)\b.{0,30}\b(shop|business|company|prices?|rates?|discounts?|offers?|clients?|customers?|schools?|bulk|team|staff|experience|years|certified|licensed|insured|branches?|stock|parts?|brands?)\b|\b(do you|can you|are you|will you)\b.{0,40}\b(work with|accept|offer|sell|stock|supply|do|support|handle|take on)\b/i.test(raw);
   if (aboutBusiness && mode !== 'EXPERT') {
-    return finish(memory, raw, `${lookedUp}I don't have that detail on hand, and I'd rather not guess about the business. 🙂 The owner can answer it properly. Want me to send your question to them?`, 'rules', {
+    return finish(memory, raw, `${lookedUp}I don't have that detail on hand, and I'd rather not guess about the business. The owner can answer it properly. Want me to send your question to them?`, 'rules', {
       suggestions: ['Send my question to the owner', ...FALLBACK_SUGGESTIONS.slice(0, 2)],
     });
   }
@@ -667,15 +667,15 @@ async function route(
   const needsModel = /^(?:please |pls |can you |could you |kindly )?(?:write|create|generate|draft|compose|code|explain|summari[sz]e|describe|essay|story|translate|debug|fix this code|make me (?:a |an )?(?:poem|story|essay|email|letter|speech|script|program|app))\b/i.test(raw) || raw.length > 160;
   const reply =
     needsModel && mode !== 'EXPERT'
-      ? `${lookedUp}That one needs a full language model: open-ended writing, code and long explanations are what it's for. 🧠 They work once the owner's **cloud AI** is switched on (or you enable the **on-device AI** from the chat menu). Meanwhile I'm solid on repairs, design and web questions, maths, dates and definitions. Want me to pass this to the owner instead?`
+      ? `${lookedUp}That one needs a full language model: open-ended writing, code and long explanations are what it's for. They work once the owner's **cloud AI** is switched on (or you enable the **on-device AI** from the chat menu). Meanwhile I'm solid on repairs, design and web questions, maths, dates and definitions. Want me to pass this to the owner instead?`
       :
     mode === 'EXPERT'
       ? `SYS_NO_MATCH // No module matched "${truncate(raw, 60)}"${lookupFailed ? ' (web lookup: no reliable result)' : ''}${streak ? ` (x${streak + 1})` : ''}. Specify: [HARDWARE] [DESIGN] [WEB]${streak ? ' or dispatch to owner.' : '.'}`
       : streak === 0
       ? `${lookedUp}I don't have a good answer for that yet. I can help with **phone/PC repairs**, **design & branding**, and **websites** — or point you to the contact section so you can ask directly.${aiHint}`
       : streak === 1
-      ? `Still not sure what you mean — sorry! 🙏 Could you say it another way, or tell me the **device** or **project** it's about? If it's easier, I can pass your question straight to the owner.`
-      : `I'm not getting this one right, and I'd rather not keep guessing. 🤝 Want me to send your question to the owner so a real person answers it?`;
+      ? `Still not sure what you mean — sorry! Could you say it another way, or tell me the **device** or **project** it's about? If it's easier, I can pass your question straight to the owner.`
+      : `I'm not getting this one right, and I'd rather not keep guessing. Want me to send your question to the owner so a real person answers it?`;
   return finish(memory, raw, reply, 'rules', {
     suggestions: streak >= 1 ? ['Send my question to the owner', ...FALLBACK_SUGGESTIONS.slice(0, 2)] : FALLBACK_SUGGESTIONS,
     learn: { missStreak: streak + 1, ...(canHint ? { aiHintShown: true } : {}) },
@@ -722,7 +722,7 @@ export async function processChatQuery(
     const note =
       mode === 'EXPERT'
         ? '\n\nFILE // Attached file noted. Say "send this to the owner" to forward it.'
-        : "\n\n📎 I've noted your file too — say **send this to the owner** and I'll forward it along with your message.";
+        : "\n\nI've noted your file too — say **send this to the owner** and I'll forward it along with your message.";
     return {
       ...result,
       reply: result.reply + note,

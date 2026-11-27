@@ -54,7 +54,7 @@ t('CROSS-DEVICE: customer orders on A → owner sees it on B → owner marks Pai
 });
 t('DOUBLE-BOOKING RACE: two devices, same slot → exactly one wins; loser is told, nothing saved, slot greys out', async () => {
   const id = 'racebook1'; await register(id); const s = site(id, { mode: 'book' }); const A = device(s), B = device(s); await B.sleep(30);
-  const time = bookFirstFree(A); assert.ok(await settle(() => A.$$('.ov').length > 0 && /✓/.test(A.$$('.ov').pop().textContent)), 'A confirmed'); assert.equal(localDb(A, id, 'bookings').length, 1);
+  const time = bookFirstFree(A); assert.ok(await settle(() => A.$$('.ov').length > 0 && /Reference/.test(A.$$('.ov').pop().textContent)), 'A confirmed'); assert.equal(localDb(A, id, 'bookings').length, 1);
   const timeB = bookFirstFree(B, 'Late Comer', '0700999000'); assert.equal(timeB, time, 'B (stale view) picked the same slot');
   assert.ok(await settle(() => !B.$$('#slots button').some((b) => b.textContent === time && !('disabled' in b.attrs))), 'slot now disabled on B'); assert.equal(localDb(B, id, 'bookings').length, 0, 'loser has no phantom booking'); assert.ok(!B.$$('.ov').some((o) => /✓/.test(o.textContent)), 'no confirmation shown to the loser');
   const Cdev = device(s); assert.ok(await settle(() => Cdev.$$('#slots button').some((b) => b.textContent === time && 'disabled' in b.attrs)), 'a brand-new visitor sees it taken too'); assert.equal((await ownerList(id)).bookings.length, 1);

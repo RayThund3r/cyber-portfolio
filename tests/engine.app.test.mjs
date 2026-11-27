@@ -33,7 +33,7 @@ t('renders every enabled section, nav links, announcement, slider and product gr
 t('slider: next/prev/dots/pause work and wrap around', (e = boot(base())) => {
   const on = () => e.$$('.slide').findIndex((s) => s.classList.contains('on'));
   assert.equal(on(), 0); e.click(e.$('[data-act=next]')); assert.equal(on(), 1); e.click(e.$('[data-act=next]')); assert.equal(on(), 0); e.click(e.$('[data-act=prev]')); assert.equal(on(), 1);
-  e.click(e.$$('[data-act=dot]')[0]); assert.equal(on(), 0); e.click(e.$('[data-act=pause]')); assert.equal(e.$('#pp').textContent, '▶'); assert.equal(e.errors.length, 0);
+  e.click(e.$$('[data-act=dot]')[0]); assert.equal(on(), 0); e.click(e.$('[data-act=pause]')); assert.ok(e.$('#pp').innerHTML.includes('M7 4.5')); assert.equal(e.errors.length, 0);
 });
 t('catalog: category chips, search, sort, sold-out, favourites', async (e = boot(base())) => {
   e.click(e.$$('.chip').find((c) => c.dataset.v === 'Cakes')); assert.equal(e.$$('#grid .pc').length, 1);

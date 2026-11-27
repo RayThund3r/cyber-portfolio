@@ -152,20 +152,20 @@ export function detectSiteCommand(input: string, ctx: DetectContext = {}): Detec
   // ---- 1. close the chat ---------------------------------------------------------------------
   if (/^(please )?(close|hide|minimi[sz]e|dismiss|shut)( this| the| my)?( chat| assistant| window| bot)?$/.test(q) && q !== 'close') {
     return done({ type: 'close-chat', label: 'CHAT CLOSED' }, {
-      human: 'Closing the chat. Tap **CHAT** whenever you need me. 👋',
+      human: 'Closing the chat. Tap **CHAT** whenever you need me.',
       expert: 'UI // Chat minimised.',
     });
   }
 
   // ---- 2. top / bottom / back ----------------------------------------------------------------
   if (/\b(scroll|go|jump|take me|bring me|back|head)( back)?( up)? (to )?(the )?(very )?top( of (the|this) page)?\b/.test(q) || /^(back to top|top|go up|scroll up)$/.test(q)) {
-    return done({ type: 'top', label: 'TOP' }, { human: 'Back to the top. ⬆️', expert: 'NAV // Scroll: top.' });
+    return done({ type: 'top', label: 'TOP' }, { human: 'Back to the top.', expert: 'NAV // Scroll: top.' });
   }
   if (/\b(scroll|go|jump|take me|bring me|head)( down)? (to )?(the )?(very )?(bottom|footer|end)\b/.test(q) || /^(bottom|scroll down|go down)$/.test(q)) {
-    return done({ type: 'bottom', label: 'BOTTOM' }, { human: 'Down to the bottom. ⬇️', expert: 'NAV // Scroll: bottom.' });
+    return done({ type: 'bottom', label: 'BOTTOM' }, { human: 'Down to the bottom.', expert: 'NAV // Scroll: bottom.' });
   }
   if (/^(please )?(go |take me )?back$|^(go|take me|bring me) (back|to the previous|to the last)( page)?$|^previous page$|^go to (the )?previous page$/.test(q)) {
-    return done({ type: 'back', label: 'BACK' }, { human: 'Going back. ↩️', expert: 'NAV // History: back.' });
+    return done({ type: 'back', label: 'BACK' }, { human: 'Going back.', expert: 'NAV // History: back.' });
   }
 
   // ---- 2b. tracking a request: a reference (SYS-AB12CD) anywhere in the message ---------------
@@ -173,7 +173,7 @@ export function detectSiteCommand(input: string, ctx: DetectContext = {}): Detec
   if (ref) {
     const id = `SYS-${ref[1].toUpperCase()}`;
     return done({ type: 'navigate', path: `/track?id=${id}`, label: `TRACK · ${id}` }, {
-      human: `Opening the tracker for **${id}**. 📦 Enter the phone number or email you used to see its status.`,
+      human: `Opening the tracker for **${id}**. Enter the phone number or email you used to see its status.`,
       expert: `NAV // Track ${id}. Verify with the phone/email used.`,
     });
   }
@@ -182,7 +182,7 @@ export function detectSiteCommand(input: string, ctx: DetectContext = {}): Detec
     (hasNav && /\b(track(?:ing)?|repair status|order status|ticket status|my ticket)\b/.test(q))
   ) {
     return done({ type: 'navigate', path: '/track', label: 'TRACK REQUEST' }, {
-      human: 'Opening request tracking. 📦 You will need your reference (like SYS-AB12CD) and the phone number or email you used.',
+      human: 'Opening request tracking. You will need your reference (like SYS-AB12CD) and the phone number or email you used.',
       expert: 'NAV // Opening request tracker.',
     });
   }
@@ -193,13 +193,13 @@ export function detectSiteCommand(input: string, ctx: DetectContext = {}): Detec
     (hasNav && /\b(template builder|website builder|site builder|builder|website templates?|web templates?|templates?|diy website)\b/.test(q))
   ) {
     return done({ type: 'navigate', path: '/builder', label: 'TEMPLATE BUILDER' }, {
-      human: 'Opening the template builder. 🎨 Pick a template, customise it with no code, then download your site.',
+      human: 'Opening the template builder. Pick a template, customise it with no code, then download your site.',
       expert: 'NAV // Opening template builder.',
     });
   }
   if (/^(privacy|privacy (?:policy|notice)|data protection)$/.test(q) || (hasNav && /\b(privacy(?: policy| notice)?|data protection)\b/.test(q))) {
     return done({ type: 'navigate', path: '/privacy', label: 'PRIVACY NOTICE' }, {
-      human: 'Opening the privacy notice. 🔒',
+      human: 'Opening the privacy notice.',
       expert: 'NAV // Opening privacy notice.',
     });
   }
@@ -207,7 +207,7 @@ export function detectSiteCommand(input: string, ctx: DetectContext = {}): Detec
   // ---- 2d. "what pages are there?" -------------------------------------------------------------
   if (/\b(what|which) (pages|sections)\b|\bsite ?map\b|^menu$|\bnavigation (menu|options)\b|\bwhere (else )?can i go\b|\bwhat can i (see|visit|open)\b|\blist (of )?(the )?pages\b|\bwhat'?s on (this|the) (site|website)\b/.test(q)) {
     return done(undefined, {
-      human: 'I can take you anywhere on the site — just say where. 🧭\n\n**Home · Portfolio · Services · Games · Template builder · Contact (repair or design) · Track a request · Privacy**\n\nYou can also say things like "show me branding projects", "open project 03", or "scroll to the bottom".',
+      human: 'I can take you anywhere on the site — just say where.\n\n**Home · Portfolio · Services · Games · Template builder · Contact (repair or design) · Track a request · Privacy**\n\nYou can also say things like "show me branding projects", "open project 03", or "scroll to the bottom".',
       expert: 'NAV // Available: Home | Portfolio | Services | Games | Builder | Contact [repair|design] | Track | Privacy.',
     }, ['Open services', 'Open the template builder', 'Book a repair', 'Track my request']);
   }
@@ -238,7 +238,7 @@ export function detectSiteCommand(input: string, ctx: DetectContext = {}): Detec
       const back = /\b(previous|prev|last|earlier)\b/.test(q);
       const target = projects[(idx + (back ? -1 : 1) + projects.length) % projects.length];
       return done({ type: 'project', id: target.id, view: 'page', label: `PROJECT ${target.id}` }, {
-        human: `${back ? 'Previous' : 'Next'} up: **${target.title}**. 📂`,
+        human: `${back ? 'Previous' : 'Next'} up: **${target.title}**.`,
         expert: `NAV // Module ${target.id}: ${target.title}.`,
       });
     }
@@ -247,7 +247,7 @@ export function detectSiteCommand(input: string, ctx: DetectContext = {}): Detec
   // ---- 5-admin. owner panel ------------------------------------------------------------------
   if (/^(?:please )?(?:(?:open|go to|take me to|show me|show|where(?:'s| is)|find|launch|bring me to) )?(?:the |my |your )?(?:admin|admin panel|admin page|admin dashboard|dashboard|owner(?: panel| login| area)?|owner sign ?in|admin log ?in|backend|cms|control panel)(?: please)?\??$/.test(q)) {
     return done({ type: 'navigate', path: '/admin', label: 'ADMIN' }, {
-      human: 'Opening the owner panel. 🔐 It asks for the admin password, so only you can get in.',
+      human: 'Opening the owner panel. It asks for the admin password, so only you can get in.',
       expert: 'NAV // Opening /admin (sign-in required).',
     }, ['Show me your projects', 'Open services']);
   }
@@ -261,7 +261,7 @@ export function detectSiteCommand(input: string, ctx: DetectContext = {}): Detec
     const game = rest && words.length <= 8 ? GAMES.find((g) => [g.id, ...g.aliases].includes(rest)) : undefined;
     if (game && (lead.test(q) || q === game.id || game.aliases.includes(q) || q === `${rest} game` || q === `game of ${rest}`)) {
       return done({ type: 'navigate', path: `/games?g=${game.id}`, label: `GAMES · ${game.title.toUpperCase()}` }, {
-        human: `Opening **${game.title}**. 🎮 ${game.tagline}`,
+        human: `Opening **${game.title}**. ${game.tagline}`,
         expert: `NAV // Games: ${game.id}.`,
       }, ['Which game should I play?', 'Show me all games']);
     }
@@ -269,16 +269,16 @@ export function detectSiteCommand(input: string, ctx: DetectContext = {}): Detec
       /^(?:please )?(?:(?:i want to|i wanna|lets|let's|can we|can i|i'd like to|id like to|i would like to) )?(?:play|open|show|see|view|visit|go to|take me to|bring me to|launch|start|browse)(?: me)?(?: a| the| some| your| any| all| all the| all of the| all of your)? ?(?:brain |online |fun |mind |web )?(?:games?|arcade)(?: page| section| hub| area)?(?: please)?$/.test(q) ||
       /^(?:games?|arcade|brain games|games page|the games page|game page|show me games|any games|do you have (?:any )?games|what games (?:do you have|are there|can i play)|i'?m bored|im bored|i am bored|entertain me|give me something to do|something fun|play something|play a game|a game)$/.test(q);
     if (hub) {
-      if (here === '/games') return done({ type: 'top', label: 'GAMES' }, { human: `You're on the games page already. 🎮 There are ${GAMES.length} to pick from, or say "play chess".`, expert: 'NAV // Already on games.' });
+      if (here === '/games') return done({ type: 'top', label: 'GAMES' }, { human: `You're on the games page already. There are ${GAMES.length} to pick from, or say "play chess".`, expert: 'NAV // Already on games.' });
       return done({ type: 'navigate', path: '/games', label: 'GAMES' }, {
-        human: `Opening the games page. 🎮 ${GAMES.length} brain games, several with a real AI opponent. Say "play chess" (or any game name) to jump straight in.`,
+        human: `Opening the games page. ${GAMES.length} brain games, several with a real AI opponent. Say "play chess" (or any game name) to jump straight in.`,
         expert: `NAV // Opening games (${GAMES.length}).`,
       }, ['Play chess', 'Play Sudoku', 'Which game should I play?']);
     }
     if (/^(?:what(?:'s| is)|whats|which is|which one is) (?:the )?(?:best|most fun|coolest|favou?rite) (?:game|one)(?: here| on (?:the )?site| to play)?$|^(?:which|what) (?:one )?(?:should i|do you) (?:try|play) first$|^(?:which|what) game (?:should|do) (?:i|you)(?: play| recommend| suggest)?(?: please)?$|^(?:recommend|suggest) (?:me )?a game$|^which game should i play$/.test(q)) {
       const pick = GAMES[Math.floor(((input.length * 7 + 3) % GAMES.length))];
       return done({ type: 'navigate', path: `/games?g=${pick.id}`, label: `GAMES · ${pick.title.toUpperCase()}` }, {
-        human: `Try **${pick.title}**: ${pick.tagline} It trains ${pick.skills.toLowerCase()}. Opening it now. 🎮`,
+        human: `Try **${pick.title}**: ${pick.tagline} It trains ${pick.skills.toLowerCase()}. Opening it now.`,
         expert: `NAV // Games: ${pick.id} (suggested).`,
       }, ['Show me all games', 'Play chess', 'Play 2048']);
     }
@@ -293,7 +293,7 @@ export function detectSiteCommand(input: string, ctx: DetectContext = {}): Detec
     if (open || runIt) {
       const cmd = runIt ? runIt[1] : undefined;
       return done({ type: 'terminal', cmd, label: cmd ? `TERMINAL · ${cmd.toUpperCase()}` : 'TERMINAL' }, {
-        human: cmd ? `Running **${cmd}** in the terminal on the home page. 💻` : 'Opening the terminal on the home page. 💻 Type "help" in it to see what it can do.',
+        human: cmd ? `Running **${cmd}** in the terminal on the home page.` : 'Opening the terminal on the home page. Type "help" in it to see what it can do.',
         expert: cmd ? `TERM // run: ${cmd}` : 'TERM // open',
       }, ['Give me a tour', 'Show me your projects']);
     }
@@ -303,13 +303,13 @@ export function detectSiteCommand(input: string, ctx: DetectContext = {}): Detec
   {
     const m = /^(?:please |pls )?(?:(?:turn|switch|change|set|go|put|make)(?: it| the (?:site|page|website))?(?: on| to| into)? )?(?:the )?(dark|light|night|day|bright)(?: mode| theme)?(?: on| please)?$/.exec(q) || /^(?:please )?(?:turn|switch|put)(?: on)? (?:the )?(dark|light) mode(?: on)?$/.exec(q) || /^(?:i )?(?:want|prefer|need|like) (?:the )?(dark|light) (?:mode|theme)$/.exec(q);
     const lights = /^(?:please )?turn (on|off) (?:the )?lights?$/.exec(q);
-    if (lights) { const mode = lights[1] === 'on' ? 'light' : 'dark'; return done({ type: 'mode', mode, label: `MODE · ${mode.toUpperCase()}` }, { human: `Switching to **${mode} mode**. ${mode === 'dark' ? '🌙' : '☀️'}`, expert: `UI // Mode: ${mode.toUpperCase()}.` }); }
+    if (lights) { const mode = lights[1] === 'on' ? 'light' : 'dark'; return done({ type: 'mode', mode, label: `MODE · ${mode.toUpperCase()}` }, { human: `Switching to **${mode} mode**. ${mode === 'dark' ? '' : ''}`, expert: `UI // Mode: ${mode.toUpperCase()}.` }); }
     const toggle = /^(?:please )?(?:toggle|flip|swap|switch)(?: the)? (?:light|dark)(?:\/| and | or )?(?:dark|light)?(?: mode)?$|^(?:toggle|switch|change) (?:the )?(?:mode|brightness)$/.test(q);
     if (m || toggle) {
       const w = m?.[1];
       const mode = w ? (w === 'dark' || w === 'night' ? 'dark' : 'light') : undefined;
       return done({ type: 'mode', mode, label: mode ? `MODE · ${mode.toUpperCase()}` : 'MODE' }, {
-        human: mode ? `Switching to **${mode} mode**. ${mode === 'dark' ? '🌙' : '☀️'}` : 'Flipping between light and dark mode. 🌗',
+        human: mode ? `Switching to **${mode} mode**. ${mode === 'dark' ? '' : ''}` : 'Flipping between light and dark mode.',
         expert: mode ? `UI // Mode: ${mode.toUpperCase()}.` : 'UI // Mode toggled.',
       });
     }
@@ -326,7 +326,7 @@ export function detectSiteCommand(input: string, ctx: DetectContext = {}): Detec
     if ((themeWord && (themeVerb || /^(theme|next theme|colou?rs?)$/.test(q))) || bareColor) {
       const theme = color ? THEME_COLORS[color] : undefined;
       return done({ type: 'theme', theme, label: theme ? `THEME · ${theme.toUpperCase()}` : 'THEME' }, {
-        human: theme ? `Switching to the **${theme}** theme. 🎨` : 'Switching the theme for you. 🎨',
+        human: theme ? `Switching to the **${theme}** theme.` : 'Switching the theme for you.',
         expert: theme ? `UI // Theme: ${theme.toUpperCase()}.` : 'UI // Theme cycled.',
       });
     }
@@ -342,17 +342,17 @@ export function detectSiteCommand(input: string, ctx: DetectContext = {}): Detec
     const kindLabel = kind === 'repair' ? 'REPAIR' : kind === 'design' ? 'DESIGN' : '';
     if (here === '/contact' && !kind) {
       return done({ type: 'top', label: 'CONTACT' }, {
-        human: "You're already on the contact page — the form is right here. 📬 Tell them what you need and include your device model or project details.",
+        human: "You're already on the contact page — the form is right here. Tell them what you need and include your device model or project details.",
         expert: 'NAV // Already on contact module.',
       });
     }
     return done({ type: 'contact', kind, label: kindLabel ? `CONTACT · ${kindLabel}` : 'CONTACT' }, {
       human:
         kind === 'repair'
-          ? 'Opening the contact form on **Hardware Repair**. 🔧 Add your device model and what it\'s doing — you can also pick a date and time slot if you want to bring it in.'
+          ? 'Opening the contact form on **Hardware Repair**. Add your device model and what it\'s doing — you can also pick a date and time slot if you want to bring it in.'
           : kind === 'design'
-          ? 'Opening the contact form on **UI/UX & Design**. 🎨 Describe what you want made.'
-          : 'Taking you to the contact form now. 📬 Tell them what you need and include your device model or project details.',
+          ? 'Opening the contact form on **UI/UX & Design**. Describe what you want made.'
+          : 'Taking you to the contact form now. Tell them what you need and include your device model or project details.',
       expert: `NAV // Opening contact module${kindLabel ? ` [${kindLabel}]` : ''}.`,
     });
   }
@@ -365,7 +365,7 @@ export function detectSiteCommand(input: string, ctx: DetectContext = {}): Detec
     const p = projects.find((x) => x.id === id)!;
     const page = /\b(deep ?dive|full (details|case study|write ?up|page)|case study|read more|more details|in detail|details page|more (?:about|on))\b/.test(q);
     return done({ type: 'project', id, view: page ? 'page' : 'modal', label: `PROJECT ${id}` }, {
-      human: page ? `Opening the full deep-dive for **${p.title}**. 📂` : `Opening **${p.title}** in the archive. 📂`,
+      human: page ? `Opening the full deep-dive for **${p.title}**.` : `Opening **${p.title}** in the archive.`,
       expert: `NAV // Module ${id}: ${p.title}.`,
     }, ['Next project', 'Show me your projects', 'Book a repair']);
   };
@@ -383,39 +383,39 @@ export function detectSiteCommand(input: string, ctx: DetectContext = {}): Detec
     const cat = findCategory(q);
     if (cat) {
       return done({ type: 'portfolio', category: cat.cat, label: `PORTFOLIO · ${cat.cat}` }, {
-        human: `Filtering the archive to **${cat.label}** projects. 🗂️`,
+        human: `Filtering the archive to **${cat.label}** projects.`,
         expert: `NAV // Archive filter: ${cat.cat}.`,
       }, ['Show all projects', 'Show web apps', 'Book a repair']);
     }
     const wantsFullArchive = /\b(archive|full|all|complete|portfolio page|gallery)\b/.test(q);
     if (here === '/' && !wantsFullArchive) {
       return done({ type: 'scroll', id: 'projects', label: 'HOME › PROJECTS' }, {
-        human: 'Scrolling to the featured projects now. 👀 Say "open the full archive" to see all six.',
+        human: 'Scrolling to the featured projects now. Say "open the full archive" to see all six.',
         expert: 'NAV // Scrolling to featured projects.',
       }, ['Open the full archive', 'Show hardware projects', 'Book a repair']);
     }
     if (here === '/portfolio' && wantsFullArchive) {
       return done({ type: 'portfolio', label: 'PORTFOLIO · ALL' }, {
-        human: 'Showing the whole archive. 🗂️',
+        human: 'Showing the whole archive.',
         expert: 'NAV // Archive filter cleared.',
       });
     }
     return done({ type: 'navigate', path: '/portfolio', label: 'PORTFOLIO' }, {
-      human: 'Opening the project archive. 🗂️ You can filter by category or search inside it — or just tell me what you want to see.',
+      human: 'Opening the project archive. You can filter by category or search inside it — or just tell me what you want to see.',
       expert: 'NAV // Opening project archive.',
     }, ['Show branding projects', 'Show hardware projects', 'Show web apps']);
   }
 
   // "show all projects" / "clear filters" while in the archive
   if (/^(show |reset |clear )?(all|every)( the)?( projects?| work)?( filters)?$|^(reset|clear) (the )?(filters?|search)$/.test(q) && here.startsWith('/portfolio')) {
-    return done({ type: 'portfolio', label: 'PORTFOLIO · ALL' }, { human: 'Showing everything again. 🗂️', expert: 'NAV // Archive filter cleared.' });
+    return done({ type: 'portfolio', label: 'PORTFOLIO · ALL' }, { human: 'Showing everything again.', expert: 'NAV // Archive filter cleared.' });
   }
 
   if (/\b(search|find|look for|looking for|filter|look up)\b/.test(q) && portfolioNoun) {
     const term = searchTerm(q);
     if (term) {
       return done({ type: 'portfolio', query: term, label: `PORTFOLIO · "${term}"` }, {
-        human: `Searching the archive for **${term}**. 🔎`,
+        human: `Searching the archive for **${term}**.`,
         expert: `NAV // Archive search: "${term}".`,
       });
     }
@@ -425,19 +425,19 @@ export function detectSiteCommand(input: string, ctx: DetectContext = {}): Detec
   if (hasNav || /^(skills|tech stack|stack|terminal)$/.test(q)) {
     if (/\b(tech(?:nical)? stack|stack|skills?|capabilit(?:y|ies)|proficienc(?:y|ies)|tooling)\b/.test(q)) {
       return done({ type: 'scroll', id: 'stack', label: 'HOME › STACK' }, {
-        human: 'Here is the tech stack and tooling. ⚙️',
+        human: 'Here is the tech stack and tooling.',
         expert: 'NAV // Scrolling to capabilities matrix.',
       });
     }
     if (/\b(terminal|command line|console|cli)\b/.test(q)) {
       return done({ type: 'scroll', id: 'terminal', label: 'HOME › TERMINAL' }, {
-        human: 'Taking you to the interactive terminal. Type `help` in it to see the commands. 💻',
+        human: 'Taking you to the interactive terminal. Type `help` in it to see the commands.',
         expert: 'NAV // Scrolling to interactive terminal.',
       });
     }
     if (/\bfeatured\b/.test(q)) {
       return done({ type: 'scroll', id: 'projects', label: 'HOME › PROJECTS' }, {
-        human: 'Scrolling to the featured projects now. 👀',
+        human: 'Scrolling to the featured projects now.',
         expert: 'NAV // Scrolling to featured projects.',
       });
     }
@@ -450,9 +450,9 @@ export function detectSiteCommand(input: string, ctx: DetectContext = {}): Detec
     /\bback to (the )?(home|start|main|beginning)( page)?\b/.test(q);
   if (goHome) {
     if (here === '/') {
-      return done({ type: 'top', label: 'HOME' }, { human: "You're already on the home page. ⬆️", expert: 'NAV // Already at root.' });
+      return done({ type: 'top', label: 'HOME' }, { human: "You're already on the home page.", expert: 'NAV // Already at root.' });
     }
-    return done({ type: 'navigate', path: '/', label: 'HOME' }, { human: 'Heading home. 🏠', expert: 'NAV // Root.' });
+    return done({ type: 'navigate', path: '/', label: 'HOME' }, { human: 'Heading home.', expert: 'NAV // Root.' });
   }
 
   const goServices =
@@ -460,17 +460,17 @@ export function detectSiteCommand(input: string, ctx: DetectContext = {}): Detec
     (hasNav && /\b(services?|service page|offerings|pricing page|rates page|what you offer|timelines)\b/.test(q) && !/\b(service (?:center|centre|mode)|in service)\b/.test(q));
   if (goServices) {
     if (here === '/services') {
-      return done({ type: 'top', label: 'SERVICES' }, { human: "You're already on the services page. ⬆️", expert: 'NAV // Already on services module.' });
+      return done({ type: 'top', label: 'SERVICES' }, { human: "You're already on the services page.", expert: 'NAV // Already on services module.' });
     }
     return done({ type: 'navigate', path: '/services', label: 'SERVICES' }, {
-      human: 'Opening services. 🧰 You\'ll find hardware repair, brand design, UI/UX and file conversion with estimated timelines.',
+      human: 'Opening services. You\'ll find hardware repair, brand design, UI/UX and file conversion with estimated timelines.',
       expert: 'NAV // Opening services module.',
     }, ['Book a repair', 'Show me your projects', 'I need a logo']);
   }
 
   const goPortfolioPage = hasNav && /\b(portfolio page|archive page|project page|projects page)\b/.test(q);
   if (goPortfolioPage) {
-    return done({ type: 'navigate', path: '/portfolio', label: 'PORTFOLIO' }, { human: 'Opening the project archive. 🗂️', expert: 'NAV // Opening project archive.' });
+    return done({ type: 'navigate', path: '/portfolio', label: 'PORTFOLIO' }, { human: 'Opening the project archive.', expert: 'NAV // Opening project archive.' });
   }
 
   return null;

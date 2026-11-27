@@ -68,7 +68,7 @@ export default function ContentPanel() {
             </div>
             <Field label="Their words"><textarea className={ta} value={r.text} maxLength={500} onChange={(e) => rev(i, { text: e.target.value })} placeholder="Fixed my laptop the same day and the price was fair." /></Field>
             <div className="flex flex-wrap items-center gap-3">
-              <select className={`${box} !w-auto`} value={r.rating} onChange={(e) => rev(i, { rating: Number(e.target.value) })} aria-label="Stars">{[5, 4, 3].map((n) => <option key={n} value={n}>{'★'.repeat(n)} {n} stars</option>)}</select>
+              <select className={`${box} !w-auto`} value={r.rating} onChange={(e) => rev(i, { rating: Number(e.target.value) })} aria-label="Stars">{[5, 4, 3].map((n) => <option key={n} value={n}>{n} stars</option>)}</select>
               <select className={`${box} !w-auto`} value={r.source} onChange={(e) => rev(i, { source: e.target.value })} aria-label="Where it came from"><option value="">Source: none</option><option value="google">Google</option><option value="whatsapp">WhatsApp</option><option value="facebook">Facebook</option><option value="instagram">Instagram</option><option value="other">Other</option></select>
               <Switch on={r.shown} set={(v) => rev(i, { shown: v })} label="Show on site" />
               <span className="ml-auto"><Move i={i} n={c.reviews.length} move={(a, b) => set('reviews', reorder(c.reviews, a, b))} del={() => set('reviews', c.reviews.filter((_, j) => j !== i))} /></span>

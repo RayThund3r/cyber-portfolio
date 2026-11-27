@@ -4,7 +4,7 @@
 //   * session restore / save (never saves blob URLs or reveal flags)
 //   * sending a message: files, abort, watchdog, natural pacing, streaming, retry on failure
 //   * running the site commands the engine returns, and the hand-off card
-//   * 👍/👎 learning, export, clearing, unread count, toasts, saved reply style
+//   */learning, export, clearing, unread count, toasts, saved reply style
 //
 // Refs mirror the latest state so callbacks fired from window events or timers never read a stale
 // render (the bug class that bites chat widgets most).
@@ -386,7 +386,7 @@ export function useChatController({ pathname, isOpen, isMobile, runCommand, requ
     [send]
   );
 
-  /* ---------- 👍 / 👎: teach the retriever (stored in this browser only) ---------- */
+  /* ---------- /: teach the retriever (stored in this browser only) ---------- */
   const rate = useCallback(
     (msg: Message, rating: 'up' | 'down') => {
       if (!msg.learn || msg.rated) return;

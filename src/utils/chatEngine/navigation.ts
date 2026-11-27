@@ -176,16 +176,16 @@ export function navReply(intent: NavIntent, mode: 'HUMAN' | 'EXPERT', currentPat
     return {
       reply: expert
         ? `NAV // Available: ${list}. Say "open <name>".`
-        : `I can take you anywhere on the site — just say where. 🧭\n\n**${list}**\n\nYou can also say things like "show me branding projects", "open project 03", or "scroll to the bottom".`,
+        : `I can take you anywhere on the site — just say where.\n\n**${list}**\n\nYou can also say things like "show me branding projects", "open project 03", or "scroll to the bottom".`,
       suggestions: ['Open services', 'Open portfolio', 'Book a repair', 'Track my request'],
     };
   }
 
   if (intent.kind === 'page') {
     const map = {
-      BACK: ['Going back to the previous page. ↩️', 'NAV // Back.'],
-      TOP: ['Scrolling to the top. ⬆️', 'NAV // Top.'],
-      BOTTOM: ['Scrolling to the bottom. ⬇️', 'NAV // Bottom.'],
+      BACK: ['Going back to the previous page.', 'NAV // Back.'],
+      TOP: ['Scrolling to the top.', 'NAV // Top.'],
+      BOTTOM: ['Scrolling to the bottom.', 'NAV // Bottom.'],
     } as const;
     return { reply: map[intent.page!][expert ? 1 : 0], page: intent.page, suggestions: MORE };
   }
@@ -200,9 +200,9 @@ export function navReply(intent: NavIntent, mode: 'HUMAN' | 'EXPERT', currentPat
   const reply = here
     ? expert
       ? `NAV // Already on ${t.label}. Scrolled to top.`
-      : `You're already on **${t.label}** — I've scrolled you to the top. 👍`
+      : `You're already on **${t.label}** — I've scrolled you to the top.`
     : expert
     ? `NAV // Opening ${t.label}.${intent.hint ? ' ' + intent.hint : ''}`
-    : `Taking you to **${t.label}** now. 🚀${intent.hint ? ' ' + intent.hint : ''}`;
+    : `Taking you to **${t.label}** now.${intent.hint ? ' ' + intent.hint : ''}`;
   return { reply, navigate: { ...t, auto: true }, suggestions: MORE };
 }

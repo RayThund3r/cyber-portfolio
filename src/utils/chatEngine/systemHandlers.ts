@@ -38,7 +38,7 @@ export function handleSystemQuery(
         reply: `SYS_RTC_SYNC // Epoch: ${now.getTime()} | Local: ${formattedTime} | Date: ${formattedDate} | UTC${off >= 0 ? '+' : ''}${off}h`,
       };
     }
-    return { reply: `It's **${formattedTime}** on **${formattedDate}** 🕒` };
+    return { reply: `It's **${formattedTime}** on **${formattedDate}**` };
   }
 
   // 2. Engine status
@@ -47,7 +47,7 @@ export function handleSystemQuery(
       reply:
         mode === 'EXPERT'
           ? `SYS_DIAG // Node: ONLINE | Language model: ${aiLabel} | Retriever: READY | Web lookup: READY | Guardrails: ENFORCED`
-          : `All systems are up! 🚀 Language model: **${aiLabel}**. Knowledge search, web lookup and safety checks are all running.`,
+          : `All systems are up! Language model: **${aiLabel}**. Knowledge search, web lookup and safety checks are all running.`,
     };
   }
 
@@ -59,7 +59,7 @@ export function handleSystemQuery(
       reply:
         mode === 'EXPERT'
           ? 'SYS_MEM_PURGE // Local chat history and cache wiped. Baseline restored.'
-          : 'Done — I cleared our chat history and everything stored in this browser. 🧹',
+          : 'Done — I cleared our chat history and everything stored in this browser.',
     };
   }
 

@@ -4,7 +4,7 @@ import { getProjects, getSiteContent } from '@/server/store';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
-  const pages = ['', '/portfolio', '/services', '/builder', '/contact', '/guides', '/track', '/privacy'].map((p) => ({
+  const pages = ['', '/portfolio', '/art', '/services', '/builder', '/contact', '/guides', '/track', '/privacy'].map((p) => ({
     url: `${SITE.url}${p}`, lastModified: now, changeFrequency: 'monthly' as const, priority: p === '' ? 1 : 0.7,
   }));
   const projects = (await getProjects()).map((p) => ({

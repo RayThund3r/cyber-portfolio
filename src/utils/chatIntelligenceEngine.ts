@@ -60,7 +60,7 @@ export function processUserQuery(
       if (mode === 'EXPERT') {
         replyText = "SYS_INIT: Neural link established. Secure relay active in Ndejje, UG. Standing by for telemetry, hardware diagnostics, or software architecture queries.";
       } else {
-        replyText = "Hello there! 😊 It's great to connect with you. Whether you're looking for tech repairs, custom branding, or web development, how can I help you today?";
+        replyText = "Hello there! It's great to connect with you. Whether you're looking for tech repairs, custom branding, or web development, how can I help you today?";
       }
       break;
 

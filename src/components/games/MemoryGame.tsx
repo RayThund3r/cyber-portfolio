@@ -73,7 +73,7 @@ export default function MemoryGame() {
             </button>
           ))}
         </div>
-        {won && <Banner tone="win" title={`All pairs found in ${moves} moves, ${fmt(secs)}`} text={`${'★'.repeat(stars)}${'☆'.repeat(3 - stars)}  (a perfect game is ${perfect} moves)`} action={<Btn variant="solid" icon="play" onClick={() => reset()}>Play again</Btn>} />}
+        {won && <Banner tone="win" title={`All pairs found in ${moves} moves, ${fmt(secs)}`} text={`${stars} of 3 stars (a perfect game is ${perfect} moves)`} action={<Btn variant="solid" icon="play" onClick={() => reset()}>Play again</Btn>} />}
       </div>
       <Panel className="space-y-4">
         <Segmented label="Size" value={size} onChange={(s) => { setSize(s); reset(s); }} options={[{ id: 'easy', label: '12' }, { id: 'medium', label: '16' }, { id: 'hard', label: '24' }, { id: 'insane', label: '36' }]} />

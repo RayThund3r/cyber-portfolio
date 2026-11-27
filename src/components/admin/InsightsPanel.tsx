@@ -40,7 +40,7 @@ export default function InsightsPanel() {
           <ul className="divide-y divide-zinc-800/70">
             {s.audit.map((a, i) => (
               <li key={i} className="flex flex-wrap items-center gap-x-3 gap-y-0.5 px-4 py-2.5 text-xs">
-                <span className={`flex h-5 w-5 flex-none items-center justify-center rounded-full text-[10px] font-bold ${a.ok ? 'bg-emerald-500/15 text-emerald-300' : 'bg-rose-500/15 text-rose-300'}`}>{a.ok ? '✓' : '✕'}</span>
+                <span className={`flex h-5 w-5 flex-none items-center justify-center rounded-full text-[10px] font-bold ${a.ok ? 'bg-emerald-500/15 text-emerald-300' : 'bg-rose-500/15 text-rose-300'}`}>{a.ok ? 'OK' : '!'}</span>
                 <span className="font-medium text-zinc-200">{a.event}</span>
                 <span className="ml-auto font-mono text-zinc-500">{a.ip} · {when(a.at)}</span>
                 {a.ua && <span className="w-full truncate pl-8 text-[10px] text-zinc-600">{a.ua}</span>}
