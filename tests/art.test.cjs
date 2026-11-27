@@ -3,7 +3,11 @@ let fail = 0; const ok = (n, c) => { console.log((c ? 'PASS ' : 'FAIL ') + n); i
 const png = 'data:image/png;base64,' + Buffer.from('89504e470d0a1a0a0000000d49484452', 'hex').toString('base64');
 const rejects = async (p) => { try { await p; return false; } catch { return true; } };
 (async () => {
-  const A = H.req('server/art');
+  const A = H.req('server/art'); const A0 = A;
+  const D = H.req('server/artDemo');
+  const di = D.demoItems();
+  ok('sample pieces: 8, each with a valid svg and hex colours', di.length === 8 && di.every((x) => (D.demoSvg(x.id) || '').startsWith('<svg') && /^#[0-9a-f]{6}$/.test(x.color) && x.w > 0 && x.h > 0) && D.demoSvg('nope') === null);
+  ok('sample ids survive cleanId', di.every((x) => A0.cleanId(x.id) === x.id));
   ok('starts empty', (await A.listArt()).length === 0);
   let l = await A.saveArt({ item: { title: 'Logo for Kato Salon', category: 'Logos', tools: 'Illustrator, Photoshop', year: '2026x', description: '<b>Hi</b>' }, image: png, thumb: png, w: 1200, h: 800 });
   const a = l[0];
