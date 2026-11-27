@@ -381,3 +381,9 @@ Verified: full suite ALL GREEN. Not verified: real `next build`; the new tabs/ma
 
 ## Round 46
 - Vercel type check compiled tests/legacy/*.test.ts (stale). Renamed to .ts.txt. If those three .ts files already exist in the repo, DELETE them (a zip merge cannot remove files), or add "tests" to tsconfig exclude.
+
+## Round 47
+- Art viewer: directional slide/blur transitions between pieces (also in the slideshow, with a progress bar), the picture follows your finger when you swipe, new glass info panel (kind/year/format/size, colours, tools, previous/next cards), 14 sample pieces.
+
+## Round 48
+- Art tiles: caption shade is its own layer that eases in before the words (no more words blending into the picture); tiles rise in as they scroll into view; press feedback on touch; lighter shade on phones.

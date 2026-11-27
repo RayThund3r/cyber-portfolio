@@ -876,3 +876,28 @@ html {
 
 /* scroll-driven background (components/fx/ScrollScene.tsx): calmer on light backgrounds */
 :root[data-mode='light'] .scroll-scene { opacity: 0.55; }
+
+/* Art viewer: pieces slide in and out in the direction you are travelling */
+@keyframes art-in-next { from { opacity: 0; transform: translateX(16%) scale(.94); filter: blur(6px); } to { opacity: 1; transform: none; filter: none; } }
+@keyframes art-in-prev { from { opacity: 0; transform: translateX(-16%) scale(.94); filter: blur(6px); } to { opacity: 1; transform: none; filter: none; } }
+@keyframes art-out-next { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateX(-18%) scale(.92); filter: blur(6px); } }
+@keyframes art-out-prev { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateX(18%) scale(.92); filter: blur(6px); } }
+@keyframes art-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes art-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes art-open { from { opacity: 0; transform: scale(1.02); } to { opacity: 1; transform: none; } }
+@keyframes art-drift { from { transform: scale(.955); } to { transform: scale(1); } }
+@keyframes art-progress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.art-in-next { animation: art-in-next .55s cubic-bezier(.22, 1, .36, 1) both; }
+.art-in-prev { animation: art-in-prev .55s cubic-bezier(.22, 1, .36, 1) both; }
+.art-out-next { animation: art-out-next .45s cubic-bezier(.4, 0, .2, 1) both; }
+.art-out-prev { animation: art-out-prev .45s cubic-bezier(.4, 0, .2, 1) both; }
+.art-fade { animation: art-fade .8s ease both; }
+.art-rise { animation: art-rise .5s cubic-bezier(.22, 1, .36, 1) both; }
+.art-open { animation: art-open .3s ease-out both; }
+.art-drift { animation: art-drift 5s ease-out both; }
+.art-progress { transform-origin: left; animation: art-progress 5s linear both; }
+@media (prefers-reduced-motion: reduce) {
+  .art-in-next, .art-in-prev, .art-fade, .art-rise, .art-open { animation: art-fade .2s ease both; }
+  .art-out-next, .art-out-prev { animation: none; opacity: 0; }
+  .art-drift, .art-progress { animation: none; }
+}

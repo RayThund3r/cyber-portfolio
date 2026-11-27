@@ -109,7 +109,7 @@ export default function ArtPanel() {
         <a href="/art" target="_blank" rel="noopener noreferrer" className="text-xs text-zinc-400 hover:text-accent">Open the gallery</a>
         {msg && <span role="status" className={`text-xs font-medium ${msg.ok ? 'text-emerald-300' : 'text-rose-300'}`}>{msg.text}</span>}
       </div>
-      {!items.length && <Notice title="Sample pieces are showing">Visitors currently see 8 sample designs on /art. They disappear on their own the moment you save your first real piece, so there is nothing to delete.</Notice>}
+      {!items.length && <Notice title="Sample pieces are showing">Visitors currently see 14 sample designs on /art. They disappear on their own the moment you save your first real piece, so there is nothing to delete.</Notice>}
       <Notice title="How uploads work">Pick a picture and it is shrunk on your device to web size, then saved here. Keep your full-size originals somewhere safe; the gallery shows the shrunk copy. Up to 150 pieces.</Notice>
 
       {edit && (
