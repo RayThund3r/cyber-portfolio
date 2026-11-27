@@ -9,3 +9,5 @@ harness server and sample images in `/tmp`). Keep them as a source of scenarios 
 - `r8.test.ts` — builder pricing, admin settings, generated sites
 - `dnd_e2e.py` — builder drag-and-drop ordering in a real browser (Playwright)
 - `panels_e2e.py` — admin panels in a real browser (Playwright)
+
+These were old TypeScript tests. They are stored as .ts.txt so the production type check (next build) does not try to compile them; they are not run by tests/run-all.mjs.
