@@ -11,6 +11,8 @@ import { PROCESS_STEPS, SERVICES } from '@/data/servicesData';
 import { contactUrl, portfolioUrl } from '@/lib/siteUrls';
 import { openChat } from '@/lib/chatBus';
 import { FaqJsonLd, PriceList, PromiseCard, useExtraFaqs } from '@/components/site/Trust';
+import { PackagesSection } from '@/components/site/Packages';
+import RepairGallery from '@/components/site/RepairGallery';
 import { useSiteContent } from '@/context/SiteContentContext';
 import { useStaggerIn, useTilt } from '@/lib/useGsapEffects';
 
@@ -146,6 +148,8 @@ export default function ServicesPage() {
         ))}
       </div>
 
+      <PackagesSection />
+
       {/* Pricing: the owner's price list (Admin → Content → Prices); the plain note shows until prices are added. */}
       {hasPrices ? <PriceList /> : (
         <p data-reveal className="mt-10 text-center font-mono text-xs text-zinc-400">
@@ -159,6 +163,8 @@ export default function ServicesPage() {
       <RepairShowcase />
 
       {/* How it works */}
+      <RepairGallery />
+
       <section className="mt-12 sm:mt-16" aria-labelledby="process-heading">
         <div className="mb-2 font-mono text-[10px] uppercase tracking-widest text-accent sm:text-xs">[SECTION // WORKFLOW]</div>
         <h2 id="process-heading" className="mb-6 text-2xl font-bold text-zinc-100 sm:text-3xl">How it works</h2>

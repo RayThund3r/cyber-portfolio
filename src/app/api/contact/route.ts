@@ -6,6 +6,7 @@ import { createTicket, newTicketId } from '@/server/store';
 import { validateSlot } from '@/server/booking';
 import { judgeMessage, BLOCK_MESSAGE } from '@/lib/spamFilter';
 import { getSpamCfg, logSpam } from '@/server/spam';
+import { validPhotos, saveTicketPhotos } from '@/server/ticketPhotos';
 import { ATTACH, extOf, kindOfName, matchesSignature, sanitizeFilename } from '@/lib/attachmentRules';
 
 export const runtime = 'nodejs';
@@ -119,7 +120,9 @@ export async function POST(request: Request) {
   if (held) await logSpam(verdict, ip, details, isChat ? 'chat' : kind);
   const parsedFiles = parseAttachments(body?.attachments);
   if ('error' in parsedFiles) return failure(400, parsedFiles.error);
-  const attachments = isChat ? parsedFiles.files : [];
+  // Request forms can carry up to 3 photos (shrunk in the browser). They are checked, kept for the admin panel and e-mailed to the owner.
+  const photos = isChat ? [] : validPhotos(body?.photos);
+  const attachments = isChat ? parsedFiles.files : photos.map((p, i) => ({ filename: `photo-${i + 1}.${p.type === 'image/png' ? 'png' : p.type === 'image/webp' ? 'webp' : 'jpg'}`, content: Buffer.from(p.b64, 'base64') }));
 
   // Optional appointment (repairs only)
   let slot: { date: string; time: string } | undefined;
@@ -135,7 +138,8 @@ export async function POST(request: Request) {
   // lose a lead. The chat is not given the ticket id, so its replies are unchanged.
   let stored = true;
   try {
-    await createTicket({ id: ticketId, kind, name, email, phone, details: `${held ? '[Possible spam] ' : ''}${isChat ? '[Chat hand-off] ' : ''}${details}`, slot });
+    const photoCount = photos.length ? await saveTicketPhotos(ticketId, photos).catch(() => 0) : 0;
+    await createTicket({ id: ticketId, kind, name, email, phone, ...(photoCount ? { photos: photoCount } : {}), details: `${held ? '[Possible spam] ' : ''}${isChat ? '[Chat hand-off] ' : ''}${details}`, slot });
   } catch (e) {
     stored = false;
     await reportServerError('contact:createTicket', e);

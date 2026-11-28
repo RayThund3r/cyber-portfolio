@@ -18,12 +18,13 @@ import DataPanel from '@/components/admin/DataPanel';
 import CustomersPanel from '@/components/admin/CustomersPanel';
 import CalendarPanel from '@/components/admin/CalendarPanel';
 import ArtPanel from '@/components/admin/ArtPanel';
+import RepairsPanel from '@/components/admin/RepairsPanel';
 import ContentPanel from '@/components/admin/ContentPanel';
 import SettingsPanel from '@/components/admin/SettingsPanel';
 import StudioPanel from '@/components/studio/StudioPanel';
 
 import Icon, { type IconName } from '@/components/ui/Icon';
-type Tab = 'overview' | 'tickets' | 'calendar' | 'customers' | 'content' | 'settings' | 'studio' | 'templates' | 'sites' | 'portfolio' | 'art' | 'insights' | 'data';
+type Tab = 'overview' | 'tickets' | 'calendar' | 'customers' | 'content' | 'settings' | 'studio' | 'templates' | 'sites' | 'portfolio' | 'art' | 'repairs' | 'insights' | 'data';
 const TAB_META: Record<Tab, { label: string; icon: IconName; title: string; sub: string }> = {
   overview: { label: 'Overview', icon: 'home', title: 'Overview', sub: 'What needs you now, and how the business is doing.' },
   tickets: { label: 'Requests', icon: 'mail', title: 'Requests', sub: 'Repairs, design briefs and website orders: search, update and reply.' },
@@ -33,6 +34,7 @@ const TAB_META: Record<Tab, { label: string; icon: IconName; title: string; sub:
   templates: { label: 'Templates', icon: 'cube', title: 'Website templates', sub: 'The starting points customers pick in the builder, and their prices.' },
   sites: { label: 'Customer sites', icon: 'globe', title: 'Customer sites', sub: 'Sites customers are building or have ordered.' },
   portfolio: { label: 'Portfolio', icon: 'star', title: 'Portfolio', sub: 'The projects shown on your public site.' },
+  repairs: { label: 'Repairs', icon: 'wrench', title: 'Recent work', sub: 'Before and after pairs for repairs and redesigns, shown on the Services page.' },
   art: { label: 'Art', icon: 'palette', title: 'Art gallery', sub: 'Your graphic design work: upload pieces, set categories, reorder.' },
   content: { label: 'Content', icon: 'lightbulb', title: 'Site content', sub: 'Reviews, prices, FAQ, guides, your repair promise and map: what visitors see and trust.' },
   settings: { label: 'Settings', icon: 'wrench', title: 'Site settings', sub: 'Business details, maintenance mode and optional features.' },
@@ -115,6 +117,7 @@ export default function AdminPage() {
         {tab === 'sites' && <SitesPanel />}
         {tab === 'portfolio' && <PortfolioPanel />}
         {tab === 'art' && <ArtPanel />}
+        {tab === 'repairs' && <RepairsPanel />}
         {tab === 'insights' && <InsightsPanel />}
         {tab === 'data' && <DataPanel tickets={live.tickets} />}
       </div>

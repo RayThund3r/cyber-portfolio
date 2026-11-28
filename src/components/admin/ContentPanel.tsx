@@ -6,9 +6,9 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { api, box, primary } from './adminKit';
 import { AButton, Badge, Chips, Empty, Field, Notice } from './ui';
-import { DEFAULT_CONTENT, LIMITS, slugify, type FaqItem, type Guide, type PriceItem, type Review, type SiteContent } from '@/lib/siteContent';
+import { DEFAULT_CONTENT, LIMITS, slugify, type FaqItem, type Guide, type Package, type PriceItem, type Review, type SiteContent } from '@/lib/siteContent';
 
-type Sec = 'reviews' | 'prices' | 'faqs' | 'guides' | 'promise' | 'local';
+type Sec = 'reviews' | 'prices' | 'packages' | 'faqs' | 'guides' | 'promise' | 'local';
 const uid = () => Math.random().toString(36).slice(2, 8);
 const today = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Kampala' });
 const ta = `${box} min-h-[5.5rem] resize-y py-2 leading-relaxed`;
@@ -111,6 +111,56 @@ export default function ContentPanel() {
         ))}
       </ul>
       <AButton icon="gift" variant="solid" disabled={c.prices.length >= LIMITS.prices} onClick={() => set('prices', [...c.prices, { id: uid(), group: c.prices[c.prices.length - 1]?.group || 'Repairs', name: '', from: 0, to: 0, note: '', shown: true }])}>Add a price</AButton>
+    </div>
+  );
+
+  /* ───── Packages ───── */
+  const pk = (i: number, p: Partial<Package>) => set('packages', c.packages.map((r, j) => (j === i ? { ...r, ...p } : r)));
+  const PSTART: Array<Pick<Package, 'kind' | 'name' | 'blurb' | 'turnaround' | 'includes'>> = [
+    { kind: 'design', name: 'Logo', blurb: 'A clean mark that works on a sign and on a phone.', turnaround: '3 to 5 days', includes: ['3 first concepts', '2 rounds of changes', 'Files for print and web'] },
+    { kind: 'design', name: 'Brand kit', blurb: 'Logo, colours and fonts so everything you make matches.', turnaround: '7 to 10 days', includes: ['Logo and variations', 'Colour palette and fonts', 'Social media profile set', 'One-page brand guide'] },
+    { kind: 'design', name: 'Social media pack', blurb: 'A month of posts that look like one brand.', turnaround: '5 days', includes: ['12 post designs', 'Story templates', 'Editable source files'] },
+    { kind: 'repair', name: 'Phone screen or battery', blurb: 'Most phones fixed while you wait or the same day.', turnaround: 'Same day', includes: ['Diagnosis', 'Parts and fitting', 'Repair warranty'] },
+    { kind: 'repair', name: 'Laptop tune-up', blurb: 'Cleaning, a fresh Windows and your files kept safe.', turnaround: '1 to 2 days', includes: ['Dust and fan clean', 'Windows reinstall or repair', 'Backup of your files'] },
+    { kind: 'remote', name: 'Remote clean-up', blurb: 'Slow computer or virus problems fixed without leaving home.', turnaround: '1 hour', includes: ['Virus and junk removal', 'Startup speed-up', 'Security check'] },
+  ];
+  const packages = (
+    <div className="space-y-4">
+      <Notice title="Fixed-scope offers">Each package shows a starting price, how long it takes and what is included. Customers tap &ldquo;Start this package&rdquo; and the contact form opens already filled in. Remote packages also appear on the Remote support page.</Notice>
+      {c.packages.length === 0 && (
+        <div className="space-y-3 rounded-2xl border border-dashed border-zinc-800 p-6 text-center">
+          <p className="text-sm text-zinc-400">No packages yet. Start from a ready list, put in your real prices, then switch each one on.</p>
+          <AButton variant="solid" icon="gift" onClick={() => set('packages', PSTART.map((x) => ({ id: uid(), ...x, from: 0, popular: false, shown: false })))}>Add starter packages</AButton>
+        </div>
+      )}
+      <ul className="space-y-3">
+        {c.packages.map((k, i) => (
+          <Row key={k.id} off={!k.shown}>
+            <div className="grid gap-3 sm:grid-cols-[9rem_1fr]">
+              <Field label="Type"><select className={box} value={k.kind} onChange={(e) => pk(i, { kind: e.target.value as Package['kind'] })}><option value="design">Design</option><option value="repair">Repair</option><option value="remote">Remote support</option></select></Field>
+              <Field label="Name"><input className={box} value={k.name} maxLength={50} onChange={(e) => pk(i, { name: e.target.value })} placeholder="e.g. Brand kit" /></Field>
+            </div>
+            <Field label="One line about it"><input className={box} value={k.blurb} maxLength={140} onChange={(e) => pk(i, { blurb: e.target.value })} /></Field>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="From (UGX)" hint="Leave empty to show Ask for a quote."><input className={box} inputMode="numeric" value={k.from || ''} onChange={(e) => pk(i, { from: Number(e.target.value.replace(/\D/g, '')) || 0 })} placeholder="150000" /></Field>
+              <Field label="How long it takes"><input className={box} value={k.turnaround} maxLength={40} onChange={(e) => pk(i, { turnaround: e.target.value })} placeholder="e.g. 3 to 5 days" /></Field>
+            </div>
+            <Field label="What is included" hint="One per line, up to 8."><textarea className={ta} value={k.includes.join('\n')} onChange={(e) => pk(i, { includes: e.target.value.split('\n').slice(0, LIMITS.includes) })} placeholder={'3 first concepts\n2 rounds of changes'} /></Field>
+            <div className="flex flex-wrap items-center gap-3">
+              <Switch on={k.popular} set={(v) => pk(i, { popular: v })} label="Mark as most popular" />
+              <Switch on={k.shown} set={(v) => pk(i, { shown: v })} label="Show on site" />
+              <span className="ml-auto"><Move i={i} n={c.packages.length} move={(a, b) => set('packages', reorder(c.packages, a, b))} del={() => set('packages', c.packages.filter((_, j) => j !== i))} /></span>
+            </div>
+          </Row>
+        ))}
+      </ul>
+      <AButton icon="gift" variant="solid" disabled={c.packages.length >= LIMITS.packages} onClick={() => set('packages', [...c.packages, { id: uid(), kind: 'design', name: '', blurb: '', from: 0, turnaround: '', includes: [], popular: false, shown: true }])}>Add a package</AButton>
+      <section className="space-y-3 rounded-2xl border border-zinc-800/80 bg-zinc-900/50 p-4">
+        <h3 className="text-sm font-semibold text-zinc-100">Remote support page</h3>
+        <Switch on={c.remote.enabled} set={(v) => set('remote', { ...c.remote, enabled: v })} label="Show the Remote support page (/remote)" />
+        <Field label="Intro (optional)" hint="One or two sentences about how you help people remotely and how they pay."><input className={box} value={c.remote.intro} maxLength={300} onChange={(e) => set('remote', { ...c.remote, intro: e.target.value })} /></Field>
+      </section>
+      <p className="text-[11px] text-zinc-500">Rows without a name are dropped when you save.</p>
     </div>
   );
 
@@ -222,11 +272,11 @@ export default function ContentPanel() {
     <div className="space-y-5">
       <div className="sb-slim -mx-1 overflow-x-auto px-1">
         <Chips<Sec> value={sec} onChange={setSec} items={[
-          { id: 'reviews', label: 'Reviews', count: live.reviews }, { id: 'prices', label: 'Prices', count: live.prices }, { id: 'faqs', label: 'FAQ', count: live.faqs },
+          { id: 'reviews', label: 'Reviews', count: live.reviews }, { id: 'prices', label: 'Prices', count: live.prices }, { id: 'packages', label: 'Packages', count: c.packages.filter((k) => k.shown).length }, { id: 'faqs', label: 'FAQ', count: live.faqs },
           { id: 'guides', label: 'Guides', count: live.guides }, { id: 'promise', label: 'Promise & numbers' }, { id: 'local', label: 'Local & map' },
         ]} />
       </div>
-      <div key={sec}>{sec === 'reviews' ? reviews : sec === 'prices' ? prices : sec === 'faqs' ? faqs : sec === 'guides' ? guides : sec === 'promise' ? promise : local}</div>
+      <div key={sec}>{sec === 'reviews' ? reviews : sec === 'prices' ? prices : sec === 'packages' ? packages : sec === 'faqs' ? faqs : sec === 'guides' ? guides : sec === 'promise' ? promise : local}</div>
 
       <div className="sticky bottom-3 z-20 flex flex-wrap items-center gap-3 rounded-2xl border border-zinc-700/80 bg-zinc-950/90 p-3 shadow-xl shadow-black/40 backdrop-blur">
         <button className={`${primary} !min-h-10 !px-5`} onClick={save} disabled={busy || !dirty}>{busy ? 'Saving…' : 'Save changes'}</button>

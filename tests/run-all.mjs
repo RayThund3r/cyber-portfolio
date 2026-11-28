@@ -36,6 +36,7 @@ const results = [
   run('server: live version stamp', ['tests/server.live.test.cjs']),
   run('spam filter', ['tests/spam.test.cjs']),
   run('art gallery', ['tests/art.test.cjs']),
+  run('shop features', ['tests/shop.test.cjs']),
   run('no emoji in the interface', ['tests/noemoji.test.cjs']),
   run('file context for the AI', ['tests/filecontext.test.cjs']),
   run('server: world knowledge', ['tests/server.world.test.cjs']),

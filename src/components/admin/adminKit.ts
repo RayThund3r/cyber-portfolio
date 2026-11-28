@@ -9,7 +9,7 @@ import type { TicketStatus } from '@/lib/shared';
 
 export type AdminTicket = {
   id: string; kind: 'repair' | 'design' | 'template'; projectId?: string; name: string; email: string; phone: string; details: string; wa: string;
-  slot?: { date: string; time: string }; status: TicketStatus; quoteUGX?: number; depositUGX?: number; adminNotes?: string;
+  slot?: { date: string; time: string }; photos?: number; status: TicketStatus; quoteUGX?: number; depositUGX?: number; adminNotes?: string;
   payments: { id: string; network: string; txId: string; amountUGX?: number; status: string; at: string }[];
   history: { at: string; status: TicketStatus; note?: string }[]; createdAt: string; updatedAt?: string;
 };

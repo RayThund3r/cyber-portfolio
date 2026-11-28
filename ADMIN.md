@@ -6,3 +6,8 @@
 - **Visitor statistics:** `NEXT_PUBLIC_PLAUSIBLE_DOMAIN=yourdomain.com`, or `NEXT_PUBLIC_UMAMI_ID=<website id>` (optionally `NEXT_PUBLIC_UMAMI_SRC` for a self-hosted Umami). Redeploy after adding.
 - Both alert channels fire for every new request and message, next to the existing ntfy/webhook options. Admin → Health shows which are set.
 - Not built yet: letting the chat AI look inside pictures (needs a vision model and changes to the AI route).
+
+## Shop features
+- Content > Packages: add design, repair and remote packages; toggle Popular / Shown; turn the Remote support page on or off.
+- Build > Repairs: upload a before and an after picture per job, reorder, hide, delete.
+- Tickets: photos sent by customers appear in the ticket; "Print estimate" makes a printable quote.

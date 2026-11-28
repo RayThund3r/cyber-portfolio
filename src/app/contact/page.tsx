@@ -8,6 +8,7 @@
 'use client';
 
 import { MapCard, PromiseCard } from '@/components/site/Trust';
+import { shrinkPhoto } from '@/lib/artImage';
 import { Suspense, useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -61,6 +62,29 @@ function ContactInner() {
       setErrorMessage(null);
     }
   }, [urlType, nonce]);
+
+  // Photos of the problem or reference pictures (up to 3), shrunk here in the browser before they are sent
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [photoMsg, setPhotoMsg] = useState('');
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const addPhotos = async (files: FileList | null) => {
+    if (!files?.length) return;
+    setPhotoBusy(true); setPhotoMsg('');
+    try {
+      const room = 3 - photos.length, next: string[] = [];
+      for (const f of Array.from(files).slice(0, Math.max(0, room))) next.push((await shrinkPhoto(f)).url);
+      if (files.length > room) setPhotoMsg('You can add up to 3 photos.');
+      setPhotos((p) => [...p, ...next].slice(0, 3));
+    } catch (e) { setPhotoMsg((e as Error).message || 'That photo could not be read.'); } finally { setPhotoBusy(false); }
+  };
+
+  // Arriving from a package card (?pkg=<name>): start the message for the visitor
+  const pkgName = params.get('pkg');
+  useEffect(() => {
+    if (!pkgName) return;
+    const line = `I would like the "${pkgName.replace(/[\r\n"]+/g, ' ').slice(0, 60)}" package. `;
+    setFormData((f) => (f.details.trim() ? f : { ...f, details: line }));
+  }, [pkgName]);
 
   // Arriving from the Art gallery (?ref=<piece title>): start the message for the visitor
   const refTitle = params.get('ref');
@@ -201,6 +225,7 @@ function ContactInner() {
           slot: formType === 'repair' && slotDate && slotTime ? { date: slotDate, time: slotTime } : undefined,
           serviceType: formType === 'design' ? 'UI/UX & Design Inquiry' : 'Hardware Repair Booking',
           details: formData.details,
+          photos: photos.length ? photos : undefined,
           telemetry: scannedData,
           elapsedMs: Date.now() - openedAt.current,
         }),
@@ -246,6 +271,7 @@ function ContactInner() {
   const handleReset = () => {
     setSubmitted(false);
     setFormData({ name: '', email: '', phone: '', details: '' });
+    setPhotos([]); setPhotoMsg('');
     setScannedData(null);
     setTelemetryConsent(false);
     setTicket(null);
@@ -449,6 +475,28 @@ function ContactInner() {
                   }
                   className={`w-full bg-zinc-950 border border-zinc-800 rounded px-4 py-3 text-sm text-zinc-100 focus:outline-none ${theme === 'cyan' ? 'focus:border-cyan-500' : theme === 'amber' ? 'focus:border-amber-500' : 'focus:border-emerald-500'} transition-colors font-mono resize-none`}
                 />
+              </div>
+
+              <div>
+                <label htmlFor="photos" className={`mb-2 block text-xs font-mono ${themeClasses.accent}`}>
+                  {formType === 'design' ? 'REFERENCE_IMAGES (optional)' : 'PHOTOS_OF_THE_PROBLEM (optional)'}
+                </label>
+                <div className="flex flex-wrap items-center gap-2">
+                  {photos.map((p, i) => (
+                    <div key={i} className="group relative h-20 w-20 overflow-hidden rounded-lg border border-zinc-700">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={p} alt={`Photo ${i + 1}`} className="h-full w-full object-cover" />
+                      <button type="button" onClick={() => setPhotos((x) => x.filter((_, j) => j !== i))} aria-label={`Remove photo ${i + 1}`} className="absolute right-1 top-1 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full bg-black/70 text-white transition hover:bg-black"><Icon name="close" size={12} /></button>
+                    </div>
+                  ))}
+                  {photos.length < 3 && (
+                    <label className={`flex h-20 w-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-zinc-700 text-[11px] text-zinc-400 transition hover:border-zinc-400 hover:text-zinc-100 ${photoBusy ? 'pointer-events-none opacity-60' : ''}`}>
+                      <Icon name="plus" size={16} />{photoBusy ? 'Reading' : 'Add photo'}
+                      <input id="photos" type="file" accept="image/*" multiple className="sr-only" onChange={(e) => { void addPhotos(e.target.files); e.target.value = ''; }} />
+                    </label>
+                  )}
+                </div>
+                <p className="mt-2 text-[11px] text-zinc-500" role="status">{photoMsg || 'Up to 3 photos. They are made small automatically, and only we see them.'}</p>
               </div>
 
               {formType === 'repair' && (

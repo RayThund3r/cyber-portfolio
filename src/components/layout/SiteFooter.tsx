@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { ROUTES } from '@/lib/siteMap';
 import { openChat } from '@/lib/chatBus';
 import { useSiteSettings } from '@/context/SiteSettingsContext';
+import { useSiteContent } from '@/context/SiteContentContext';
 import { SITE, hasWhatsApp, whatsappLink } from '@/utils/chatEngine/siteConfig';
 import Icon from '@/components/ui/Icon';
 import { NodeFooter } from '@/components/site/VisitorNode';
@@ -22,6 +23,7 @@ const SOCIAL_BASE: Record<string, string> = { instagram: 'https://instagram.com/
 
 export default function SiteFooter() {
   const { social } = useSiteSettings();
+  const remoteOn = useSiteContent().remote.enabled;
   const socials = Object.entries(social).filter(([, v]) => v).map(([k, v]) => [k, /^https:\/\//i.test(v) ? v : SOCIAL_BASE[k] + v] as const);
   return (
     // Extra bottom padding on phones keeps the floating chat button from covering the links.
@@ -56,6 +58,7 @@ export default function SiteFooter() {
               {r.label}
             </Link>
           ))}
+          {remoteOn && <Link href="/remote" className="hit py-1 transition-colors hover:text-accent">REMOTE</Link>}
           {EXTRA_LINKS.map((r) => (
             <Link key={r.path} href={r.path} className="hit py-1 transition-colors hover:text-accent">
               {r.label}

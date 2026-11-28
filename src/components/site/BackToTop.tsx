@@ -32,7 +32,7 @@ export default function BackToTop() {
       aria-label="Back to top"
       tabIndex={show ? 0 : -1}
       className={`fixed left-3 z-40 flex h-11 w-11 items-center justify-center rounded-full border border-accent/30 bg-zinc-900/50 text-accent shadow-lg backdrop-blur-sm transition-[opacity,transform] duration-300 active:scale-90 md:hidden ${show ? 'translate-y-0 opacity-60 hover:opacity-100 focus-visible:opacity-100' : 'pointer-events-none translate-y-3 opacity-0'}`}
-      style={{ bottom: 'calc(1rem + env(safe-area-inset-bottom))' }}
+      style={{ bottom: 'calc(1rem + env(safe-area-inset-bottom) + var(--bar-h, 0px))' }}
     >
       <Icon name="arrowUp" size={18} />
     </button>

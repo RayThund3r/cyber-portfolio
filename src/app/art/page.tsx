@@ -74,7 +74,7 @@ export default function ArtPage() {
   const seg = (on: boolean) => `flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg transition-colors ${on ? 'bg-white/15 text-white' : 'text-zinc-500 hover:text-zinc-200'}`;
 
   return (
-    <main className="flex-1 bg-zinc-950 text-zinc-100">
+    <div className="flex-1 bg-zinc-950 text-zinc-100">
       <Spotlight picks={picks} total={all.length} categories={cats.length} since={since} onOpen={openId} />
 
       <section id="work" className="mx-auto max-w-7xl scroll-mt-20 px-4 pt-12 sm:px-8" aria-label="Gallery">
@@ -127,6 +127,6 @@ export default function ArtPage() {
       <CommissionBand />
 
       {open && vIndex >= 0 && <Viewer items={viewList} index={vIndex} onIndex={(i) => setOpen(viewList[i].id)} onClose={close} />}
-    </main>
+    </div>
   );
 }

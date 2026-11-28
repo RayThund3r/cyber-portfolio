@@ -273,6 +273,8 @@ export interface Ticket {
   slot?: { date: string; time: string };
   status: TicketStatus;
   quoteUGX?: number; depositUGX?: number;
+  /** How many photos the customer attached (kept under tphoto-<id>-<n>; see ticketPhotos.ts). */
+  photos?: number;
   payments: Payment[];
   history: { at: string; status: TicketStatus; note?: string }[];
   adminNotes?: string;
@@ -356,7 +358,7 @@ async function pruneOldTickets() {
 }
 
 export async function createTicket(
-  input: Pick<Ticket, 'kind' | 'name' | 'email' | 'phone' | 'details' | 'slot'> & Partial<Pick<Ticket, 'id' | 'projectId' | 'quoteUGX' | 'depositUGX'>>
+  input: Pick<Ticket, 'kind' | 'name' | 'email' | 'phone' | 'details' | 'slot'> & Partial<Pick<Ticket, 'id' | 'projectId' | 'quoteUGX' | 'depositUGX' | 'photos'>>
 ): Promise<Ticket> {
   await migrateLegacyTickets();
   const now = new Date().toISOString();

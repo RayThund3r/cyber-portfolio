@@ -4,6 +4,7 @@ import { publishChange } from '@/server/liveVersion';
 import { adminConfigured, checkPassword, createSession, destroySession, isAdmin, ipAllowed, lockedOut, noteFailure, totpRequired, verifyTotp, logoutEverywhere, audit, readAudit, clearAudit } from '@/server/auth';
 import { clean, clientIp, rateLimit, readJsonLimited, safeLink, sameOrigin, toWaNumber } from '@/server/util';
 import { listTickets, mutateTicket, getProjects, saveProjects, readStats, storageInfo, bulkSetStatus, deleteTickets, importTickets, getSiteSettings, getSiteContent, saveSiteContent, saveSiteSettings, getRateCard, saveRateCard, type Ticket } from '@/server/store';
+import { getTicketPhotos, deleteTicketPhotos } from '@/server/ticketPhotos';
 import { notifyCustomer, notifyOwner, reportServerError } from '@/server/mail';
 import { esc } from '@/server/util';
 import { assetDataUrls, deleteProject, listProjects, loadProject } from '@/server/projects';
@@ -130,6 +131,12 @@ export async function POST(req: Request) {
         return ok({ tickets: all.map((t) => ({ ...t, wa: t.phone ? toWaNumber(t.phone) : '' })) });
       }
 
+      case 'ticket.photos': {
+        const id = clean(body?.id, 20);
+        const t = (await listTickets()).find((x) => x.id === id);
+        return ok({ photos: t?.photos ? await getTicketPhotos(id, t.photos) : [] });
+      }
+
       case 'ticket.update': {
         const id = clean(body?.id, 20);
         const status = body?.status && STATUSES.has(body.status) ? (body.status as TicketStatus) : undefined;
@@ -164,6 +171,7 @@ export async function POST(req: Request) {
         if (!ids.length) return bad('Select at least one request.');
         if (body?.op === 'delete') {
           const deleted = await deleteTickets(ids);
+          await Promise.all(ids.map((i: string) => deleteTicketPhotos(String(i)).catch(() => undefined)));
           await audit(req, `tickets-delete:${deleted}`, true);
           return ok({ deleted });
         }

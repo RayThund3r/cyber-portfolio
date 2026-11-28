@@ -34,6 +34,7 @@ export const NAV_GROUPS: Array<{ label: string; items: NavItem[] }> = [
     { href: '/admin?tab=sites', tab: 'sites', label: 'Customer sites', icon: 'globe', hint: 'Sites customers are building' },
     { href: '/admin?tab=portfolio', tab: 'portfolio', label: 'Portfolio', icon: 'star', hint: 'Your projects on the public site' },
     { href: '/admin?tab=art', tab: 'art', label: 'Art', icon: 'palette', hint: 'Your graphic design gallery' },
+    { href: '/admin?tab=repairs', tab: 'repairs', label: 'Repairs', icon: 'wrench', hint: 'Before and after photos of your work' },
   ] },
   { label: 'Website', items: [
     { href: '/admin?tab=content', tab: 'content', label: 'Content', icon: 'lightbulb', hint: 'Reviews, prices, FAQ, guides, promise and map' },

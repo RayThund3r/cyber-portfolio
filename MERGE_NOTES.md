@@ -387,3 +387,12 @@ Verified: full suite ALL GREEN. Not verified: real `next build`; the new tabs/ma
 
 ## Round 48
 - Art tiles: caption shade is its own layer that eases in before the words (no more words blending into the picture); tiles rise in as they scroll into view; press feedback on touch; lighter shade on phones.
+
+## Round 49 - shop features
+- Packages (design / repair / remote): edit in Admin > Content > Packages (starter list available). Shown on /services and /remote; "Choose" prefills the contact form.
+- Repair request photos: up to 3 per request (shrunk in the browser), emailed to the owner and shown in the ticket (Admin > Tickets).
+- Recent work: before/after slider gallery on /services, managed in Admin > Repairs. Sample jobs show until the first real one is saved.
+- Sticky call / WhatsApp / book bar on phones (hidden on /contact and /track).
+- /remote support page: switch + intro in Admin > Content > Packages. Linked from the footer only.
+- Printable estimate: "Print estimate" in the ticket editor and "Print or save the estimate" on /track.
+- Not next-build verified; not tested on a real phone.

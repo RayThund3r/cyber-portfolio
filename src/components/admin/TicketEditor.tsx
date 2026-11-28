@@ -2,15 +2,47 @@
 'use client';
 
 import { SITE } from '@/utils/chatEngine/siteConfig';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Icon from '@/components/ui/Icon';
 import { STATUS_FLOW, STATUS_LABEL, formatUGX, type TicketStatus } from '@/lib/shared';
 import { api, box, btn, primary, printJobCard, type AdminTicket } from './adminKit';
+import { printEstimate } from '@/lib/printEstimate';
+import { useSiteSettings } from '@/context/SiteSettingsContext';
 import { AButton, Badge, CopyBtn, Field, Priv, STATUS_STYLE } from './ui';
 
 const QUICK: Array<[string, TicketStatus]> = [['Quote ready', 'QUOTED'], ['Deposit needed', 'AWAITING_DEPOSIT'], ['Work started', 'IN_PROGRESS'], ['Ready for pickup', 'READY'], ['Completed', 'COMPLETED']];
 
+/** The photos the customer attached; loaded when the ticket opens, tap one to see it large. */
+function TicketPhotos({ id, n }: { id: string; n: number }) {
+  const [pics, setPics] = useState<string[] | null>(null);
+  const [big, setBig] = useState<string | null>(null);
+  const [err, setErr] = useState('');
+  useEffect(() => { let off = false; api('ticket.photos', { id }).then((r: any) => { if (!off) setPics(Array.isArray(r.photos) ? r.photos : []); }).catch((e) => { if (!off) setErr(e.message || 'Could not load the photos.'); }); return () => { off = true; }; }, [id]);
+  return (
+    <div>
+      <div className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Photos from the customer ({n})</div>
+      {err ? <p className="text-xs text-rose-300">{err}</p> : pics === null ? <div className="flex gap-2" aria-busy="true">{Array.from({ length: n }, (_, i) => <div key={i} className="adm-skel h-24 w-24 rounded-xl" />)}</div> : (
+        <div className="flex flex-wrap gap-2">
+          {pics.map((p, i) => (
+            <button key={i} type="button" onClick={() => setBig(p)} className="cursor-zoom-in overflow-hidden rounded-xl border border-zinc-800 transition hover:border-zinc-500" aria-label={`Open photo ${i + 1}`}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={p} alt={`Customer photo ${i + 1}`} className="h-24 w-24 object-cover" />
+            </button>
+          ))}
+        </div>
+      )}
+      {big && (
+        <div role="dialog" aria-modal="true" aria-label="Photo" className="fixed inset-0 z-[80] flex cursor-zoom-out items-center justify-center bg-black/85 p-4" onClick={() => setBig(null)}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={big} alt="Customer photo, large" className="max-h-full max-w-full rounded-xl" />
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function TicketEditor({ t, onSaved }: { t: AdminTicket; onSaved: (t: AdminTicket) => void }) {
+  const { business } = useSiteSettings();
   const [status, setStatus] = useState<TicketStatus>(t.status);
   const [quote, setQuote] = useState(String(t.quoteUGX ?? '')); const [deposit, setDeposit] = useState(String(t.depositUGX ?? ''));
   const [note, setNote] = useState(''); const [priv, setPriv] = useState(t.adminNotes || ''); const [notify, setNotify] = useState(true);
@@ -54,6 +86,7 @@ export default function TicketEditor({ t, onSaved }: { t: AdminTicket; onSaved: 
           <p className="whitespace-pre-wrap rounded-xl border border-zinc-800 bg-zinc-900/60 p-3 text-[13px] leading-relaxed text-zinc-200"><Priv>{t.details}</Priv></p>
         </div>
       </div>
+      {!!t.photos && <TicketPhotos id={t.id} n={t.photos} />}
       {t.kind === 'template' && (
         <div className="flex items-start gap-2 rounded-xl border border-sky-500/25 bg-sky-500/[0.06] p-3 text-xs text-sky-100">
           <Icon name="globe" size={15} className="mt-0.5 flex-none text-sky-300" />
@@ -100,6 +133,7 @@ export default function TicketEditor({ t, onSaved }: { t: AdminTicket; onSaved: 
         <label className="flex cursor-pointer items-center gap-1.5 px-1 text-xs text-zinc-400"><input type="checkbox" className="accent-[var(--accent)]" checked={notify} onChange={(e) => setNotify(e.target.checked)} />Email the customer <span className="hidden text-zinc-600 sm:inline">(needs a verified sender)</span></label>
         <span className="mx-1 hidden h-5 w-px bg-zinc-800 sm:block" />
         <button type="button" className={btn} onClick={() => { if (!printJobCard(t)) setMsg({ ok: false, text: 'Allow pop-ups to print the job card.' }); }}><Icon name="print" size={13} />Job card</button>
+        <button type="button" className={btn} onClick={() => { const paid = t.payments.some((p) => p.status === 'CONFIRMED'); if (!printEstimate({ id: t.id, kind: t.kind, createdAt: t.createdAt, quoteUGX: t.quoteUGX, depositUGX: t.depositUGX, depositPaid: paid, slot: t.slot, name: t.name, details: t.details }, { name: business.name || SITE.ownerName, phone: business.phone, email: business.email, address: business.address, hours: business.hours }, { mtn: '', airtel: '' })) setMsg({ ok: false, text: 'Allow pop-ups to print the estimate.' }); }} disabled={!t.quoteUGX}><Icon name="print" size={14} />Print estimate</button>
         {t.wa && <a className={btn} href={`https://wa.me/${t.wa}?text=${waText}`} target="_blank" rel="noopener noreferrer"><Icon name="chat" size={13} />Reply on WhatsApp</a>}
         <CopyBtn text={t.id} label="Copy ID" />
         {msg && <span role="status" className={`text-xs font-medium ${msg.ok ? 'text-emerald-300' : 'text-rose-300'}`}>{msg.text}</span>}

@@ -51,7 +51,7 @@ const ChatLauncher = forwardRef<HTMLButtonElement, Props>(function ChatLauncher(
   };
 
   return (
-    <div className="fixed z-[60] flex flex-col items-end gap-2 max-sm:bottom-[max(1rem,env(safe-area-inset-bottom))] max-sm:right-4 sm:bottom-5 sm:right-5">
+    <div className="fixed z-[60] flex flex-col items-end gap-2 max-sm:bottom-[calc(max(1rem,env(safe-area-inset-bottom))+var(--bar-h,0px))] max-sm:right-4 transition-[bottom] duration-500 sm:bottom-5 sm:right-5">
       {nudge && (
         <div role="status" className="animate-nudge-in relative max-w-[16rem] rounded-2xl rounded-br-md border border-accent/30 bg-zinc-900/95 py-3 pl-4 pr-9 font-sans text-xs leading-relaxed text-zinc-200 shadow-2xl backdrop-blur-xl">
           <button type="button" onClick={open} className="cursor-pointer text-left">

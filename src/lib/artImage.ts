@@ -29,6 +29,14 @@ async function encode(img: HTMLImageElement, side: number, maxBytes: number): Pr
   throw new Error('This picture is too detailed to shrink enough. Try a smaller export.');
 }
 
+/** A photo for a request form: shrunk in the browser to about 130 KB so a phone upload is quick. */
+export async function shrinkPhoto(file: File): Promise<{ url: string; w: number; h: number }> {
+  if (!/^image\/(png|jpe?g|webp|gif|avif|heic|heif)$/i.test(file.type || '') && !/\.(png|jpe?g|webp|gif|avif|heic)$/i.test(file.name)) throw new Error('Choose a picture (PNG, JPG or WebP).');
+  if (file.size > 40 * 1024 * 1024) throw new Error('That photo is over 40 MB.');
+  const img = await load(file);
+  return encode(img, 1280, 135_000); // bytes; as a data URL that stays under the 190,000-character limit on the server
+}
+
 export async function prepareArt(file: File): Promise<PreparedArt> {
   if (!/^image\/(png|jpe?g|webp|gif|avif|heic|heif)$/i.test(file.type || '') && !/\.(png|jpe?g|webp|gif|avif|heic)$/i.test(file.name)) throw new Error('Choose a picture (PNG, JPG or WebP).');
   if (file.size > 40 * 1024 * 1024) throw new Error('That file is over 40 MB. Export a smaller copy.');

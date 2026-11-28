@@ -5,6 +5,8 @@ import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { STATUS_FLOW, STATUS_LABEL, formatUGX, type PublicTicket } from '@/lib/shared';
+import { printEstimate } from '@/lib/printEstimate';
+import { useSiteSettings } from '@/context/SiteSettingsContext';
 import { hasWhatsApp, whatsappLink } from '@/utils/chatEngine/siteConfig';
 import { trackEvent } from '@/utils/analytics';
 import { buildIcs, downloadIcs } from '@/lib/calendar';
@@ -51,6 +53,8 @@ function TrackInner() {
   const [remember, setRemember] = useState(false);
   const [recent, setRecent] = useState<string[]>([]);
   const [ticket, setTicket] = useState<PublicTicket | null>(null);
+  const { business } = useSiteSettings();
+  const [printNote, setPrintNote] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [network, setNetwork] = useState<'MTN' | 'AIRTEL' | 'OTHER'>('MTN');
@@ -236,9 +240,14 @@ function TrackInner() {
               )}
 
               {(ticket.quoteUGX || ticket.depositUGX) && (
-                <div className="mt-4 grid grid-cols-2 gap-3">
+                <div className="mt-4">
+                <div className="grid grid-cols-2 gap-3">
                   <div className="rounded-xl border border-zinc-800 bg-zinc-950/50 p-3.5"><div className="text-[11px] font-medium uppercase tracking-wider text-zinc-500">Quote</div><div className="mt-1 text-lg font-bold tabular-nums">{formatUGX(ticket.quoteUGX)}</div></div>
                   <div className="rounded-xl border border-zinc-800 bg-zinc-950/50 p-3.5"><div className="text-[11px] font-medium uppercase tracking-wider text-zinc-500">Deposit</div><div className="mt-1 flex flex-wrap items-baseline gap-2 text-lg font-bold tabular-nums">{formatUGX(ticket.depositUGX)} {ticket.depositPaid && <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-300"><Icon name="check" size={12} />paid</span>}</div></div>
+                </div>
+                <button type="button" onClick={() => setPrintNote(printEstimate({ id: ticket.id, kind: ticket.kind, createdAt: ticket.createdAt, quoteUGX: ticket.quoteUGX, depositUGX: ticket.depositUGX, depositPaid: ticket.depositPaid, slot: ticket.slot }, { name: business.name || 'Estimate', phone: business.phone, email: business.email, address: business.address, hours: business.hours }, ticket.pay) ? '' : 'Allow pop-ups to print your estimate.')}
+                  className="mt-3 inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-lg border border-zinc-700 px-4 text-xs text-zinc-200 transition hover:border-zinc-400"><Icon name="print" size={14} />Print or save the estimate</button>
+                {printNote && <p role="status" className="mt-2 text-xs text-amber-300">{printNote}</p>}
                 </div>
               )}
             </div>
