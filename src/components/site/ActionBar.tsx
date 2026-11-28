@@ -34,7 +34,7 @@ export default function ActionBar() {
   useEffect(() => {
     const root = document.documentElement;
     if (show) root.style.setProperty('--bar-h', BAR_H); else root.style.removeProperty('--bar-h');
-    return () => root.style.removeProperty('--bar-h');
+    return () => { root.style.removeProperty('--bar-h'); };
   }, [show]);
 
   const item = 'flex min-h-12 flex-1 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-xl text-[11px] font-medium text-zinc-200 transition active:scale-95 active:bg-white/10';
