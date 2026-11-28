@@ -32,7 +32,7 @@ export interface PublicTicket {
   /** Template orders: the customer's website .zip can be downloaded. */
   downloadReady?: boolean;
   payments: { network: PayNetwork; txId: string; status: PayStatus; at: string }[];
-  pay?: { accountName: string; mtn: string; airtel: string; reference: string };
+  pay?: { accountName: string; mtn: string; mtnName: string; airtel: string; airtelName: string; note: string; reference: string };
 }
 
 export const formatUGX = (n?: number) => (typeof n === 'number' ? `UGX ${n.toLocaleString('en-UG')}` : '—');

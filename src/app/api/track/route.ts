@@ -1,3 +1,4 @@
+import { getPayDetails } from '@/server/payDetails';
 import { NextResponse } from 'next/server';
 import { findTicket } from '@/server/store';
 import { clean, clientIp, isLimited, rateLimit, readJsonLimited, sameOrigin } from '@/server/util';
@@ -20,5 +21,5 @@ export async function POST(req: Request) {
     rateLimit(`guess:${refId}`, 10, 60 * 60_000);
     return NextResponse.json({ error: "We couldn't find a request matching those details. Check the reference and the phone/email you used." }, { status: 404 });
   }
-  return NextResponse.json({ ticket: toPublic(t) }, { headers: { 'Cache-Control': 'no-store' } });
+  return NextResponse.json({ ticket: toPublic(t, await getPayDetails()) }, { headers: { 'Cache-Control': 'no-store' } });
 }

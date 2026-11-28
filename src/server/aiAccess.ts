@@ -39,7 +39,7 @@ export const DEFAULT_PLANS: Plan[] = [
 ];
 function defaultPayInfo(): string {
   const mtn = process.env.MOMO_MTN_NUMBER, air = process.env.MOMO_AIRTEL_NUMBER, nm = process.env.MOMO_ACCOUNT_NAME;
-  const lines = [mtn && `MTN MoMo: ${mtn}`, air && `Airtel Money: ${air}`, nm && `Name: ${nm}`].filter(Boolean);
+  const lines = [mtn && `MTN MoMo: ${mtn}${process.env.MOMO_MTN_NAME || nm ? ` (${process.env.MOMO_MTN_NAME || nm})` : ''}`, air && `Airtel Money: ${air}${process.env.MOMO_AIRTEL_NAME || nm ? ` (${process.env.MOMO_AIRTEL_NAME || nm})` : ''}`].filter(Boolean);
   return lines.length ? `Send the amount to:\n${lines.join('\n')}` : '';
 }
 /** What the owner sees while signed in to /admin: always unlimited. */

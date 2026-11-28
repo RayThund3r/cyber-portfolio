@@ -7,6 +7,7 @@ import { FieldForm } from './FieldForm';
 import type { EditorApi } from './editorApi';
 
 import { SectionIcon, IconCart, IconCheck, IconCheckCircle, IconClose, IconCode, IconCopy, IconDesktop, IconEye, IconEyeOff, IconImage, IconLayers, IconLock, IconPalette, IconPaperclip, IconPencil, IconPhone, IconPlus, IconSettings, IconSparkle, IconTablet, IconTrash, IconWarn, IconBulb, IconFolder, IconArrowUp, IconArrowDown, IconExternal } from './icons';
+import { ask } from '@/lib/dialog';
 const ib = 'w-8 h-8 rounded flex items-center justify-center text-sm text-zinc-300 hover:bg-zinc-700/70 disabled:opacity-30 cursor-pointer shrink-0';
 const secTitle = (s: SectionInstance) => (s.data.title ? String(s.data.title).slice(0, 30) : s.data.navLabel || '');
 
@@ -129,7 +130,7 @@ export function MediaPanel({ api }: { api: EditorApi }) {
             {used.has(id) && <span className="absolute top-1 left-1 px-1.5 rounded bg-emerald-500 text-black text-[9px] font-mono">in use</span>}
             <div className="absolute inset-x-0 bottom-0 flex gap-1 p-1 bg-gradient-to-t from-black/80 to-transparent opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
               <button disabled={!targets.length || api.locked} onClick={() => (targets.length === 1 ? useIn(id, targets[0].key) : setMenu(menu === id ? null : id))} className="flex-1 px-1.5 py-1 rounded bg-white/90 text-black text-[10px] font-semibold disabled:opacity-40 cursor-pointer" title={targets.length ? 'Use in the selected block' : 'Select a block with a picture first'}>Use</button>
-              <button disabled={api.locked} aria-label="Delete picture" onClick={() => { if (!used.has(id) || confirm('This picture is used on your page. Delete anyway?')) api.removeAsset(id); }} className="px-1.5 py-1 rounded bg-red-500/90 text-white text-[10px] cursor-pointer inline-flex items-center justify-center"><IconTrash size={13} /></button>
+              <button disabled={api.locked} aria-label="Delete picture" onClick={async () => { if (!used.has(id) || await ask('This picture is used on your page. Delete anyway?')) api.removeAsset(id); }} className="px-1.5 py-1 rounded bg-red-500/90 text-white text-[10px] cursor-pointer inline-flex items-center justify-center"><IconTrash size={13} /></button>
             </div>
             {menu === id && targets.length > 1 && <div className="absolute inset-x-1 bottom-9 rounded bg-zinc-900 border border-zinc-600 shadow-xl z-10">{targets.map((f) => <button key={f.key} onClick={() => useIn(id, f.key)} className="block w-full text-left px-2 py-1.5 text-[11px] hover:bg-zinc-800 cursor-pointer">{f.label}</button>)}</div>}
           </div>

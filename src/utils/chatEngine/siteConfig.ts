@@ -19,7 +19,7 @@ export const SITE = {
   hours: process.env.NEXT_PUBLIC_HOURS || '',
 
   // Public site URL (used for sitemap / social previews). No trailing slash.
-  url: process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
+  url: process.env.NEXT_PUBLIC_SITE_URL || (process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL}` : process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : 'http://localhost:3000'),
 
   // Element ids on your page that the chat can scroll to.
   projectsElementId: 'projects',

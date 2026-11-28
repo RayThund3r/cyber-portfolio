@@ -7,6 +7,7 @@ import { api, box, btn, downloadText, hasPaymentToCheck, kampalaDay, needsAttent
 
 import Icon from '@/components/ui/Icon';
 import { AButton, Avatar, Banner, Chips, Empty, KindBadge, Priv, STATUS_STYLE, StatusPill } from './ui';
+import { ask } from '@/lib/dialog';
 const ALL_STATUSES: TicketStatus[] = [...STATUS_FLOW, 'CANCELLED'];
 const PAGE = 25;
 type Sort = 'newest' | 'oldest' | 'visit' | 'attention';
@@ -89,7 +90,7 @@ export default function TicketsPanel({
   const bulk = async (op: 'status' | 'delete') => {
     const ids = [...picked];
     if (!ids.length) return;
-    if (op === 'delete' && !confirm(`Permanently delete ${ids.length} request(s)? This cannot be undone. (Download a backup first if unsure.)`)) return;
+    if (op === 'delete' && !await ask(`Permanently delete ${ids.length} request(s)? This cannot be undone. (Download a backup first if unsure.)`, { danger: true })) return;
     setBusy(true); setMsg(null);
     try {
       if (op === 'delete') {

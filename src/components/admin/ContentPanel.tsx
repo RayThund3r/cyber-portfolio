@@ -8,6 +8,7 @@ import { api, box, primary } from './adminKit';
 import { AButton, Badge, Chips, Empty, Field, Notice } from './ui';
 import { DEFAULT_CONTENT, LIMITS, slugify, type FaqItem, type Guide, type Package, type PriceItem, type Review, type SiteContent } from '@/lib/siteContent';
 
+import { ask } from '@/lib/dialog';
 type Sec = 'reviews' | 'prices' | 'packages' | 'faqs' | 'guides' | 'promise' | 'local';
 const uid = () => Math.random().toString(36).slice(2, 8);
 const today = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Kampala' });
@@ -200,7 +201,7 @@ export default function ContentPanel() {
                   <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold text-zinc-100">{g.title || 'Untitled guide'}</span><span className="block truncate text-xs text-zinc-500">/guides/{g.id}</span></span>
                   <Badge tone={g.published ? 'ok' : 'default'}>{g.published ? 'Published' : 'Draft'}</Badge>
                 </button>
-                <Move i={i} n={c.guides.length} move={(a, b) => set('guides', reorder(c.guides, a, b))} del={() => { if (confirm('Delete this guide?')) set('guides', c.guides.filter((x) => x.id !== g.id)); }} />
+                <Move i={i} n={c.guides.length} move={(a, b) => set('guides', reorder(c.guides, a, b))} del={async () => { if (await ask('Delete this guide?', { danger: true, confirmLabel: 'Delete' })) set('guides', c.guides.filter((x) => x.id !== g.id)); }} />
               </div>
               {open && (
                 <div className="space-y-3 border-t border-zinc-800/80 pt-3 ios-enter">

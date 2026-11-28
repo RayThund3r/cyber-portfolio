@@ -11,3 +11,7 @@
 - Content > Packages: add design, repair and remote packages; toggle Popular / Shown; turn the Remote support page on or off.
 - Build > Repairs: upload a before and an after picture per job, reorder, hide, delete.
 - Tickets: photos sent by customers appear in the ticket; "Print estimate" makes a printable quote.
+
+## Payments, favourites, dialogs
+- Settings > Mobile-money details: MTN and Airtel each get their own number and registered name. Customers see the matching name next to each number.
+- You no longer need ADMIN_TOTP_SECRET, ADMIN_SESSION_SECRET (with Upstash connected) or NEXT_PUBLIC_SITE_URL for the Launch Pad to turn green.

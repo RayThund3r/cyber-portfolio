@@ -6,7 +6,9 @@ import Icon from '@/components/ui/IconAny';
 import { DEFAULT_SETTINGS, type SiteSettings } from '@/lib/siteSettings';
 import { api, box, primary } from './adminKit';
 import PricingPanel from './PricingPanel';
+import PayCard from './PayCard';
 
+import { ask } from '@/lib/dialog';
 const Card = ({ title, icon, children, hint }: { title: string; icon: string; children: ReactNode; hint?: string }) => (
   <section className="adm-rise space-y-3.5 rounded-2xl border border-zinc-800/80 bg-zinc-900/50 p-4 shadow-sm shadow-black/20 sm:p-5">
     <header className="flex items-start gap-3">
@@ -34,7 +36,7 @@ export default function SettingsPanel() {
   const dirty = JSON.stringify(s) !== saved;
   const up = <K extends keyof SiteSettings>(k: K, patch: Partial<SiteSettings[K]>) => setS({ ...s, [k]: { ...s[k], ...patch } });
   const save = async () => {
-    if (s.maintenance.enabled && !confirm('Maintenance mode hides the whole public site from visitors (you can still use /admin). Turn it on?')) return;
+    if (s.maintenance.enabled && !await ask('Maintenance mode hides the whole public site from visitors (you can still use /admin). Turn it on?', { danger: true })) return;
     setBusy(true); setMsg(null);
     try { const d = await api<{ settings: SiteSettings }>('settings.save', { settings: s }); setS(d.settings); setSaved(JSON.stringify(d.settings)); setMsg({ ok: true, text: 'Saved. The public site now shows these settings.' }); } catch (e: any) { setMsg({ ok: false, text: e.message }); } finally { setBusy(false); }
   };
@@ -75,6 +77,7 @@ export default function SettingsPanel() {
           <Switch on={s.features.dragDrop} set={(v) => up('features', { dragDrop: v })} label="Drag and drop reordering in the builder" hint="On: repeating items (cards, services, FAQs…) get a drag handle (mouse, finger or ↑/↓ keys) and a picture can be dropped onto a picture field. The existing arrow buttons keep working." />
         </Card>
       </div>
+      <PayCard />
       {JSON.parse(saved || '{}')?.features?.smartPricing && <div className="border-t border-zinc-800 pt-5"><PricingPanel /></div>}
       <div className="sticky bottom-3 z-20 flex flex-wrap items-center gap-3 rounded-2xl border border-zinc-700/80 bg-zinc-950/90 p-3 shadow-xl shadow-black/40 backdrop-blur">
         <button className={`${primary} !min-h-10 !px-5`} onClick={save} disabled={busy || !dirty}>{busy ? 'Saving…' : 'Save settings'}</button>

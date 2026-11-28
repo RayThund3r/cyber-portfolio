@@ -7,6 +7,7 @@ import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import Icon from '@/components/ui/Icon';
 import { hasWhatsApp, whatsappLink } from '@/utils/chatEngine/siteConfig';
+import { useFavs } from './favs';
 import { colorOf, commissionHref, imgSrc, toneOf, type Art } from './types';
 
 interface View { s: number; x: number; y: number }
@@ -23,6 +24,7 @@ const dirOf = (d: number): 'next' | 'prev' => (d >= 0 ? 'next' : 'prev');
 
 export default function Viewer({ items, index, onIndex, onClose }: { items: Art[]; index: number; onIndex: (i: number) => void; onClose: () => void }) {
   const art = items[index];
+  const fav = useFavs();
   const many = items.length > 1;
   const root = useRef<HTMLDivElement>(null);
   const strip = useRef<HTMLDivElement>(null);
@@ -151,7 +153,7 @@ export default function Viewer({ items, index, onIndex, onClose }: { items: Art[
   const dragging = drag !== 0 && view.s === 1;
 
   return createPortal(
-    <div ref={root} tabIndex={-1} role="dialog" aria-modal="true" aria-label={art.title} className="art-open fixed inset-0 z-[90] flex flex-col overflow-hidden bg-[#06070a] text-white outline-none">
+    <div ref={root} tabIndex={-1} role="dialog" aria-modal="true" aria-label={art.title} className="keep-dark art-open fixed inset-0 z-[90] flex flex-col overflow-hidden bg-[#06070a] text-white outline-none">
       {/* ambient backdrop: the piece itself, blurred, plus its colour; it cross-fades with each piece */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img key={`bg-${art.id}`} src={imgSrc(art, true)} alt="" aria-hidden="true" className="art-fade pointer-events-none absolute inset-0 h-full w-full scale-125 object-cover opacity-40 blur-[90px] saturate-200" />
@@ -162,6 +164,7 @@ export default function Viewer({ items, index, onIndex, onClose }: { items: Art[
         <div className="flex items-center gap-1.5" role="toolbar" aria-label="Viewer controls">
           <button type="button" className={`${btn} max-sm:hidden`} onClick={() => zoomBy(1 / 1.4)} aria-label="Zoom out" disabled={view.s <= 1}><span aria-hidden="true" className="text-lg leading-none">−</span></button>
           <button type="button" className={`${btn} max-sm:hidden`} onClick={() => zoomBy(1.4)} aria-label="Zoom in" disabled={view.s >= 6}><Icon name="plus" size={16} /></button>
+          <button type="button" className={`${btn} ${fav.has(art.id) ? '!text-amber-300' : ''}`} onClick={() => fav.toggle(art.id)} aria-pressed={fav.has(art.id)} aria-label={fav.has(art.id) ? 'Remove from favourites' : 'Add to favourites'}><svg width="17" height="17" viewBox="0 0 24 24" fill={fav.has(art.id) ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinejoin="round" aria-hidden="true"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9L12 3Z" /></svg></button>
           {many && <button type="button" className={btn} onClick={() => setPlay((p) => !p)} aria-pressed={play} aria-label={play ? 'Pause slideshow' : 'Play slideshow'}>{play ? <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1" /><rect x="14" y="5" width="4" height="14" rx="1" /></svg> : <Icon name="play" size={15} />}</button>}
           <button type="button" className={`${btn} max-sm:hidden`} onClick={fullscreen} aria-label="Full screen"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" /></svg></button>
           <button type="button" className={btn} onClick={() => setInfo((v) => !v)} aria-pressed={info} aria-label="Details"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 11v5M12 8h.01" /></svg></button>

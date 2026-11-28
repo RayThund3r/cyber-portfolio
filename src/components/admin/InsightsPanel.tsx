@@ -6,6 +6,7 @@ import { STATUS_LABEL, type TicketStatus } from '@/lib/shared';
 import { api, type Stats } from './adminKit';
 import { AButton, AreaChart, Bars, Card, Empty, ErrorBox, Skel } from './ui';
 
+import { ask } from '@/lib/dialog';
 const when = (iso: string) => new Date(iso).toLocaleString('en-UG', { timeZone: 'Africa/Kampala', dateStyle: 'medium', timeStyle: 'short' });
 const toBars = (o: Record<string, number>, label: (k: string) => string = (k) => k, n = 8) => Object.entries(o).sort((a, b) => b[1] - a[1]).slice(0, n).map(([k, v]) => ({ name: label(k), n: v }));
 
@@ -33,8 +34,8 @@ export default function InsightsPanel() {
 
       <Card title="Recent admin activity" icon="shield"
         right={<div className="flex gap-1.5">
-          <AButton small onClick={async () => { if (confirm('Sign out every device, including this one?')) { await api('logoutAll'); location.reload(); } }}>Sign out everywhere</AButton>
-          <AButton small danger onClick={async () => { if (confirm('Clear the sign-in log? One entry will remain saying it was cleared.')) { await api('clearAudit'); location.reload(); } }}>Clear log</AButton>
+          <AButton small onClick={async () => { if (await ask('Sign out every device, including this one?', { danger: true })) { await api('logoutAll'); location.reload(); } }}>Sign out everywhere</AButton>
+          <AButton small danger onClick={async () => { if (await ask('Clear the sign-in log? One entry will remain saying it was cleared.', { danger: true })) { await api('clearAudit'); location.reload(); } }}>Clear log</AButton>
         </div>} pad={false}>
         {s.audit?.length ? (
           <ul className="divide-y divide-zinc-800/70">

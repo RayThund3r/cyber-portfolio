@@ -2,11 +2,13 @@
 import 'server-only';
 import type { PublicTicket } from '@/lib/shared';
 import type { Ticket } from './store';
+import type { PayDetails } from './payDetails';
 import { EMAIL_RE, samePhone } from './util';
 
 const mask = (s: string) => (s.length <= 4 ? '••••' : `${'•'.repeat(Math.max(2, s.length - 4))}${s.slice(-4)}`);
 
-export function toPublic(t: Ticket): PublicTicket {
+export function toPublic(t: Ticket, payDetails?: PayDetails): PublicTicket {
+  const pd = payDetails;
   const depositPaid = t.payments.some((p) => p.status === 'CONFIRMED');
   const due = !!t.depositUGX && t.depositUGX > 0 && !depositPaid;
   return {
@@ -16,9 +18,10 @@ export function toPublic(t: Ticket): PublicTicket {
     payments: t.payments.map((p) => ({ network: p.network, txId: mask(p.txId), status: p.status, at: p.at })),
     pay: due
       ? {
-          accountName: process.env.MOMO_ACCOUNT_NAME || '',
-          mtn: process.env.MOMO_MTN_NUMBER || '',
-          airtel: process.env.MOMO_AIRTEL_NUMBER || '',
+          accountName: pd?.mtnName || pd?.airtelName || '',
+          mtn: pd?.mtnNumber || '', mtnName: pd?.mtnName || '',
+          airtel: pd?.airtelNumber || '', airtelName: pd?.airtelName || '',
+          note: pd?.note || '',
           reference: t.id,
         }
       : undefined,

@@ -9,7 +9,9 @@ export const FROM = process.env.CONTACT_FROM || 'System Portfolio Hub <onboardin
 export const BACKUP_TO = process.env.CONTACT_BACKUP_TO || '';
 /** The Resend sandbox sender can only email you; customer emails need a verified domain. */
 export const CAN_EMAIL_CUSTOMERS = !!process.env.CONTACT_FROM;
-export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/$/, '');
+// The public address: the variable if set, otherwise the production domain Vercel reports itself, otherwise localhost.
+const vercelHost = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL || '';
+export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || (vercelHost ? `https://${vercelHost}` : 'http://localhost:3000')).replace(/\/$/, '');
 
 let client: Resend | null = null;
 export function resend(): Resend | null {

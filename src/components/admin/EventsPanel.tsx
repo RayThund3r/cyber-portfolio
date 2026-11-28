@@ -8,6 +8,7 @@ import { EVENTS, upcomingEvents, type FxName, type Tone } from '@/lib/events/cal
 import { DEFAULT_EVENTS_CFG, eventsNow, type CustomEvent, type EventsConfig } from '@/lib/events/config';
 import Icon from '@/components/ui/Icon';
 
+import { ask } from '@/lib/dialog';
 const FX_OPTS: FxName[] = ['none', 'confetti', 'snow', 'hearts', 'lanterns', 'stars', 'leaves', 'rain'];
 const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 const blank = (): CustomEvent => ({ id: '', name: '', ribbon: '', say: '', tone: 'celebrate', fx: 'confetti', from: today(), to: today() });
@@ -90,7 +91,7 @@ export default function EventsPanel() {
                   </div>
                   <div className="flex flex-col gap-1">
                     <AButton small icon="pencil" onClick={() => { setForm(c); setEditing(true); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>Edit</AButton>
-                    <AButton small danger icon="trash" onClick={() => { if (window.confirm(`Remove ${c.name}?`)) void persist({ ...cfg, custom: cfg.custom.filter((x) => x.id !== c.id) }, 'Event removed'); }}>Delete</AButton>
+                    <AButton small danger icon="trash" onClick={async () => { if (await ask(`Remove ${c.name}?`, { danger: true, confirmLabel: 'Delete' })) void persist({ ...cfg, custom: cfg.custom.filter((x) => x.id !== c.id) }, 'Event removed'); }}>Delete</AButton>
                   </div>
                 </li>
               ))}

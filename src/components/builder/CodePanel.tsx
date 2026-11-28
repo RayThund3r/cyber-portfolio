@@ -6,6 +6,7 @@ import { buildSite } from '@/lib/builder/generate';
 import type { EditorApi } from './editorApi';
 
 import { IconCart, IconCheck, IconCheckCircle, IconClose, IconCode, IconCopy, IconDesktop, IconEye, IconEyeOff, IconImage, IconLayers, IconLock, IconPalette, IconPaperclip, IconPencil, IconPhone, IconPlus, IconSettings, IconSparkle, IconTablet, IconTrash, IconWarn, IconBulb, IconFolder } from './icons';
+import { ask } from '@/lib/dialog';
 type Lang = 'css' | 'js' | 'html';
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
@@ -114,7 +115,7 @@ export default function CodePanel({ api }: { api: EditorApi }) {
             <option value="">＋ Insert a ready-made snippet…</option>
             {SNIPPETS[tab].map((s, i) => <option key={s.label} value={i}>{s.label}</option>)}
           </select>
-          <button disabled={api.locked || !value} className="px-2 py-1.5 rounded border border-zinc-700 text-xs font-mono hover:border-zinc-500 disabled:opacity-30 cursor-pointer" onClick={() => confirm('Clear this code?') && api.edit(`code.${tab}`, (c) => { c.code[tab] = ''; })}>Clear</button>
+          <button disabled={api.locked || !value} className="px-2 py-1.5 rounded border border-zinc-700 text-xs font-mono hover:border-zinc-500 disabled:opacity-30 cursor-pointer" onClick={async () => await ask('Clear this code?', { danger: true }) && api.edit(`code.${tab}`, (c) => { c.code[tab] = ''; })}>Clear</button>
         </div>
       )}
       <CodeBox value={value} lang={t.lang} readOnly={tab === 'out' || api.locked} onChange={tab === 'out' ? undefined : (v) => api.edit(`code.${tab}`, (c) => { c.code[tab] = v.slice(0, 60000); })} />

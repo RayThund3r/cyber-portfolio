@@ -7,6 +7,7 @@ import { prepareArt, type PreparedArt } from '@/lib/artImage';
 import { box, btn, primary } from './adminKit';
 import { AButton, Badge, Card, Empty, Field, Notice } from './ui';
 
+import { ask } from '@/lib/dialog';
 interface Job { id: string; title: string; note: string; kind: 'repair' | 'design'; shown: boolean; w: number; h: number; v: number }
 async function jobApi(body?: Record<string, unknown>): Promise<{ items: Job[] }> {
   const r = await fetch('/api/admin/repairs', body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : { cache: 'no-store' });
@@ -108,7 +109,7 @@ export default function RepairsPanel() {
                   <AButton small disabled={busy || i === 0} onClick={() => call({ action: 'move', id: j.id, dir: 'up' }, 'Moved.')} title="Move earlier" icon="arrowUp" />
                   <AButton small disabled={busy || i === items.length - 1} onClick={() => call({ action: 'move', id: j.id, dir: 'down' }, 'Moved.')} title="Move later"><Icon name="arrowUp" size={14} className="rotate-180" /></AButton>
                   <AButton small icon="pencil" onClick={() => open(j)}>Edit</AButton>
-                  <AButton small danger icon="trash" onClick={() => confirm(`Delete “${j.title}”?`) && call({ action: 'delete', id: j.id }, 'Deleted.')} title="Delete" />
+                  <AButton small danger icon="trash" onClick={async () => await ask(`Delete “${j.title}”?`, { danger: true, confirmLabel: 'Delete' }) && call({ action: 'delete', id: j.id }, 'Deleted.')} title="Delete" />
                 </div>
               </div>
             </li>

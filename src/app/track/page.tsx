@@ -62,6 +62,7 @@ function TrackInner() {
   const [payMsg, setPayMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [paying, setPaying] = useState(false);
   const [dlBusy, setDlBusy] = useState(false);
+  const [dlDone, setDlDone] = useState(false);
   const [checkedAt, setCheckedAt] = useState<number | null>(null);
   const polls = useRef(0);
   const stepsRef = useRef<HTMLDivElement>(null);
@@ -140,6 +141,7 @@ function TrackInner() {
       a.href = URL.createObjectURL(await r.blob());
       a.download = /filename="([^"]+)"/.exec(r.headers.get('Content-Disposition') || '')?.[1] || 'website.zip';
       a.click();
+      setDlDone(true); window.setTimeout(() => setDlDone(false), 8000);
     } catch (err: any) { setPayMsg({ ok: false, text: err.message }); } finally { setDlBusy(false); }
   };
 
@@ -256,7 +258,8 @@ function TrackInner() {
               <div className="adm-rise space-y-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/[0.06] p-4 sm:p-5">
                 <h2 className="flex items-center gap-2 text-sm font-semibold text-emerald-300"><Icon name="download" size={16} />Your website is ready</h2>
                 <p className="text-sm leading-relaxed text-zinc-300">Payment confirmed, thank you! Download your website as a zip, unzip it, and upload the files to your hosting. A README inside explains how.</p>
-                <button onClick={downloadSite} disabled={dlBusy} className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-xl bg-emerald-500 px-5 text-sm font-semibold text-zinc-950 transition hover:bg-emerald-400 active:scale-[0.98] disabled:opacity-50"><Icon name="download" size={15} />{dlBusy ? 'Preparing…' : 'Download website (.zip)'}</button>
+                <button onClick={downloadSite} disabled={dlBusy} className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-xl bg-emerald-500 px-5 text-sm font-semibold text-zinc-950 transition hover:bg-emerald-400 active:scale-[0.98] disabled:opacity-50"><Icon name="download" size={15} />{dlBusy ? 'Preparing…' : dlDone ? 'Downloaded. Download again' : 'Download website (.zip)'}</button>
+                {dlDone && <p role="status" className="text-xs text-emerald-300">Done. Check your downloads folder, then unzip it and follow the README inside.</p>}
               </div>
             )}
 
@@ -267,9 +270,9 @@ function TrackInner() {
                   <li className="flex gap-3"><span className="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-amber-500/20 text-xs font-bold text-amber-300">1</span><span>Send <strong>{formatUGX(ticket.depositUGX)}</strong> to one of these numbers:</span></li>
                 </ol>
                 <ul className="space-y-2 text-sm">
-                  {ticket.pay.mtn && <li className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-zinc-800 bg-zinc-950/50 px-3.5 py-2.5"><span><span className="text-xs text-zinc-500">MTN MoMo</span><br /><strong className="font-mono text-base">{ticket.pay.mtn}</strong></span><CopyBtn text={ticket.pay.mtn} label="MTN number" /></li>}
-                  {ticket.pay.airtel && <li className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-zinc-800 bg-zinc-950/50 px-3.5 py-2.5"><span><span className="text-xs text-zinc-500">Airtel Money</span><br /><strong className="font-mono text-base">{ticket.pay.airtel}</strong></span><CopyBtn text={ticket.pay.airtel} label="Airtel number" /></li>}
-                  {ticket.pay.accountName && <li className="px-1 text-xs text-zinc-400">Account name: {ticket.pay.accountName}</li>}
+                  {ticket.pay.mtn && <li className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-zinc-800 bg-zinc-950/50 px-3.5 py-2.5"><span><span className="text-xs text-zinc-500">MTN MoMo{ticket.pay.mtnName ? `, name: ${ticket.pay.mtnName}` : ''}</span><br /><strong className="font-mono text-base">{ticket.pay.mtn}</strong></span><CopyBtn text={ticket.pay.mtn} label="MTN number" /></li>}
+                  {ticket.pay.airtel && <li className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-zinc-800 bg-zinc-950/50 px-3.5 py-2.5"><span><span className="text-xs text-zinc-500">Airtel Money{ticket.pay.airtelName ? `, name: ${ticket.pay.airtelName}` : ''}</span><br /><strong className="font-mono text-base">{ticket.pay.airtel}</strong></span><CopyBtn text={ticket.pay.airtel} label="Airtel number" /></li>}
+                  {ticket.pay.note && <li className="px-1 text-xs text-zinc-400">{ticket.pay.note}</li>}
                   {!ticket.pay.mtn && !ticket.pay.airtel && <li className="text-zinc-400">Payment numbers aren&apos;t set up yet. Please contact us.</li>}
                 </ul>
                 <div className="flex gap-3 text-sm text-zinc-300"><span className="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-amber-500/20 text-xs font-bold text-amber-300">2</span>

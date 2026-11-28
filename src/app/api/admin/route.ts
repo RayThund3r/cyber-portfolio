@@ -1,4 +1,5 @@
 // src/app/api/admin/route.ts — one authenticated endpoint, action-based (POST only).
+import { getSavedPay, savePay } from '@/server/payDetails';
 import { NextResponse } from 'next/server';
 import { publishChange } from '@/server/liveVersion';
 import { adminConfigured, checkPassword, createSession, destroySession, isAdmin, ipAllowed, lockedOut, noteFailure, totpRequired, verifyTotp, logoutEverywhere, audit, readAudit, clearAudit } from '@/server/auth';
@@ -226,6 +227,9 @@ export async function POST(req: Request) {
         await audit(req, `settings-saved${settings.maintenance.enabled ? ':maintenance-ON' : ''}`, true);
         return ok({ settings });
       }
+
+      case 'pay.get': return ok({ pay: await getSavedPay() });
+      case 'pay.save': { const pay = await savePay(body?.pay); await audit(req, 'pay-details-saved', true); return ok({ pay }); }
 
       // Trust content: reviews, price list, FAQ, repair promise, headline numbers, local-search details, guides
       case 'content.get': return ok({ content: await getSiteContent() });

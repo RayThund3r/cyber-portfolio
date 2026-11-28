@@ -6,6 +6,7 @@ import { AButton, Badge, Card, Empty, ErrorBox, Field, Notice, Skel, Toggle, inp
 import { gameSandbox, RATIOS, ratioCss, safeUrl, type EmbedMode, type ExtGame, type Ratio } from '@/lib/games/ext';
 import Icon from '@/components/ui/Icon';
 
+import { ask } from '@/lib/dialog';
 type Form = { id: string; title: string; url: string; desc: string; cover: string; category: string; mode: EmbedMode; ratio: Ratio; tags: string; off: boolean };
 const blank: Form = { id: '', title: '', url: '', desc: '', cover: '', category: 'Community', mode: 'iframe', ratio: '16:9', tags: '', off: false };
 
@@ -98,7 +99,7 @@ export default function GamesPanel() {
                   </div>
                   <div className="flex flex-col gap-1">
                     <AButton small icon="pencil" onClick={() => edit(g)}>Edit</AButton>
-                    <AButton small danger icon="trash" onClick={() => { if (window.confirm(`Remove ${g.title}?`)) void persist(list.filter((x) => x.id !== g.id), 'Game removed'); }}>Delete</AButton>
+                    <AButton small danger icon="trash" onClick={async () => { if (await ask(`Remove ${g.title}?`, { danger: true, confirmLabel: 'Delete' })) void persist(list.filter((x) => x.id !== g.id), 'Game removed'); }}>Delete</AButton>
                   </div>
                 </li>
               ))}

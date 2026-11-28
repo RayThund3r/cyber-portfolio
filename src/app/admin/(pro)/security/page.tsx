@@ -7,6 +7,7 @@ import { AButton, Badge, Card, CopyBtn, ErrorBox, Field, inputCls, Notice, PageH
 import { useAdmin } from '@/components/admin/AdminShell';
 import { qrPath } from '@/lib/qr';
 
+import { ask } from '@/lib/dialog';
 interface SpamEntry { at: string; action: 'blocked' | 'held' | 'bot'; score: number; reasons: string[]; who: string; snippet: string; form: string }
 interface SpamCfgT { enabled: boolean; level: 'relaxed' | 'normal' | 'strict'; blockWords: string[]; topicWords: string[] }
 interface Sec { spam?: { cfg: SpamCfgT; log: SpamEntry[] }; expiresAt: number; allowList: boolean; audit: Array<{ t: number; kind: string; ok: boolean; who: string; country?: string; city?: string; ua?: string; note?: string }>; totpEnabled: boolean; passwordLength: number; separateSecret: boolean; creds?: { passwordSaved: boolean; totpEnabled: boolean; totpSaved: boolean; recoveryLeft?: number; persistent: boolean } }
@@ -72,7 +73,7 @@ export default function SecurityPage() {
   };
   const saveTotpNow = async () => { setBusy(true); const r = await act({ action: 'totp-enable', ...proof, secret: totp?.secret, code }, 'Two-factor is on. Other devices were signed out.'); setBusy(false); if (r) { setRec((r.recoveryCodes as string[]) || null); setTotp(null); setCode(''); setCur(''); setCurCode(''); } };
   const newRec = async () => { setBusy(true); const r = await act({ action: 'recovery-new', ...proof }, 'New recovery codes created. The old ones no longer work.'); setBusy(false); if (r) { setRec((r.recoveryCodes as string[]) || null); setCur(''); setCurCode(''); } };
-  const disableTotp = async () => { if (!window.confirm('Turn two-factor sign-in off?')) return; setBusy(true); const r = await act({ action: 'totp-disable', ...proof }, 'Two-factor is off.'); setBusy(false); if (r) { setCur(''); setCurCode(''); } };
+  const disableTotp = async () => { if (!await ask('Turn two-factor sign-in off?', { danger: true })) return; setBusy(true); const r = await act({ action: 'totp-disable', ...proof }, 'Two-factor is off.'); setBusy(false); if (r) { setCur(''); setCurCode(''); } };
 
   const act = async (body: Record<string, unknown>, ok: string) => { try { const r = await api<Record<string, unknown>>('/api/admin/security', { method: 'POST', body }); if (ok) toast(ok); reload(); return r; } catch (e) { toast(e instanceof Error ? e.message : 'Failed', 'err'); return null; } };
   const newTotp = async () => { const r = await act({ action: 'totp-new' }, ''); if (r) { setTotp({ secret: String(r.secret), uri: String(r.uri) }); setValid(null); setCode(''); } };
@@ -102,7 +103,7 @@ export default function SecurityPage() {
             <p className="mt-3 text-[11px] leading-relaxed text-zinc-500">Saved securely (hashed, never stored as plain text) and used from the next sign-in. Your other devices are signed out; this one stays in. <b className="text-zinc-400">Locked out?</b> Edit <code className="text-zinc-300">ADMIN_PASSWORD</code> (or <code className="text-zinc-300">ADMIN_TOTP_SECRET</code>) in Vercel and redeploy: a changed variable always overrides what was saved here, so you can never be shut out for good.</p>
           </Card>
           <div className="grid gap-4 lg:grid-cols-2">
-            <Card title="This session" icon="key" right={<AButton small danger icon="lock" onClick={async () => { if (window.confirm('Sign out every device, including this one?')) { await act({ action: 'signout-all' }, ''); void signOut(); } }}>Sign out everywhere</AButton>}>
+            <Card title="This session" icon="key" right={<AButton small danger icon="lock" onClick={async () => { if (await ask('Sign out every device, including this one?', { danger: true })) { await act({ action: 'signout-all' }, ''); void signOut(); } }}>Sign out everywhere</AButton>}>
               <ul className="space-y-2 text-sm text-zinc-300">
                 <li className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-900/40 p-2.5 text-xs"><span>Signed in on this device</span><Badge tone="accent">ends in about {Math.max(1, Math.round((data.expiresAt - Date.now()) / 3600000))} h</Badge></li>
                 <li className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-900/40 p-2.5 text-xs"><span>Only listed IP addresses may sign in</span><Badge tone={data.allowList ? 'ok' : 'warn'}>{data.allowList ? 'on' : 'off'}</Badge></li>

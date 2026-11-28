@@ -29,6 +29,7 @@ import { readAssets as readLocalAssets, readCopy, restoreToServer, writeAssets, 
 import type { TemplateDef } from '@/lib/builder/templates';
 
 import { IconCart, IconCheck, IconCheckCircle, IconClose, IconCode, IconCopy, IconDesktop, IconEye, IconEyeOff, IconImage, IconLayers, IconLock, IconPalette, IconPaperclip, IconPencil, IconPhone, IconPlus, IconSettings, IconSparkle, IconTablet, IconTrash, IconWarn, IconBulb, IconFolder, IconBack, IconUndo, IconRedo, IconExternal, IconMinus, IconInfo, IconDownload } from './icons';
+import { ask, notify } from '@/lib/dialog';
 type Tool = 'layers' | 'add' | 'media' | 'design' | 'ai' | 'code' | 'settings' | 'content';
 const TOOLS: { k: Tool; icon: (p: { size?: number }) => ReactElement; label: string }[] = [
   { k: 'layers', icon: IconLayers, label: 'Layers' }, { k: 'add', icon: IconPlus, label: 'Add' }, { k: 'media', icon: IconImage, label: 'Media' },
@@ -277,7 +278,7 @@ export default function Editor({ mode, id, keyStr }: { mode: 'project' | 'templa
       c.sections.splice(at, 0, s);
     }),
     toggle: (sid) => edit('', (c) => { const s = c.sections.find((x) => x.id === sid); if (s) s.visible = !s.visible; }),
-    remove: (sid) => { if (!confirm('Delete this block?')) return; edit('', (c) => { c.sections = c.sections.filter((s) => s.id !== sid); }); },
+    remove: async (sid) => { if (!await ask('Delete this block?', { danger: true, confirmLabel: 'Delete' })) return; edit('', (c) => { c.sections = c.sections.filter((s) => s.id !== sid); }); },
     duplicate: (sid) => {
       const copyId = 'cp' + Math.random().toString(36).slice(2, 8);
       edit('', (c) => { const i = c.sections.findIndex((s) => s.id === sid); if (i < 0 || SECTION_DEFS[c.sections[i].type].fixed) return; const cp = structuredClone(c.sections[i]); cp.id = copyId; c.sections.splice(i + 1, 0, cp); });
@@ -298,7 +299,7 @@ export default function Editor({ mode, id, keyStr }: { mode: 'project' | 'templa
     return { id: r.id as string, dataUrl: c.dataUrl, mime: c.mime, data: c.data };
   }, [id, keyStr]);
   const removeAsset = useCallback(async (aid: string) => {
-    try { await post('/api/builder', { action: 'deleteAsset', id, key: keyStr, assetId: aid }); setAssets((a) => { const n = { ...a }; delete n[aid]; void writeAssets(id, n); return n; }); } catch (e: any) { alert(e.message); }
+    try { await post('/api/builder', { action: 'deleteAsset', id, key: keyStr, assetId: aid }); setAssets((a) => { const n = { ...a }; delete n[aid]; void writeAssets(id, n); return n; }); } catch (e: any) { void notify(e.message); }
   }, [id, keyStr]);
 
   const ctx: FormCtx = useMemo(() => ({
@@ -367,11 +368,11 @@ export default function Editor({ mode, id, keyStr }: { mode: 'project' | 'templa
   const goProject = (pid: string, key: string) => window.location.assign(`/builder/edit?id=${encodeURIComponent(pid)}&key=${encodeURIComponent(key)}`);
   const newProject = async (t: TemplateDef) => {
     setBusy(true);
-    try { await flush(); const d = await post('/api/builder', { action: 'create', templateId: t.id }); goProject(d.id, d.key); } catch (e: any) { alert(e.message); setBusy(false); }
+    try { await flush(); const d = await post('/api/builder', { action: 'create', templateId: t.id }); goProject(d.id, d.key); } catch (e: any) { void notify(e.message); setBusy(false); }
   };
   const duplicate = async () => {
     setBusy(true);
-    try { await flush(); const d = await post('/api/builder', { action: 'duplicate', id, key: keyStr }); goProject(d.id, d.key); } catch (e: any) { alert(e.message); setBusy(false); }
+    try { await flush(); const d = await post('/api/builder', { action: 'duplicate', id, key: keyStr }); goProject(d.id, d.key); } catch (e: any) { void notify(e.message); setBusy(false); }
   };
   const download = async () => {
     try {
@@ -379,11 +380,11 @@ export default function Editor({ mode, id, keyStr }: { mode: 'project' | 'templa
       if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || 'Download failed');
       const a = document.createElement('a'); a.href = URL.createObjectURL(await r.blob());
       a.download = /filename="([^"]+)"/.exec(r.headers.get('Content-Disposition') || '')?.[1] || 'website.zip'; a.click();
-    } catch (e: any) { alert(e.message); }
+    } catch (e: any) { void notify(e.message); }
   };
   const unlock = async () => {
-    if (!confirm('Unlock your site to keep editing? Your order will be cancelled and you can confirm again when ready.')) return;
-    try { await post('/api/builder', { action: 'unorder', id, key: keyStr }); location.reload(); } catch (e: any) { alert(e.message); }
+    if (!await ask('Unlock your site to keep editing? Your order will be cancelled and you can confirm again when ready.', { danger: true })) return;
+    try { await post('/api/builder', { action: 'unorder', id, key: keyStr }); location.reload(); } catch (e: any) { void notify(e.message); }
   };
 
   /* ───────── render ───────── */

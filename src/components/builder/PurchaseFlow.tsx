@@ -251,9 +251,9 @@ export default function PurchasePanel({ templateId, templateName, priceUGX: pric
                 <p className="text-sm text-zinc-200">Send <strong>{formatMoney(order!.price, 'UGX', rates)}</strong> using the reference <strong className="font-mono text-amber-200 select-all">{ticket?.pay?.reference || order!.ticket}</strong>, then enter the transaction ID from the confirmation SMS.</p>
                 {ticket ? (
                   <ul className="text-sm space-y-1.5 font-mono">
-                    {ticket.pay?.mtn && <li className="flex justify-between gap-3"><span className="text-zinc-400">MTN MoMo</span><strong className="select-all">{ticket.pay.mtn}</strong></li>}
-                    {ticket.pay?.airtel && <li className="flex justify-between gap-3"><span className="text-zinc-400">Airtel Money</span><strong className="select-all">{ticket.pay.airtel}</strong></li>}
-                    {ticket.pay?.accountName && <li className="flex justify-between gap-3"><span className="text-zinc-400">Name</span><span>{ticket.pay.accountName}</span></li>}
+                    {ticket.pay?.mtn && <li className="flex justify-between gap-3"><span className="text-zinc-400">MTN MoMo{ticket.pay.mtnName ? <span className="block text-xs text-zinc-500">{ticket.pay.mtnName}</span> : null}</span><strong className="select-all">{ticket.pay.mtn}</strong></li>}
+                    {ticket.pay?.airtel && <li className="flex justify-between gap-3"><span className="text-zinc-400">Airtel Money{ticket.pay.airtelName ? <span className="block text-xs text-zinc-500">{ticket.pay.airtelName}</span> : null}</span><strong className="select-all">{ticket.pay.airtel}</strong></li>}
+                    {ticket.pay?.note && <li className="text-xs text-zinc-400">{ticket.pay.note}</li>}
                     {ticket.pay && !ticket.pay.mtn && !ticket.pay.airtel && <li className="text-zinc-400">Payment numbers aren&apos;t set up yet — please contact us.</li>}
                     {!ticket.pay && ticket.depositPaid && <li className="text-emerald-300">Your payment has been received.</li>}
                   </ul>

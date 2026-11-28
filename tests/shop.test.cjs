@@ -50,5 +50,20 @@ const jpg = 'data:image/jpeg;base64,' + Buffer.from('ffd8ffe000104a4649460001010
   ok('jobs: reorder moves the first one down', l.length === 2 && l[1].title === 'Second' && l[0].title === 'Renamed');
   l = await R.deleteRepair(j.id);
   ok('jobs: delete removes the pictures', l.length === 1 && !(await R.getRepairImage(j.id, 'before')));
+  // mobile-money: one registered name per network, panel values win, env fills the blanks
+  const PD = H.req('server/payDetails');
+  const nm = PD.normalizePay({ mtnNumber: '0700 <b>111', mtnName: ' Ann  Mbabazi ', airtelNumber: '0750222', airtelName: 'Brian K' });
+  ok('pay: numbers keep digits only, names are tidied', nm.mtnNumber === '0700 111' && nm.mtnName === 'Ann Mbabazi' && nm.airtelName === 'Brian K');
+  const ev = PD.envPay({ MOMO_MTN_NUMBER: '0700', MOMO_AIRTEL_NUMBER: '0750', MOMO_ACCOUNT_NAME: 'Shared Name' });
+  ok('pay: old shared env name still fills both networks', ev.mtnName === 'Shared Name' && ev.airtelName === 'Shared Name');
+  const ev2 = PD.envPay({ MOMO_MTN_NUMBER: '0700', MOMO_MTN_NAME: 'A', MOMO_AIRTEL_NUMBER: '0750', MOMO_AIRTEL_NAME: 'B', MOMO_ACCOUNT_NAME: 'S' });
+  ok('pay: per-network env names beat the shared one', ev2.mtnName === 'A' && ev2.airtelName === 'B');
+  await PD.savePay({ mtnNumber: '0701', mtnName: 'Panel MTN Name', airtelNumber: '', airtelName: '' });
+  const gd = await PD.getPayDetails();
+  ok('pay: saved values are read back', gd.mtnNumber === '0701' && gd.mtnName === 'Panel MTN Name');
+  const TV = H.req('server/ticketView');
+  const pub = TV.toPublic({ id: 'T-1', kind: 'template', status: 'NEW', createdAt: '', updatedAt: '', history: [], payments: [], depositUGX: 5000 }, { mtnNumber: '1', mtnName: 'X', airtelNumber: '2', airtelName: 'Y', note: '' });
+  ok('pay: a ticket shows each network with its own name', pub.pay && pub.pay.mtnName === 'X' && pub.pay.airtelName === 'Y');
+
   console.log(fail ? `\n${fail} FAILED` : '\nALL PASS'); process.exit(fail ? 1 : 0);
 })().catch((e) => { console.error(e); process.exit(1); });

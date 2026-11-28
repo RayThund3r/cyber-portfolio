@@ -7,6 +7,7 @@ import Icon from '@/components/ui/Icon';
 import { api, box, btn, primary } from './adminKit';
 import { AButton, Badge, Card, Empty, Field, Notice } from './ui';
 
+import { ask } from '@/lib/dialog';
 const EMPTY: ProjectItem = { id: '', title: '', category: 'WEBAPP', description: '', image: '', tools: [], gallery: [], featured: false } as ProjectItem;
 
 export default function PortfolioPanel() {
@@ -62,7 +63,7 @@ export default function PortfolioPanel() {
                   <AButton small disabled={i === 0} onClick={() => run('project.move', { id: p.id, dir: 'up' })} title="Move up" icon="arrowUp" />
                   <AButton small disabled={i === items.length - 1} onClick={() => run('project.move', { id: p.id, dir: 'down' })} title="Move down"><Icon name="arrowUp" size={14} className="rotate-180" /></AButton>
                   <AButton small icon="pencil" onClick={() => setEdit(p)}>Edit</AButton>
-                  <AButton small danger icon="trash" onClick={() => confirm(`Delete “${p.title}”?`) && run('project.delete', { id: p.id })} title="Delete" />
+                  <AButton small danger icon="trash" onClick={async () => await ask(`Delete “${p.title}”?`, { danger: true, confirmLabel: 'Delete' }) && run('project.delete', { id: p.id })} title="Delete" />
                 </div>
               </div>
             </li>

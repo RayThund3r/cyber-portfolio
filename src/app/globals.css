@@ -434,6 +434,13 @@ html {
     filter: brightness(1.1);
   }
 }
+/* Surfaces that are always dark (picture captions, the full-screen viewer) keep the dark palette in light mode. */
+:root[data-mode='light'] .keep-dark {
+  --color-zinc-50: #fafafa; --color-zinc-100: #f4f4f5; --color-zinc-200: #e4e4e7; --color-zinc-300: #d4d4d8; --color-zinc-400: #9f9fa9;
+  --color-zinc-500: #71717b; --color-zinc-600: #52525c; --color-zinc-700: #3f3f47; --color-zinc-800: #27272a; --color-zinc-900: #18181b; --color-zinc-950: #09090b;
+  --color-white: #ffffff; --color-emerald-400: #34d399; --color-cyan-400: #22d3ee; --color-amber-300: #fcd34d; --color-amber-400: #fbbf24;
+  color: #fff;
+}
 /* Faint section dividers (zinc-900) would turn white-on-near-white. */
 :root[data-mode='light'] [class*='border-zinc-900'] {
   border-color: #e4e4e7;
@@ -901,3 +908,10 @@ html {
   .art-out-next, .art-out-prev { animation: none; opacity: 0; }
   .art-drift, .art-progress { animation: none; }
 }
+
+/* In-site dialogs (components/ui/DialogHost.tsx): the panel eases up, the backdrop fades. */
+@keyframes dlg-in { from { opacity: 0; transform: translateY(14px) scale(.97); } to { opacity: 1; transform: none; } }
+@keyframes dlg-fade { from { opacity: 0; } to { opacity: 1; } }
+.dlg-panel { animation: dlg-in .26s cubic-bezier(.22, 1, .36, 1) both; }
+.dlg-backdrop { animation: dlg-fade .2s ease both; }
+@media (prefers-reduced-motion: reduce) { .dlg-panel, .dlg-backdrop { animation: dlg-fade .15s ease both; } }

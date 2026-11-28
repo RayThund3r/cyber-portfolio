@@ -20,6 +20,7 @@ import EasterEggs from '@/components/site/EasterEggs';
 import CyberMotion from '@/components/site/CyberMotion';
 import BackToTop from '@/components/site/BackToTop';
 import ActionBar from '@/components/site/ActionBar';
+import DialogHost from '@/components/ui/DialogHost';
 import AnnouncementBar from '@/components/layout/AnnouncementBar';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { ProjectsProvider } from '@/context/ProjectsContext';
@@ -182,6 +183,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <PageMotion />
             <PressFeedback />
             <OfflineNotice />
+            <DialogHost />
             </SiteContentProvider>
             </SiteSettingsProvider>
           </ProjectsProvider>

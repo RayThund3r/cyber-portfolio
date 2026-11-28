@@ -1,3 +1,4 @@
+import { getPayDetails } from '@/server/payDetails';
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { findTicket, mutateTicket } from '@/server/store';
@@ -38,5 +39,5 @@ export async function POST(req: Request) {
     x.history.push({ at: new Date().toISOString(), status: x.status, note: 'Payment submitted — we will confirm it shortly.' });
   });
   await notifyOwner(`[${t.id}] Deposit submitted (${network})`, `<p>${esc(t.name)} submitted <strong>${esc(txId)}</strong> on ${esc(network)} for ${esc(t.id)} (deposit UGX ${t.depositUGX}). Verify in your wallet, then confirm in /admin.</p>`);
-  return NextResponse.json({ ticket: updated ? toPublic(updated) : undefined });
+  return NextResponse.json({ ticket: updated ? toPublic(updated, await getPayDetails()) : undefined });
 }

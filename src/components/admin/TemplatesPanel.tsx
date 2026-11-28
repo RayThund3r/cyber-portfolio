@@ -9,6 +9,7 @@ import { formatUGX } from '@/lib/shared';
 import { api, box, btn, primary } from './adminKit';
 import { AButton, Badge, Empty, Field, Notice } from './ui';
 
+import { ask } from '@/lib/dialog';
 type TplRow = { id: string; name: string; description: string; category: string; tag?: string; priceUSD: number | null; priceUGX: number | null; enabled: boolean };
 
 export default function TemplatesPanel() {
@@ -57,7 +58,7 @@ export default function TemplatesPanel() {
                 <a className={btn} href={`/builder/edit?template=${t.id}`} target="_blank" rel="noopener noreferrer"><Icon name="pencil" size={13} />Edit design</a>
                 <a className={btn} href={`/builder/view?t=${t.id}`} target="_blank" rel="noopener noreferrer"><Icon name="eye" size={13} />View</a>
                 <AButton onClick={() => act('template.duplicate', { id: t.id }, 'Duplicated. It stays hidden until you make it visible.')} icon="copy">Duplicate</AButton>
-                <AButton danger onClick={() => confirm(`Delete “${t.name}”?`) && act('template.delete', { id: t.id }, 'Deleted')} icon="trash">Delete</AButton>
+                <AButton danger onClick={async () => await ask(`Delete “${t.name}”?`, { danger: true, confirmLabel: 'Delete' }) && act('template.delete', { id: t.id }, 'Deleted')} icon="trash">Delete</AButton>
               </div>
             </li>
           );

@@ -8,15 +8,50 @@ import { formatUGX } from '@/lib/shared';
 import { api } from './adminKit';
 import { AButton, Avatar, Badge, Empty, Notice, Priv } from './ui';
 
+import { ask } from '@/lib/dialog';
 type SiteRow = { id: string; name: string; template: string; siteName: string; updatedAt: string; status: 'DRAFT' | 'AWAITING_PAYMENT' | 'PAID'; ticket: string | null; price: number | null; contact: { name: string; email: string; phone: string } | null; kb: number };
 const TONE = { PAID: 'ok', AWAITING_PAYMENT: 'warn', DRAFT: 'default' } as const;
 const LABEL = { PAID: 'Paid', AWAITING_PAYMENT: 'Awaiting payment', DRAFT: 'Draft' } as const;
+
+/** Zip download with its own progress: Preparing, then Downloaded (size), then back to idle. No page refresh needed. */
+function ZipButton({ id }: { id: string }) {
+  const [st, setSt] = useState<'idle' | 'busy' | 'done' | 'err'>('idle');
+  const [info, setInfo] = useState('');
+  useEffect(() => { if (st !== 'done' && st !== 'err') return; const t = window.setTimeout(() => setSt('idle'), 6000); return () => window.clearTimeout(t); }, [st]);
+  const go = async () => {
+    if (st === 'busy') return;
+    setSt('busy'); setInfo('');
+    try {
+      const r = await fetch(`/api/admin/zip?id=${encodeURIComponent(id)}`, { cache: 'no-store' });
+      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || `Failed (${r.status})`);
+      const blob = await r.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = /filename="?([^";]+)"?/.exec(r.headers.get('Content-Disposition') || '')?.[1] || `${id}.zip`;
+      document.body.appendChild(a); a.click(); a.remove();
+      window.setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
+      setInfo(blob.size > 1_048_576 ? `${(blob.size / 1_048_576).toFixed(1)} MB` : `${Math.max(1, Math.round(blob.size / 1024))} KB`);
+      setSt('done');
+    } catch (e: any) { setInfo(e.message || 'Failed'); setSt('err'); }
+  };
+  const tone = st === 'done' ? 'border-emerald-500/50 text-emerald-300' : st === 'err' ? 'border-rose-500/50 text-rose-300' : 'border-zinc-700 text-zinc-300 hover:border-accent/50 hover:text-accent';
+  return (
+    <button type="button" onClick={go} disabled={st === 'busy'} aria-live="polite" className={`inline-flex min-h-8 cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 font-mono text-[11px] transition disabled:cursor-wait ${tone}`}>
+      {st === 'busy' ? 'Preparing...' : st === 'done' ? `Downloaded ${info}` : st === 'err' ? `Failed: ${info}` : 'Zip'}
+    </button>
+  );
+}
 
 export default function SitesPanel() {
   const [rows, setRows] = useState<SiteRow[]>([]); const [msg, setMsg] = useState<string | null>(null);
   const [view, setView] = useState<{ id: string; html: string } | null>(null);
   const load = useCallback(() => api<{ sites: SiteRow[] }>('sites.list').then((d) => setRows(d.sites ?? [])).catch((e) => setMsg(e.message)), []);
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+    // payments get confirmed in another tab or on another device: keep the list (and its Paid / Zip state) fresh by itself
+    const t = window.setInterval(() => { if (!document.hidden) load(); }, 15000);
+    return () => window.clearInterval(t);
+  }, [load]);
 
   const preview = async (id: string) => {
     try {
@@ -47,8 +82,8 @@ export default function SitesPanel() {
               </div>
               <div className="flex gap-1.5">
                 <AButton small icon="eye" onClick={() => preview(r.id)}>Preview</AButton>
-                <a className="inline-flex min-h-8 items-center gap-1.5 rounded-lg border border-zinc-700 px-2.5 font-mono text-[11px] text-zinc-300 hover:border-accent/50 hover:text-accent" href={`/api/admin/zip?id=${r.id}`}>Zip</a>
-                <AButton small danger icon="trash" title="Delete" onClick={async () => { if (confirm(`Delete project ${r.id}? This cannot be undone.`)) { await api('site.delete', { id: r.id }); load(); } }} />
+                <ZipButton id={r.id} />
+                <AButton small danger icon="trash" title="Delete" onClick={async () => { if (await ask(`Delete project ${r.id}? This cannot be undone.`, { danger: true, confirmLabel: 'Delete' })) { await api('site.delete', { id: r.id }); load(); } }} />
               </div>
             </li>
           ))}

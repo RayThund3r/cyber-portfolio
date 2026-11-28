@@ -11,6 +11,7 @@ import { ROUTES } from '@/lib/siteMap';
 import type { Taught } from '@/lib/admin/brain';
 import { mergeNew, parseBulk, suggestPhrasings } from '@/lib/admin/trainTools';
 
+import { ask } from '@/lib/dialog';
 const fresh = (): SessionMemory => ({ interactionCount: 0, lastTopic: 'GREETINGS', userContext: {}, conversationHistory: [] });
 
 const TEMPLATES: Array<{ name: string; q: string[]; a: string }> = [
@@ -145,7 +146,7 @@ export default function TrainPanel({ seed, onSeedUsed }: { seed: string; onSeedU
               <div className="flex flex-wrap gap-1.5">
                 <AButton small onClick={() => { setForm({ id: e.id, q: e.q.join('\n'), a: e.a, link: e.link || '', off: !!e.off }); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>Edit</AButton>
                 <AButton small onClick={() => persist((list || []).map((x) => (x.id === e.id ? { ...x, off: !x.off || undefined } : x)), e.off ? 'Visible again' : 'Hidden from visitors')}>{e.off ? 'Show' : 'Hide'}</AButton>
-                <AButton small danger onClick={() => { if (confirm('Delete this taught answer?')) void persist((list || []).filter((x) => x.id !== e.id), 'Deleted'); }}>Delete</AButton>
+                <AButton small danger onClick={async () => { if (await ask('Delete this taught answer?', { danger: true, confirmLabel: 'Delete' })) void persist((list || []).filter((x) => x.id !== e.id), 'Deleted'); }}>Delete</AButton>
               </div>
             </li>))}</ul>)}
         <div className="flex flex-wrap gap-2 border-t border-zinc-800/80 px-4 py-3">

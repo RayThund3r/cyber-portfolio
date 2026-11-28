@@ -9,6 +9,7 @@ import { PRESETS } from '@/lib/studio/presets';
 import { compress } from './compress';
 
 import Icon from '@/components/ui/Icon';
+import { ask } from '@/lib/dialog';
 async function post(body: unknown) {
   const r = await fetch('/api/studio', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   const d = await r.json().catch(() => ({}));
@@ -80,8 +81,8 @@ export default function StudioEditor({ slug, onBack, onAuthLost }: { slug: strin
     },
   }), [assets, slug]);
 
-  const applyLook = (id: string) => {
-    if (!data || !confirm('Replace colours, fonts and style with this look? Your content stays.')) return;
+  const applyLook = async (id: string) => {
+    if (!data || !await ask('Replace colours, fonts and style with this look? Your content stays.')) return;
     const src = PRESETS[id].data;
     const next = { ...data, customCss: '' } as StudioData;
     for (const k of LOOK_KEYS) next[k] = src[k];

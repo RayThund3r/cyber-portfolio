@@ -11,6 +11,17 @@ m = L.missions({ NEXT_PUBLIC_SITE_URL: 'http://localhost:3000' }, none); ok('loc
 m = L.missions({ RESEND_API_KEY: '   ' }, none); ok('blank value does not count', !m.find((x) => x.id === 'mail').done);
 const json = JSON.stringify(L.missions({ RESEND_API_KEY: 'SECRET123', NEXT_PUBLIC_SITE_URL: 'https://x.y' }, none));
 ok('no secret values leak into the output', !json.includes('SECRET123'));
+// things saved in the panel count: no Vercel variable should be demanded for them
+m = L.missions({}, { ...none, storeConfigured: true, passwordSaved: true, totp: true, payConfigured: true, siteUrl: 'https://my.site' });
+ok('panel-saved password + permanent storage satisfies the login mission', m.find((x) => x.id === 'login').done);
+ok('panel-saved two-factor counts', m.find((x) => x.id === '2fa').done);
+ok('payment details saved in the panel count', m.find((x) => x.id === 'pay').done);
+ok('site address is detected from the request', m.find((x) => x.id === 'url').done);
+ok('none of those missions asks for an env variable any more', ['pay', 'url'].every((id) => m.find((x) => x.id === id).env.length === 0));
+m = L.missions({}, { ...none, passwordLen: 14, secretLen: 0, storeConfigured: false });
+ok('without storage a session secret is still needed', !m.find((x) => x.id === 'login').done);
+m = L.missions({}, { ...none, siteUrl: 'http://localhost:3000' });
+ok('a localhost request does not count as a public address', !m.find((x) => x.id === 'url').done);
 (async () => {
   global.fetch = async () => { throw new Error('offline'); };
   process.env.DATA_DIR = process.env.DATA_DIR || require('os').tmpdir();

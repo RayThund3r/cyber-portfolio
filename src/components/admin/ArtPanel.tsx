@@ -7,6 +7,7 @@ import { prepareArt, pickColors, type PreparedArt } from '@/lib/artImage';
 import { box, btn, primary } from './adminKit';
 import { AButton, Badge, Card, Empty, Field, Notice } from './ui';
 
+import { ask } from '@/lib/dialog';
 interface Art { id: string; title: string; category: string; description: string; tools: string[]; year: string; featured: boolean; w: number; h: number; v: number; color?: string; tone?: string }
 const CATS = ['Logos', 'Branding', 'Posters', 'Social media', 'Illustration', 'Packaging', 'UI design', 'Other'];
 async function artApi(body?: Record<string, unknown>): Promise<{ items: Art[] }> {
@@ -158,7 +159,7 @@ export default function ArtPanel() {
                   <AButton small disabled={busy || i === 0} onClick={() => call({ action: 'move', id: a.id, dir: 'up' }, 'Moved.')} title="Move earlier" icon="arrowUp" />
                   <AButton small disabled={busy || i === items.length - 1} onClick={() => call({ action: 'move', id: a.id, dir: 'down' }, 'Moved.')} title="Move later"><Icon name="arrowUp" size={14} className="rotate-180" /></AButton>
                   <AButton small icon="pencil" onClick={() => open(a)}>Edit</AButton>
-                  <AButton small danger icon="trash" onClick={() => confirm(`Delete “${a.title}”?`) && call({ action: 'delete', id: a.id }, 'Deleted.')} title="Delete" />
+                  <AButton small danger icon="trash" onClick={async () => await ask(`Delete “${a.title}”?`, { danger: true, confirmLabel: 'Delete' }) && call({ action: 'delete', id: a.id }, 'Deleted.')} title="Delete" />
                 </div>
               </div>
             </li>

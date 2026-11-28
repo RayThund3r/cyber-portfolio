@@ -8,6 +8,7 @@ import CommissionBand from '@/components/art/CommissionBand';
 import Spotlight from '@/components/art/Spotlight';
 import Tiles from '@/components/art/Tiles';
 import Viewer from '@/components/art/Viewer';
+import { useFavs } from '@/components/art/favs';
 import type { Art } from '@/components/art/types';
 
 type Sort = 'mine' | 'new' | 'old';
@@ -20,6 +21,8 @@ export default function ArtPage() {
   const [sort, setSort] = useState<Sort>('mine');
   const [layout, setLayout] = useState<'masonry' | 'grid'>('masonry');
   const [open, setOpen] = useState<string | null>(null);
+  const fav = useFavs();
+  const [onlyFav, setOnlyFav] = useState(false);
 
   const load = useCallback(() => {
     fetch('/api/art', { cache: 'no-store' }).then((r) => r.json()).then((d) => setItems(Array.isArray(d.items) ? d.items : [])).catch(() => setItems((x) => x ?? []));
@@ -34,6 +37,7 @@ export default function ArtPage() {
     return () => window.removeEventListener('site:updated', load);
   }, [load]);
 
+  useEffect(() => { if (onlyFav && !fav.favs.some((id) => items?.some((a) => a.id === id))) setOnlyFav(false); }, [onlyFav, fav.favs, items]);
   const pickLayout = (l: 'masonry' | 'grid') => { setLayout(l); safe(() => localStorage.setItem('art_layout', l), undefined); };
 
   // keep the address bar in step so a piece can be shared: /art?piece=<id>
@@ -51,11 +55,11 @@ export default function ArtPage() {
 
   const shown = useMemo(() => {
     const needle = q.trim().toLowerCase();
-    let l = all.filter((a) => (cat === 'All' || a.category === cat) && (!needle || `${a.title} ${a.category} ${a.description} ${a.tools.join(' ')}`.toLowerCase().includes(needle)));
+    let l = all.filter((a) => (!onlyFav || fav.has(a.id)) && (cat === 'All' || a.category === cat) && (!needle || `${a.title} ${a.category} ${a.description} ${a.tools.join(' ')}`.toLowerCase().includes(needle)));
     if (sort === 'new') l = [...l].sort((a, b) => Number(b.year || 0) - Number(a.year || 0));
     if (sort === 'old') l = [...l].sort((a, b) => Number(a.year || 9999) - Number(b.year || 9999));
     return l;
-  }, [all, cat, q, sort]);
+  }, [all, cat, q, sort, onlyFav, fav.favs]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const picks = useMemo(() => {
     const f = all.filter((a) => a.featured);
@@ -82,6 +86,7 @@ export default function ArtPage() {
           <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0 sm:pb-0" role="group" aria-label="Filter by kind of work">
               <button type="button" aria-pressed={cat === 'All'} onClick={() => setCat('All')} className={chip(cat === 'All')}>All <span className="ml-1 text-zinc-500">{all.length}</span></button>
+              {fav.favs.some((id) => all.some((a) => a.id === id)) && <button type="button" aria-pressed={onlyFav} onClick={() => setOnlyFav((v) => !v)} className={chip(onlyFav)}>Favourites <span className="ml-1 text-zinc-500">{all.filter((a) => fav.has(a.id)).length}</span></button>}
               {cats.map((c) => <button key={c} type="button" aria-pressed={cat === c} onClick={() => setCat(c)} className={chip(cat === c)}>{c} <span className="ml-1 text-zinc-500">{counts[c]}</span></button>)}
             </div>
             <div className="flex items-center gap-2">
@@ -116,8 +121,8 @@ export default function ArtPage() {
           </div>
         ) : shown.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-white/10 p-10 text-center">
-            <p className="text-sm text-zinc-300">Nothing matches “{q}”.</p>
-            <button type="button" onClick={() => { setQ(''); setCat('All'); }} className="mt-3 cursor-pointer text-sm text-accent hover:underline">Show everything</button>
+            <p className="text-sm text-zinc-300">{onlyFav && !q ? 'No favourites here yet. Tap the star on a piece to keep it.' : `Nothing matches “${q}”.`}</p>
+            <button type="button" onClick={() => { setQ(''); setCat('All'); setOnlyFav(false); }} className="mt-3 cursor-pointer text-sm text-accent hover:underline">Show everything</button>
           </div>
         ) : (
           <Tiles items={shown} layout={layout} onOpen={openId} />

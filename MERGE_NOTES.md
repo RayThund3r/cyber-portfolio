@@ -396,3 +396,11 @@ Verified: full suite ALL GREEN. Not verified: real `next build`; the new tabs/ma
 - /remote support page: switch + intro in Admin > Content > Packages. Linked from the footer only.
 - Printable estimate: "Print estimate" in the ticket editor and "Print or save the estimate" on /track.
 - Not next-build verified; not tested on a real phone.
+
+## Round 50 - gallery, payments, launch pad, dialogs
+- Art: captions and the viewer are always white (`.keep-dark` scope in globals.css, works in light mode). The star on each tile is now a real favourite button (saved in the visitor's browser), with a Favourites chip and a star in the viewer.
+- Payments: one number AND one registered name per network (MTN / Airtel). Edit in Admin > Settings > Mobile-money details; the old MOMO_* variables still work as a fallback (new optional MOMO_MTN_NAME / MOMO_AIRTEL_NAME).
+- Launch Pad: counts a password and 2FA saved in the panel, no longer asks for ADMIN_SESSION_SECRET when permanent storage is connected, detects the public address from the request, and payment details come from the panel.
+- Public address: NEXT_PUBLIC_SITE_URL is optional; falls back to Vercel's production domain.
+- Zip downloads (Admin > Sites and /track) show Preparing, then Downloaded with the size; the Sites list refreshes itself every 15 s.
+- In-site dialogs (translucent glass) replace every browser confirm/alert: lib/dialog.ts (`ask`, `notify`) + components/ui/DialogHost.tsx.
